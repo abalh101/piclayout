@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>PicLayout speichert deine exportierten Collagen in deiner Fotomediathek.</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array><string>instagram</string><string>snapchat</string><string>whatsapp</string><string>fb</string></array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

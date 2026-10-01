@@ -22,7 +22,11 @@ class HomePage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings.appName),
+        title: Row(children: [
+          Image.asset('assets/branding/app_logo.png', width: 34, height: 34),
+          const SizedBox(width: 10),
+          Text(strings.appName),
+        ]),
         actions: [
           IconButton(
             tooltip: strings.settings,

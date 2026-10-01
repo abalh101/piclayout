@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/localization/app_localizations.dart';
-import '../export/collage_exporter.dart';
-import '../export/export_settings.dart';
+import '../export/widgets/export_center.dart';
 import '../projects/models/collage_project.dart';
 import '../projects/state/project_providers.dart';
 import '../templates/models/design_library.dart';
@@ -62,7 +60,7 @@ class EditorPage extends ConsumerWidget {
             ),
             IconButton(
               tooltip: strings.export,
-              onPressed: () => _showExportSheet(context, controller),
+              onPressed: () => showExportCenter(context, controller.project),
               icon: const Icon(Icons.ios_share),
             ),
           ],
@@ -100,111 +98,6 @@ class EditorPage extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _showExportSheet(
-    BuildContext context,
-    CollageEditorController controller,
-  ) async {
-    final strings = AppLocalizations.of(context);
-    final sizes = controller.project.aspectRatio.exportSizes();
-
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.exportSize,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  strings.unsupportedExportWarning,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 16),
-                for (final size in sizes)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(size.label)),
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _exportAndShare(
-                              context,
-                              controller,
-                              ExportSettings(
-                                width: size.width,
-                                height: size.height,
-                                format: ExportFormat.jpeg,
-                              ),
-                            );
-                          },
-                          child: const Text('JPEG'),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _exportAndShare(
-                              context,
-                              controller,
-                              ExportSettings(
-                                width: size.width,
-                                height: size.height,
-                                format: ExportFormat.png,
-                              ),
-                            );
-                          },
-                          child: const Text('PNG'),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _exportAndShare(
-    BuildContext context,
-    CollageEditorController controller,
-    ExportSettings settings,
-  ) async {
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    await controller.saveNow();
-    if (!context.mounted) {
-      return;
-    }
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final file =
-          await const CollageExporter().export(controller.project, settings);
-      navigator.pop();
-      await Share.shareXFiles([XFile(file.path)]);
-    } catch (error) {
-      navigator.pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text('Export fehlgeschlagen: $error')),
-      );
-    }
   }
 }
 

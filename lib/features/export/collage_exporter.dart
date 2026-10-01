@@ -78,7 +78,7 @@ class CollageExporter {
     final file = File(
       p.join(
         exports.path,
-        'piclayout_${DateTime.now().millisecondsSinceEpoch}.${settings.extension}',
+        'piclayout_${DateTime.now().microsecondsSinceEpoch}.${settings.extension}',
       ),
     );
     await file.writeAsBytes(bytes, flush: true);
