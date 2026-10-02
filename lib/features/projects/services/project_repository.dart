@@ -57,7 +57,8 @@ class ProjectRepository {
     return projects;
   }
 
-  Future<CollageProject> createFromPickedImages(List<XFile> picked) async {
+  Future<CollageProject> createFromPickedImages(List<XFile> picked,
+      {String aspectRatioId = '9_16'}) async {
     final now = DateTime.now();
     final projectId = _uuid.v4();
     final dir = await _projectDirectory(projectId, create: true);
@@ -89,7 +90,7 @@ class ProjectRepository {
       createdAt: now,
       updatedAt: now,
       formatVersion: AppConfig.projectFormatVersion,
-      aspectRatioId: AspectRatios.story.id,
+      aspectRatioId: AspectRatios.byId(aspectRatioId).id,
       layoutTemplateId: template.id,
       photos: photos,
     );

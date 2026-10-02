@@ -242,3 +242,11 @@ Manual device checks for this feature:
    save/restart/reopen and template application with different photo counts.
 5. Check small screens, large system font, landscape, dark mode, tab scrolling,
    live preview visibility and Undo/Redo after preset, slider and Reset operations.
+
+## Einstellungen, Sprachen und Foto-Filter
+
+Die App bietet lokal gespeicherte Einstellungen, sechs manuell wählbare Sprachen
+(inklusive Arabisch/RTL), Problem melden per E-Mail sowie nicht-destruktive
+Foto-Filter mit Undo/Redo und Autosave. Bedienung, Datenmodell, Rendering,
+Gerätetests und die zu ersetzende Support-Adresse sind in
+[docs/settings-and-photo-editing.md](docs/settings-and-photo-editing.md) beschrieben.

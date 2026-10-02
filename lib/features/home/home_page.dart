@@ -25,7 +25,8 @@ class HomePage extends ConsumerWidget {
         title: Row(children: [
           Image.asset('assets/branding/app_logo.png', width: 34, height: 34),
           const SizedBox(width: 10),
-          Text(strings.appName),
+          Expanded(
+              child: Text(strings.appName, overflow: TextOverflow.ellipsis)),
         ]),
         actions: [
           IconButton(
@@ -65,7 +66,7 @@ class HomePage extends ConsumerWidget {
                 error: (error, _) => Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text('Fehler: $error'),
+                    child: Text(strings.tr('operationFailed')),
                   ),
                 ),
                 data: (items) {
@@ -224,7 +225,7 @@ class _ProjectCard extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '${project.photos.length} Fotos · ${project.aspectRatio.label}',
+                    '${project.photos.length} ${strings.tr('Fotos')} · ${project.aspectRatio.label}',
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ],

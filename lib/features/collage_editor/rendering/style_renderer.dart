@@ -1,3 +1,5 @@
+import '../models/photo_adjustments.dart';
+import 'photo_filter_renderer.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -163,7 +165,8 @@ class StyleRenderer {
   }
 
   static void photo(Canvas canvas, ui.Image image, Rect cell, double radius,
-      PhotoTransform transform) {
+      PhotoTransform transform,
+      {PhotoAdjustments adjustments = const PhotoAdjustments()}) {
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(cell, Radius.circular(radius)));
     final rotation = transform.rotationQuarterTurns % 4;
@@ -188,6 +191,7 @@ class StyleRenderer {
             width: image.width * baseScale * userScale,
             height: image.height * baseScale * userScale),
         Paint()
+          ..colorFilter = PhotoFilterRenderer.filter(adjustments)
           ..isAntiAlias = true
           ..filterQuality = FilterQuality.high);
     canvas.restore();

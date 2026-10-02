@@ -1,3 +1,4 @@
+import '../settings/state/settings_controller.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -59,7 +60,7 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
                           fit: BoxFit.cover,
                         ),
                       ),
-                      title: Text('Bild ${index + 1}'),
+                      title: Text('${strings.tr('Bild')} ${index + 1}'),
                       subtitle: Text(
                         file.name,
                         maxLines: 1,
@@ -102,7 +103,9 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
     final repository = ref.read(projectRepositoryProvider);
     final projects = ref.read(projectsProvider.notifier);
     try {
-      final project = await repository.createFromPickedImages(_files);
+      final defaults = await ref.read(settingsControllerProvider.future);
+      final project = await repository.createFromPickedImages(_files,
+          aspectRatioId: defaults.aspectRatioId);
       await projects.add(project);
       if (!mounted) {
         return;

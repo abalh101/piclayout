@@ -1,3 +1,8 @@
+import '../../../core/localization/app_localizations.dart';
+import '../services/gallery_save_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../settings/models/app_settings.dart';
+import '../../settings/state/settings_controller.dart';
 import '../../collage_editor/models/canvas_style.dart';
 import 'package:flutter/material.dart';
 import '../../projects/models/collage_project.dart';
@@ -11,20 +16,33 @@ Future<void> showExportCenter(BuildContext context, CollageProject project) =>
       isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,
-      builder: (_) => ExportCenter(project: project),
+      builder: (_) => Consumer(
+          builder: (context, ref, _) => ref
+              .watch(settingsControllerProvider)
+              .when(
+                  data: (settings) =>
+                      ExportCenter(project: project, defaults: settings),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => ExportCenter(project: project))),
     );
 
 class ExportCenter extends StatefulWidget {
-  const ExportCenter({required this.project, super.key});
+  const ExportCenter(
+      {required this.project, this.defaults = const AppSettings(), super.key});
   final CollageProject project;
+  final AppSettings defaults;
   @override
   State<ExportCenter> createState() => _ExportCenterState();
 }
 
 class _ExportCenterState extends State<ExportCenter> {
   final _flow = ExportFlowController();
-  SocialShareDestination _destination = SocialShareDestination.gallery;
-  ExportFormat _format = ExportFormat.png;
+  late SocialShareDestination _destination =
+      widget.defaults.exportAction == ExportAction.gallery
+          ? SocialShareDestination.gallery
+          : SocialShareDestination.general;
+  late ExportFormat _format = widget.defaults.exportFormat;
   String? _message;
   late final List<SocialSharePreset> _originals = [
     for (final size in widget.project.aspectRatio.exportSizes())
@@ -56,6 +74,7 @@ class _ExportCenterState extends State<ExportCenter> {
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: _flow,
         builder: (context, _) {
+          final t = AppLocalizations.of(context).tr;
           final scheme = Theme.of(context).colorScheme;
           final presets = [
             if (_destination.app == null) ..._originals,
@@ -73,10 +92,10 @@ class _ExportCenterState extends State<ExportCenter> {
                       const Icon(Icons.ios_share),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: Text('Exportieren',
+                          child: Text(AppLocalizations.of(context).export,
                               style: Theme.of(context).textTheme.titleLarge)),
                       IconButton(
-                          tooltip: 'Schließen',
+                          tooltip: t('Schließen'),
                           onPressed:
                               _flow.busy ? null : () => Navigator.pop(context),
                           icon: const Icon(Icons.close)),
@@ -88,14 +107,14 @@ class _ExportCenterState extends State<ExportCenter> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Wohin soll deine Collage?',
+                          Text(t('Wohin soll deine Collage?'),
                               style: Theme.of(context).textTheme.titleMedium),
                           const SizedBox(height: 12),
                           Wrap(spacing: 8, runSpacing: 8, children: [
                             for (final target in SocialShareDestination.values)
                               ChoiceChip(
                                 avatar: Icon(_icon(target), size: 18),
-                                label: Text(target.label),
+                                label: Text(t(target.label)),
                                 selected: _destination == target,
                                 onSelected: _flow.busy
                                     ? null
@@ -110,13 +129,13 @@ class _ExportCenterState extends State<ExportCenter> {
                               ),
                           ]),
                           const SizedBox(height: 20),
-                          Text('Bildgröße',
+                          Text(t('Bildgröße'),
                               style: Theme.of(context).textTheme.titleMedium),
                           const SizedBox(height: 8),
                           Wrap(spacing: 8, runSpacing: 8, children: [
                             for (final preset in presets)
                               ChoiceChip(
-                                  label: Text(preset.label),
+                                  label: Text(t(preset.label)),
                                   selected: _preset.id == preset.id,
                                   onSelected: _flow.busy
                                       ? null
@@ -140,10 +159,10 @@ class _ExportCenterState extends State<ExportCenter> {
                           ),
                           if (_preset.differsStrongly(
                               widget.project.aspectRatio.value))
-                            const Padding(
-                                padding: EdgeInsets.only(top: 12),
-                                child: Text(
-                                    'Das Exportformat weicht deutlich ab. Bildausschnitte und Textpositionen werden für den Export neu eingepasst. Dein Projekt bleibt erhalten.')),
+                            Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Text(t(
+                                    'Das Exportformat weicht deutlich ab. Bildausschnitte und Textpositionen werden für den Export neu eingepasst. Dein Projekt bleibt erhalten.'))),
                           const SizedBox(height: 20),
                           SegmentedButton<ExportFormat>(
                             segments: const [
@@ -163,11 +182,11 @@ class _ExportCenterState extends State<ExportCenter> {
                             Padding(
                                 padding: const EdgeInsets.only(top: 12),
                                 child: Text(_format == ExportFormat.png
-                                    ? 'PNG exportiert den Hintergrund transparent.'
-                                    : 'JPEG ersetzt den transparenten Hintergrund durch Weiß.')),
+                                    ? t('PNG exportiert den Hintergrund transparent.')
+                                    : t('JPEG ersetzt den transparenten Hintergrund durch Weiß.'))),
                           const SizedBox(height: 16),
                           Text(
-                              'Social-Media-Ziele öffnen die Ziel-App oder das Teilen-Menü. Wähle dort Story, Post oder Status und bestätige den Upload selbst.',
+                              t('Social-Media-Ziele öffnen die Ziel-App oder das Teilen-Menü. Wähle dort Story, Post oder Status und bestätige den Upload selbst.'),
                               style: Theme.of(context).textTheme.bodySmall),
                           const SizedBox(height: 16),
                         ]),
@@ -192,10 +211,10 @@ class _ExportCenterState extends State<ExportCenter> {
                                         strokeWidth: 2))
                                 : Icon(_icon(_destination)),
                             label: Text(_flow.busy
-                                ? 'Bild wird vorbereitet …'
+                                ? t('Bild wird vorbereitet …')
                                 : _destination == SocialShareDestination.gallery
-                                    ? 'In Galerie speichern'
-                                    : 'Bild vorbereiten & teilen'),
+                                    ? t('In Galerie speichern')
+                                    : t('Bild vorbereiten & teilen')),
                           )),
                     ]),
                   ),
@@ -211,13 +230,18 @@ class _ExportCenterState extends State<ExportCenter> {
     final origin = box.localToGlobal(Offset.zero) & box.size;
     final messenger = ScaffoldMessenger.of(context);
     void notice(String message) {
+      message = AppLocalizations.of(context).tr(message);
       if (mounted) setState(() => _message = message);
     }
 
     try {
       final result = await _flow.run(
           project: widget.project,
-          settings: _preset.settings(_format),
+          settings: ExportSettings(
+              width: _preset.width,
+              height: _preset.height,
+              format: _format,
+              jpegQuality: widget.defaults.jpegQuality),
           destination: _destination,
           origin: origin,
           onNotice: notice);
@@ -225,10 +249,13 @@ class _ExportCenterState extends State<ExportCenter> {
           result != null &&
           _destination == SocialShareDestination.gallery) {
         Navigator.pop(context);
-        messenger.showSnackBar(SnackBar(content: Text(result)));
+        messenger.showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).tr(result))));
       }
     } catch (error) {
-      if (mounted) notice('Export fehlgeschlagen: $error');
+      if (mounted) {
+        notice(error is ExportFailure ? error.message : 'operationFailed');
+      }
     }
   }
 }

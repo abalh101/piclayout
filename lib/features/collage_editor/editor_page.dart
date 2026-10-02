@@ -1,3 +1,4 @@
+import 'widgets/photo_edit_sheet.dart';
 import 'widgets/style_studio_sheet.dart';
 import 'dart:async';
 
@@ -50,12 +51,12 @@ class EditorPage extends ConsumerWidget {
           title: Text(controller.project.name),
           actions: [
             IconButton(
-              tooltip: 'Undo',
+              tooltip: strings.tr('undo'),
               onPressed: controller.canUndo ? controller.undo : null,
               icon: const Icon(Icons.undo),
             ),
             IconButton(
-              tooltip: 'Redo',
+              tooltip: strings.tr('redo'),
               onPressed: controller.canRedo ? controller.redo : null,
               icon: const Icon(Icons.redo),
             ),
@@ -119,6 +120,7 @@ class _PreviewPanel extends StatelessWidget {
             child: CollageCanvas(
               controller: controller,
               onEditText: () => showTextOverlaySheet(context, controller),
+              onEditPhoto: () => showPhotoSheet(context, controller),
             ),
           ),
         ),
@@ -230,7 +232,7 @@ class _ToolsPanel extends ConsumerWidget {
                   child: FilledButton.icon(
                     onPressed: controller.selectedPhoto == null
                         ? null
-                        : () => _showPhotoSheet(context, controller),
+                        : () => showPhotoSheet(context, controller),
                     icon: const Icon(Icons.crop),
                     label: Text(strings.photo),
                   ),
@@ -279,7 +281,7 @@ class _ToolsPanel extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         ChoiceChip(
-          label: Text(layout.title),
+          label: Text(AppLocalizations.of(context).tr(layout.title)),
           selected: controller.project.layoutTemplateId == layout.id,
           onSelected: (_) => controller.setLayoutTemplate(layout.id),
         ),
@@ -295,103 +297,109 @@ class _ToolsPanel extends ConsumerWidget {
       ],
     );
   }
+}
 
-  Future<void> _showPhotoSheet(
-    BuildContext context,
-    CollageEditorController controller,
-  ) async {
-    final strings = AppLocalizations.of(context);
-    final picker = ImagePicker();
+Future<void> showPhotoSheet(
+  BuildContext context,
+  CollageEditorController controller,
+) async {
+  final strings = AppLocalizations.of(context);
+  final picker = ImagePicker();
 
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: controller,
-          builder: (context, _) {
-            final photo = controller.selectedPhoto;
-            if (photo == null) {
-              return Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(strings.noPhotoSelected),
-              );
-            }
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SegmentedButton<PhotoFitMode>(
-                      segments: [
-                        ButtonSegment(
-                          value: PhotoFitMode.fill,
-                          label: Text(strings.fill),
-                          icon: const Icon(Icons.fullscreen),
-                        ),
-                        ButtonSegment(
-                          value: PhotoFitMode.fit,
-                          label: Text(strings.fit),
-                          icon: const Icon(Icons.fit_screen),
-                        ),
-                      ],
-                      selected: {photo.transform.fitMode},
-                      onSelectionChanged: (value) {
-                        controller.setSelectedFitMode(value.first);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: controller.resetSelectedTransform,
-                          icon: const Icon(Icons.restart_alt),
-                          label: Text(strings.resetCrop),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: controller.rotateSelected,
-                          icon: const Icon(Icons.rotate_90_degrees_ccw),
-                          label: Text(strings.rotate),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: controller.flipSelected,
-                          icon: const Icon(Icons.flip),
-                          label: Text(strings.flip),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            final picked = await picker.pickImage(
-                              source: ImageSource.gallery,
-                              requestFullMetadata: false,
-                            );
-                            if (picked != null) {
-                              await controller.replaceSelected(picked);
-                            }
-                          },
-                          icon: const Icon(Icons.swap_horiz),
-                          label: Text(strings.replace),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: controller.project.photos.length <= 1
-                              ? null
-                              : controller.removeSelected,
-                          icon: const Icon(Icons.delete_outline),
-                          label: Text(strings.remove),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final photo = controller.selectedPhoto;
+          if (photo == null) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(strings.noPhotoSelected),
             );
-          },
-        );
-      },
-    );
-  }
+          }
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FilledButton.icon(
+                    icon: const Icon(Icons.tune),
+                    label: Text(strings.tr('editPhoto')),
+                    onPressed: () => showPhotoEditor(context, controller),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<PhotoFitMode>(
+                    segments: [
+                      ButtonSegment(
+                        value: PhotoFitMode.fill,
+                        label: Text(strings.fill),
+                        icon: const Icon(Icons.fullscreen),
+                      ),
+                      ButtonSegment(
+                        value: PhotoFitMode.fit,
+                        label: Text(strings.fit),
+                        icon: const Icon(Icons.fit_screen),
+                      ),
+                    ],
+                    selected: {photo.transform.fitMode},
+                    onSelectionChanged: (value) {
+                      controller.setSelectedFitMode(value.first);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: controller.resetSelectedTransform,
+                        icon: const Icon(Icons.restart_alt),
+                        label: Text(strings.resetCrop),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: controller.rotateSelected,
+                        icon: const Icon(Icons.rotate_90_degrees_ccw),
+                        label: Text(strings.rotate),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: controller.flipSelected,
+                        icon: const Icon(Icons.flip),
+                        label: Text(strings.flip),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            requestFullMetadata: false,
+                          );
+                          if (picked != null) {
+                            await controller.replaceSelected(picked);
+                          }
+                        },
+                        icon: const Icon(Icons.swap_horiz),
+                        label: Text(strings.replace),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: controller.project.photos.length <= 1
+                            ? null
+                            : controller.removeSelected,
+                        icon: const Icon(Icons.delete_outline),
+                        label: Text(strings.remove),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 class _SliderTile extends StatelessWidget {

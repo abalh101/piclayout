@@ -1,3 +1,4 @@
+import '../models/photo_adjustments.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
@@ -184,6 +185,16 @@ class CollageEditorController extends ChangeNotifier {
     } else {
       _mutate(_project.copyWith(canvas: settings));
     }
+  }
+
+  void setAdjustments(String photoId, PhotoAdjustments adjustments) {
+    _mutate(_project.copyWith(photos: [
+      for (final photo in _project.photos)
+        if (photo.id == photoId)
+          photo.copyWith(adjustments: adjustments)
+        else
+          photo,
+    ]));
   }
 
   void setTransform(String photoId, PhotoTransform transform) {

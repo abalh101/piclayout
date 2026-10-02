@@ -72,7 +72,8 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
                         ),
                         FilledButton.tonalIcon(
                           onPressed: () {
-                            final added = widget.controller.addText('Text');
+                            final added =
+                                widget.controller.addText(strings.textOverlay);
                             _textController.text = added.text;
                           },
                           icon: const Icon(Icons.add),

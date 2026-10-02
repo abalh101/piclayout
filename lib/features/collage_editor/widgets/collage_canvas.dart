@@ -12,11 +12,13 @@ class CollageCanvas extends StatefulWidget {
   const CollageCanvas({
     required this.controller,
     this.onEditText,
+    this.onEditPhoto,
     super.key,
   });
 
   final CollageEditorController controller;
   final VoidCallback? onEditText;
+  final VoidCallback? onEditPhoto;
 
   @override
   State<CollageCanvas> createState() => _CollageCanvasState();
@@ -62,9 +64,11 @@ class _CollageCanvasState extends State<CollageCanvas> {
                           cornerRadius: cell.cornerRadius,
                           selected: controller.selectedPhotoId ==
                               project.photos[cell.photoIndex].id,
-                          onTap: () => controller.selectPhoto(
-                            project.photos[cell.photoIndex].id,
-                          ),
+                          onTap: () {
+                            controller.selectPhoto(
+                                project.photos[cell.photoIndex].id);
+                            widget.onEditPhoto?.call();
+                          },
                           onScaleStart: () {
                             final photo = project.photos[cell.photoIndex];
                             _gestureStartScale = photo.transform.scale;

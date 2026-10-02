@@ -52,7 +52,8 @@ class CollageExporter {
         final image = await loadProjectImage(photo.localPath);
         try {
           StyleRenderer.photo(
-              canvas, image, cell.rect, cell.cornerRadius, photo.transform);
+              canvas, image, cell.rect, cell.cornerRadius, photo.transform,
+              adjustments: photo.adjustments);
         } finally {
           image.dispose();
         }

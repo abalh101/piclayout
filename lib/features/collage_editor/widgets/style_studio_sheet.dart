@@ -1,3 +1,4 @@
+import '../../../core/localization/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../models/canvas_style.dart';
 import '../models/style_presets.dart';
@@ -22,6 +23,7 @@ class _StyleStudio extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
+        final t = AppLocalizations.of(context).tr;
         final settings = controller.project.canvas;
         final style = settings.style;
         void change(CanvasStyle value) =>
@@ -29,7 +31,7 @@ class _StyleStudio extends StatelessWidget {
         Widget slider(String label, double value, double min, double max,
                 ValueChanged<double> update) =>
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('$label · ${value.toStringAsFixed(1)}'),
+              Text('${t(label)} · ${value.toStringAsFixed(1)}'),
               Slider(
                   value: value.clamp(min, max),
                   min: min,
@@ -51,7 +53,7 @@ class _StyleStudio extends StatelessWidget {
                 'Rot': 0xFFEF4444
               }.entries)
                 ChoiceChip(
-                    label: Text(entry.key),
+                    label: Text(t(entry.key)),
                     avatar: CircleAvatar(
                         backgroundColor: Color(entry.value), radius: 8),
                     selected: value == entry.value,
@@ -69,19 +71,19 @@ class _StyleStudio extends StatelessWidget {
               Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(children: [
-                    const Expanded(
-                        child: Text('Style Studio',
-                            style: TextStyle(
+                    Expanded(
+                        child: Text(t('Style Studio'),
+                            style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold))),
                     TextButton(
                         onPressed: controller.resetStyle,
-                        child: const Text('Reset'))
+                        child: Text(t('Reset')))
                   ])),
-              const TabBar(isScrollable: true, tabs: [
-                Tab(text: 'Hintergrund'),
-                Tab(text: 'Rahmen'),
-                Tab(text: 'Schatten'),
-                Tab(text: 'Presets')
+              TabBar(isScrollable: true, tabs: [
+                Tab(text: t('Hintergrund')),
+                Tab(text: t('Rahmen')),
+                Tab(text: t('Schatten')),
+                Tab(text: t('Presets'))
               ]),
               Expanded(
                   child: TabBarView(children: [
@@ -97,23 +99,23 @@ class _StyleStudio extends StatelessWidget {
                       BackgroundType.transparent: 'Transparent'
                     }.entries)
                       ChoiceChip(
-                          label: Text(entry.value),
+                          label: Text(t(entry.value)),
                           selected: style.backgroundType == entry.key,
                           onSelected: (_) =>
                               change(style.copyWith(backgroundType: entry.key)))
                   ]),
                   if (style.backgroundType == BackgroundType.transparent)
-                    const Text(
-                        'PNG bleibt transparent. JPEG erhält einen weißen Hintergrund. Das Schachbrett dient nur der Vorschau.'),
+                    Text(t(
+                        'PNG bleibt transparent. JPEG erhält einen weißen Hintergrund. Das Schachbrett dient nur der Vorschau.')),
                   if (style.backgroundType != BackgroundType.transparent) ...[
-                    const Text('Hintergrundfarbe'),
+                    Text(t('Hintergrundfarbe')),
                     colors(
                         settings.backgroundColor,
                         (value) => controller.updateCanvas(
                             settings.copyWith(backgroundColor: value)))
                   ],
                   if (style.backgroundType == BackgroundType.gradient) ...[
-                    const Text('Zweite Farbe'),
+                    Text(t('Zweite Farbe')),
                     colors(
                         style.gradientEndColor,
                         (value) =>
@@ -124,11 +126,11 @@ class _StyleStudio extends StatelessWidget {
                   if (style.backgroundType == BackgroundType.blur) ...[
                     Wrap(spacing: 6, children: [
                       ActionChip(
-                          label: const Text('Kein Blur'),
+                          label: Text(t('Kein Blur')),
                           onPressed: () => change(style.copyWith(
                               backgroundType: BackgroundType.solid))),
                       ActionChip(
-                          label: const Text('Aktives Bild'),
+                          label: Text(t('Aktives Bild')),
                           onPressed: controller.selectedPhotoId == null
                               ? null
                               : () => change(style.copyWith(
@@ -138,7 +140,7 @@ class _StyleStudio extends StatelessWidget {
                                           controller.selectedPhotoId)))),
                       for (int i = 0; i < controller.project.photos.length; i++)
                         ChoiceChip(
-                            label: Text('Bild ${i + 1}'),
+                            label: Text('${t('Bild')} ${i + 1}'),
                             selected: style.blurPhotoIndex == i,
                             onSelected: (_) =>
                                 change(style.copyWith(blurPhotoIndex: i)))
@@ -149,12 +151,12 @@ class _StyleStudio extends StatelessWidget {
                         (v) => change(style.copyWith(brightness: v))),
                     SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Sättigung reduzieren'),
+                        title: Text(t('Sättigung reduzieren')),
                         value: style.desaturate,
                         onChanged: (v) =>
                             change(style.copyWith(desaturate: v))),
-                    const Text(
-                        'Die Quelle ist die gewählte Bildposition. Originaldateien bleiben unverändert.')
+                    Text(t(
+                        'Die Quelle ist die gewählte Bildposition. Originaldateien bleiben unverändert.'))
                   ],
                   slider(
                       'Bildabstand',
@@ -180,7 +182,7 @@ class _StyleStudio extends StatelessWidget {
                 ]),
                 page([
                   SwitchListTile(
-                      title: const Text('Bildrahmen'),
+                      title: Text(t('Bildrahmen')),
                       value: style.frameEnabled,
                       onChanged: (v) =>
                           change(style.copyWith(frameEnabled: v))),
@@ -190,12 +192,12 @@ class _StyleStudio extends StatelessWidget {
                     slider('Rahmenstärke', style.frameWidth, 0, 20,
                         (v) => change(style.copyWith(frameWidth: v)))
                   ],
-                  const Text(
-                      'Direkt aneinanderliegende Bilder erhalten einen gemeinsamen Außenrahmen.')
+                  Text(t(
+                      'Direkt aneinanderliegende Bilder erhalten einen gemeinsamen Außenrahmen.'))
                 ]),
                 page([
                   SwitchListTile(
-                      title: const Text('Schatten'),
+                      title: Text(t('Schatten')),
                       value: style.shadowEnabled,
                       onChanged: (v) =>
                           change(style.copyWith(shadowEnabled: v))),
@@ -225,8 +227,8 @@ class _StyleStudio extends StatelessWidget {
                             onTap: () => controller.updateCanvas(preset.settings
                                 .copyWith(
                                     staggerAmount: settings.staggerAmount)))),
-                  const Text(
-                      'Presets ändern nur den Stil. Fotos, Reihenfolge und Texte bleiben erhalten.')
+                  Text(t(
+                      'Presets ändern nur den Stil. Fotos, Reihenfolge und Texte bleiben erhalten.'))
                 ]),
               ]))
             ]));

@@ -118,7 +118,8 @@ class _ScenePainter extends CustomPainter {
       final image = images[photo.localPath];
       if (image != null) {
         StyleRenderer.photo(
-            canvas, image, cell.rect, cell.cornerRadius, photo.transform);
+            canvas, image, cell.rect, cell.cornerRadius, photo.transform,
+            adjustments: photo.adjustments);
       } else {
         canvas.drawRRect(
             RRect.fromRectAndRadius(

@@ -31,7 +31,7 @@ Future<void> showSaveTemplateDialog(
   } catch (error) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
+        SnackBar(content: Text(strings.tr('operationFailed'))),
       );
     }
   }
@@ -128,7 +128,8 @@ Future<void> showMyTemplatesSheet(
                     child: library.when(
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (error, _) => Center(child: Text('$error')),
+                      error: (error, _) =>
+                          Center(child: Text(strings.tr('operationFailed'))),
                       data: (data) => data.templates.isEmpty
                           ? Center(child: Text(strings.noTemplates))
                           : ListView.builder(
