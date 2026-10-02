@@ -1,3 +1,6 @@
+import 'support/onboarding_fixtures.dart';
+import 'package:piclayout/features/onboarding/onboarding_repository.dart';
+import 'package:piclayout/features/tutorial_tips/tutorial_tip_controller.dart';
 import 'dart:io';
 import 'package:piclayout/features/settings/settings_page.dart';
 import 'package:flutter/material.dart';
@@ -143,6 +146,8 @@ void main() {
     final repository = MemorySettings();
     final container = ProviderContainer(overrides: [
       settingsRepositoryProvider.overrideWithValue(repository),
+      onboardingRepositoryProvider.overrideWithValue(
+          MemoryOnboarding(value: const OnboardingState(completed: true))),
       projectRepositoryProvider.overrideWithValue(EmptyProjects())
     ]);
     addTearDown(container.dispose);
@@ -175,6 +180,8 @@ void main() {
       ..value = const AppSettings(languageCode: 'de');
     final container = ProviderContainer(overrides: [
       settingsRepositoryProvider.overrideWithValue(repository),
+      onboardingRepositoryProvider.overrideWithValue(
+          MemoryOnboarding(value: const OnboardingState(completed: true))),
       projectRepositoryProvider.overrideWithValue(EmptyProjects()),
       appMetadataProvider.overrideWith((ref) async => const AppMetadata(
           version: '1.0+1', platform: 'android', device: 'Android device')),

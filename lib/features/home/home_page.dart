@@ -1,3 +1,4 @@
+import '../demo_projects/demo_projects_page.dart';
 import '../project_archive/project_archive_actions.dart';
 import '../project_archive/project_archive_controller.dart';
 import 'dart:io';
@@ -67,6 +68,12 @@ class HomePage extends ConsumerWidget {
                 const LinearProgressIndicator(),
                 Text(strings.tr('archiveWorking')),
               ],
+              OutlinedButton.icon(
+                key: const ValueKey('open-demo'),
+                onPressed: () => openDemoProjects(context),
+                icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                label: Text(strings.tr('demoOpen')),
+              ),
               const SizedBox(height: 24),
               Text(
                 strings.recentProjects,
@@ -172,7 +179,7 @@ class _EmptyProjects extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              strings.emptyProjectsBody,
+              '${strings.emptyProjectsBody}\n\n${strings.tr('introLocal')}',
               textAlign: TextAlign.center,
             ),
           ],

@@ -1,3 +1,5 @@
+import '../layout_recommendations/recommended_layouts.dart';
+import '../tutorial_tips/tutorial_tip.dart';
 import '../project_archive/project_archive_actions.dart';
 import '../project_archive/project_archive_controller.dart';
 import '../stickers/sticker_sheet.dart';
@@ -170,6 +172,16 @@ class _ToolsPanel extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            TutorialTip(
+              key: ValueKey(controller.selectedText != null ||
+                      controller.selectedSticker != null
+                  ? 'tipDrag'
+                  : 'tipPhoto'),
+              id: controller.selectedText != null ||
+                      controller.selectedSticker != null
+                  ? 'tipDrag'
+                  : 'tipPhoto',
+            ),
             Wrap(spacing: 8, runSpacing: 8, children: [
               OutlinedButton.icon(
                   key: const ValueKey('add-sticker'),
@@ -201,6 +213,17 @@ class _ToolsPanel extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
+            RecommendedLayouts(
+              recommendations: controller.layoutRecommendations,
+              targetRatio: project.aspectRatio.value,
+              staggerAmount: project.canvas.staggerAmount,
+              loading: controller.metadataLoading,
+              selectedId: project.customLayout == null
+                  ? project.layoutTemplateId
+                  : null,
+              onSelected: controller.setLayoutTemplate,
+              onAuto: controller.autoLayout,
+            ),
             Text(strings.layout, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
             if (favorites.isNotEmpty) ...[
@@ -359,6 +382,7 @@ Future<void> showPhotoSheet(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const TutorialTip(id: 'tipZoom'),
                   FilledButton.icon(
                     icon: const Icon(Icons.tune),
                     label: Text(strings.tr('editPhoto')),

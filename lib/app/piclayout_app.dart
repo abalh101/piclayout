@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/localization/app_localizations.dart';
 import '../core/theme/app_theme.dart';
-import '../features/home/home_page.dart';
+import '../features/onboarding/onboarding_page.dart';
 import 'app_config.dart';
 
 class PicLayoutApp extends ConsumerWidget {
@@ -28,7 +28,7 @@ class PicLayoutApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const HomePage(),
+      home: const OnboardingGate(),
     );
   }
 }

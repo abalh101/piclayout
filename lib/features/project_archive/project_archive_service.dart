@@ -1,3 +1,4 @@
+import '../layout_recommendations/photo_metadata_reader.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -151,6 +152,8 @@ class ProjectArchiveService {
             .writeAsBytes(portable, flush: true);
         photos.add(photo.copyWith(
             id: photoId,
+            metadata: await const PhotoMetadataReader()
+                .read(p.join(images.path, name)),
             originalFileName: name,
             localPath: p.join(destination.path, 'images', name)));
       }

@@ -1,3 +1,6 @@
+import '../demo_projects/demo_projects_page.dart';
+import '../onboarding/onboarding_page.dart';
+import '../tutorial_tips/tutorial_tip_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,6 +105,37 @@ class SettingsPage extends ConsumerWidget {
                                   ));
                         }
                       }),
+                  const Divider(),
+                  ListTile(
+                    key: const ValueKey('replay-onboarding'),
+                    leading: const Icon(Icons.school_outlined),
+                    title: Text(t('introReplay')),
+                    onTap: () => replayOnboarding(context),
+                  ),
+                  ListTile(
+                    key: const ValueKey('reset-tips'),
+                    leading: const Icon(Icons.lightbulb_outline),
+                    title: Text(t('tipsReset')),
+                    onTap: () async {
+                      try {
+                        await ref
+                            .read(tutorialTipControllerProvider.notifier)
+                            .resetTips();
+                        if (context.mounted) {
+                          _notice(context, t('tipsResetDone'));
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          _notice(context, t('settingsError'));
+                        }
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome_mosaic_outlined),
+                    title: Text(t('demoProjects')),
+                    onTap: () => openDemoProjects(context),
+                  ),
                   const Divider(),
                   Text(t('defaults'),
                       style: Theme.of(context).textTheme.titleMedium),

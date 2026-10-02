@@ -1,3 +1,5 @@
+import '../../layout_recommendations/photo_metadata_reader.dart';
+import '../../layout_recommendations/layout_recommendation_service.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -79,11 +81,16 @@ class ProjectRepository {
           id: photoId,
           originalFileName: p.basename(source.path),
           localPath: target.path,
+          metadata: await const PhotoMetadataReader().read(target.path),
         ),
       );
     }
 
-    final template = LayoutLibrary.defaultFor(photos.length);
+    final recommendations = const LayoutRecommendationService()
+        .recommend(photos, targetRatio: AspectRatios.byId(aspectRatioId).value);
+    final template = recommendations.isEmpty
+        ? LayoutLibrary.defaultFor(photos.length)
+        : recommendations.first.layout;
     final project = CollageProject(
       id: projectId,
       name: 'Collage ${now.day}.${now.month}.${now.year}',
@@ -158,6 +165,7 @@ class ProjectRepository {
       id: photoId,
       originalFileName: p.basename(picked.path),
       localPath: target.path,
+      metadata: await const PhotoMetadataReader().read(target.path),
     );
   }
 

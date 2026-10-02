@@ -1,3 +1,4 @@
+import '../../tutorial_tips/tutorial_tip.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../services/gallery_save_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,18 +21,25 @@ Future<void> showExportCenter(BuildContext context, CollageProject project) =>
           builder: (context, ref, _) => ref
               .watch(settingsControllerProvider)
               .when(
-                  data: (settings) =>
-                      ExportCenter(project: project, defaults: settings),
+                  data: (settings) => ExportCenter(
+                      project: project,
+                      defaults: settings,
+                      showTutorialTip: true),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => ExportCenter(project: project))),
+                  error: (error, stack) =>
+                      ExportCenter(project: project, showTutorialTip: true))),
     );
 
 class ExportCenter extends StatefulWidget {
   const ExportCenter(
-      {required this.project, this.defaults = const AppSettings(), super.key});
+      {required this.project,
+      this.defaults = const AppSettings(),
+      this.showTutorialTip = false,
+      super.key});
   final CollageProject project;
   final AppSettings defaults;
+  final bool showTutorialTip;
   @override
   State<ExportCenter> createState() => _ExportCenterState();
 }
@@ -107,6 +115,8 @@ class _ExportCenterState extends State<ExportCenter> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (widget.showTutorialTip)
+                            const TutorialTip(id: 'tipExport'),
                           Text(t('Wohin soll deine Collage?'),
                               style: Theme.of(context).textTheme.titleMedium),
                           const SizedBox(height: 12),

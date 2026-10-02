@@ -1,5 +1,312 @@
 // Order: German, English, Arabic, Turkish, French, Spanish.
 const translations = <String, List<String>>{
+  "recRecommended": [
+    "Empfohlen",
+    "Recommended",
+    "مقترح",
+    "Önerilen",
+    "Recommandé",
+    "Recomendado"
+  ],
+  "recAuto": [
+    "Auto Layout",
+    "Auto layout",
+    "تخطيط تلقائي",
+    "Otomatik düzen",
+    "Disposition auto",
+    "Diseño automático"
+  ],
+  "recLoading": [
+    "Fotoformate werden gelesen …",
+    "Reading photo dimensions…",
+    "جارٍ قراءة أبعاد الصور…",
+    "Fotoğraf boyutları okunuyor…",
+    "Lecture des dimensions des photos…",
+    "Leyendo las dimensiones de las fotos…"
+  ],
+  "recFormat": [
+    "Passend zu Fotoanzahl und Zielformat",
+    "Fits the photo count and target format",
+    "يناسب عدد الصور وتنسيق الإخراج",
+    "Fotoğraf sayısına ve hedef biçime uygun",
+    "Adapté au nombre de photos et au format cible",
+    "Se adapta al número de fotos y al formato de destino"
+  ],
+  "recPortrait": [
+    "Passt zu vielen Hochformatbildern",
+    "Fits many portrait photos",
+    "يناسب الصور الرأسية المتعددة",
+    "Dikey fotoğraflara uygun",
+    "Adapté aux photos en portrait",
+    "Ideal para fotos verticales"
+  ],
+  "recLandscape": [
+    "Breite Felder für Querformatbilder",
+    "Wide cells for landscape photos",
+    "خانات عريضة للصور الأفقية",
+    "Yatay fotoğraflar için geniş alanlar",
+    "Cases larges pour les photos en paysage",
+    "Espacios anchos para fotos horizontales"
+  ],
+  "recSquare": [
+    "Ausgeglichenes Raster für ein Quadrat",
+    "Balanced grid for a square",
+    "شبكة متوازنة لتنسيق مربع",
+    "Kare için dengeli ızgara",
+    "Grille équilibrée pour un carré",
+    "Cuadrícula equilibrada para un cuadrado"
+  ],
+  "recMixed": [
+    "Abwechslungsreich für gemischte Fotoformate",
+    "Varied layout for mixed photo formats",
+    "تخطيط متنوع لأبعاد صور مختلفة",
+    "Farklı fotoğraf biçimleri için çeşitli düzen",
+    "Disposition variée pour des formats mixtes",
+    "Diseño variado para formatos de foto mixtos"
+  ],
+  "recStorySix": [
+    "Gut für 6 Bilder im Story-Format",
+    "Great for 6 photos in story format",
+    "مناسب لست صور بتنسيق القصة",
+    "Hikâye biçiminde 6 fotoğraf için uygun",
+    "Idéal pour 6 photos au format story",
+    "Ideal para 6 fotos en formato historia"
+  ],
+  "recWideHero": [
+    "Hebt das erste breite Foto hervor",
+    "Highlights the first wide photo",
+    "يبرز الصورة العريضة الأولى",
+    "İlk geniş fotoğrafı öne çıkarır",
+    "Met en valeur la première photo large",
+    "Destaca la primera foto ancha"
+  ],
+  "recTallHero": [
+    "Hebt das erste hohe Foto hervor",
+    "Highlights the first tall photo",
+    "يبرز الصورة الطويلة الأولى",
+    "İlk uzun fotoğrafı öne çıkarır",
+    "Met en valeur la première photo haute",
+    "Destaca la primera foto alta"
+  ],
+  "introTitle0": [
+    "Willkommen bei PicLayout",
+    "Welcome to PicLayout",
+    "مرحبًا بك في PicLayout",
+    "PicLayout’a hoş geldiniz",
+    "Bienvenue dans PicLayout",
+    "Te damos la bienvenida a PicLayout"
+  ],
+  "introBody0": [
+    "Erstelle Collagen für Stories, Posts und Erinnerungen. Probiere am Ende ein Beispiel aus oder starte mit deinen Fotos.",
+    "Create collages for stories, posts and memories. Try an example at the end or start with your own photos.",
+    "أنشئ تصاميم للقصص والمنشورات والذكريات. جرّب مثالًا في النهاية أو ابدأ بصورك.",
+    "Hikâyeler, gönderiler ve anılar için kolajlar oluşturun. Son adımda bir örnek deneyin veya kendi fotoğraflarınızla başlayın.",
+    "Créez des collages pour vos stories, publications et souvenirs. Essayez un exemple à la fin ou commencez avec vos photos.",
+    "Crea collages para historias, publicaciones y recuerdos. Al final, prueba un ejemplo o empieza con tus fotos."
+  ],
+  "introTitle1": [
+    "Fotos auswählen",
+    "Choose photos",
+    "اختيار الصور",
+    "Fotoğraf seçin",
+    "Choisir des photos",
+    "Elegir fotos"
+  ],
+  "introBody1": [
+    "Wähle 1 bis 12 Fotos und ordne sie nach Wunsch an. Deine Originalfotos werden nicht überschrieben.",
+    "Choose 1 to 12 photos and arrange them as you like. Your original photos are never overwritten.",
+    "اختر من صورة واحدة إلى 12 صورة ورتّبها كما تشاء. لن تُستبدل صورك الأصلية.",
+    "1 ile 12 fotoğraf seçip istediğiniz sıraya koyun. Orijinal fotoğraflarınızın üzerine yazılmaz.",
+    "Choisissez de 1 à 12 photos et classez-les à votre goût. Vos photos originales ne sont jamais écrasées.",
+    "Elige entre 1 y 12 fotos y ordénalas a tu gusto. Tus fotos originales no se sobrescriben."
+  ],
+  "introTitle2": [
+    "Layouts und Vorlagen",
+    "Layouts and templates",
+    "التخطيطات والقوالب",
+    "Düzenler ve şablonlar",
+    "Dispositions et modèles",
+    "Diseños y plantillas"
+  ],
+  "introBody2": [
+    "Wähle ein Layout, merke dir Favoriten und speichere eigene Vorlagen. Mit Layoutvariation entdeckst du neue Aufteilungen.",
+    "Choose a layout, mark favorites and save your own templates. Layout variation helps you discover new arrangements.",
+    "اختر تخطيطًا واحفظ المفضلة وقوالبك الخاصة. جرّب تنويع التخطيط لاكتشاف ترتيبات جديدة.",
+    "Bir düzen seçin, favorileri işaretleyin ve kendi şablonlarınızı kaydedin. Düzen çeşitlendirme ile yeni yerleşimler keşfedin.",
+    "Choisissez une disposition, ajoutez des favoris et enregistrez vos modèles. Variez la disposition pour découvrir de nouveaux agencements.",
+    "Elige un diseño, marca favoritos y guarda tus plantillas. Prueba la variación de diseño para descubrir nuevas distribuciones."
+  ],
+  "introTitle3": [
+    "Deine Collage bearbeiten",
+    "Edit your collage",
+    "تعديل تصميمك",
+    "Kolajınızı düzenleyin",
+    "Modifier votre collage",
+    "Editar tu collage"
+  ],
+  "introBody3": [
+    "Schneide Fotos zu, zoome und drehe sie. Ergänze Text, Sticker, Filter und Hintergründe im Style Studio.",
+    "Crop, zoom and rotate photos. Add text, stickers, filters and backgrounds in Style Studio.",
+    "اقتصّ الصور وكبّرها ودوّرها. أضف النصوص والملصقات والفلاتر والخلفيات في استوديو الأنماط.",
+    "Fotoğrafları kırpın, yakınlaştırın ve döndürün. Metin, çıkartma, filtre ve Stil Stüdyosu arka planları ekleyin.",
+    "Recadrez, zoomez et faites pivoter vos photos. Ajoutez du texte, des stickers, des filtres et des fonds dans le Studio de style.",
+    "Recorta, amplía y gira fotos. Añade texto, stickers, filtros y fondos en el Estudio de estilo."
+  ],
+  "introTitle4": [
+    "Speichern und teilen",
+    "Save and share",
+    "الحفظ والمشاركة",
+    "Kaydedin ve paylaşın",
+    "Enregistrer et partager",
+    "Guardar y compartir"
+  ],
+  "introBody4": [
+    "Speichere deine Collage in der Galerie oder teile sie mit Instagram, Snapchat, TikTok und WhatsApp. Sichere eine bearbeitbare .piclayout-Projektdatei und importiere sie später wieder.",
+    "Save your collage to the gallery or share it with Instagram, Snapchat, TikTok and WhatsApp. Back up an editable .piclayout project file and import it again later.",
+    "احفظ تصميمك في المعرض أو شاركه عبر Instagram وSnapchat وTikTok وWhatsApp. احفظ ملف مشروع ‎.piclayout قابلًا للتعديل واستورده لاحقًا.",
+    "Kolajınızı galeriye kaydedin veya Instagram, Snapchat, TikTok ve WhatsApp ile paylaşın. Düzenlenebilir .piclayout proje dosyasını yedekleyip daha sonra içe aktarın.",
+    "Enregistrez votre collage dans la galerie ou partagez-le avec Instagram, Snapchat, TikTok et WhatsApp. Sauvegardez un projet .piclayout modifiable pour le réimporter plus tard.",
+    "Guarda tu collage en la galería o compártelo con Instagram, Snapchat, TikTok y WhatsApp. Guarda un proyecto .piclayout editable e impórtalo más adelante."
+  ],
+  "introStart": [
+    "Loslegen",
+    "Get started",
+    "ابدأ الآن",
+    "Başlayın",
+    "Commencer",
+    "Empezar"
+  ],
+  "introNext": ["Weiter", "Next", "التالي", "İleri", "Suivant", "Siguiente"],
+  "introBack": ["Zurück", "Back", "السابق", "Geri", "Précédent", "Atrás"],
+  "introSkip": ["Überspringen", "Skip", "تخطي", "Atla", "Passer", "Omitir"],
+  "introReplay": [
+    "Onboarding erneut anzeigen",
+    "Show onboarding again",
+    "عرض المقدمة مجددًا",
+    "Tanıtımı yeniden göster",
+    "Revoir la présentation",
+    "Ver la introducción de nuevo"
+  ],
+  "introLocal": [
+    "Die Bearbeitung passiert lokal auf deinem Gerät. Deine Originalfotos bleiben unverändert.",
+    "Editing happens locally on your device. Your original photos stay unchanged.",
+    "يجري التعديل محليًا على جهازك. تبقى صورك الأصلية دون تغيير.",
+    "Düzenleme cihazınızda yerel olarak yapılır. Orijinal fotoğraflarınız değişmez.",
+    "Les modifications se font localement sur votre appareil. Vos photos originales restent intactes.",
+    "La edición se realiza localmente en tu dispositivo. Tus fotos originales permanecen intactas."
+  ],
+  "demoOpen": [
+    "Beispiel öffnen",
+    "Open an example",
+    "فتح مثال",
+    "Örnek aç",
+    "Ouvrir un exemple",
+    "Abrir un ejemplo"
+  ],
+  "demoProjects": [
+    "Beispielprojekte",
+    "Example projects",
+    "مشاريع تجريبية",
+    "Örnek projeler",
+    "Projets exemples",
+    "Proyectos de ejemplo"
+  ],
+  "demoDescription": [
+    "Wähle ein Design zum Ausprobieren. Du erhältst jedes Mal eine eigene bearbeitbare Kopie mit abstrakten Demo-Bildern.",
+    "Choose a design to try. Each opening creates your own editable copy with abstract demo images.",
+    "اختر تصميمًا لتجربته. ينشئ كل فتح نسخة خاصة بك قابلة للتعديل بصور تجريبية مجردة.",
+    "Denemek için bir tasarım seçin. Her açışınızda soyut örnek görsellerle düzenlenebilir yeni bir kopya oluşturulur.",
+    "Choisissez un design à essayer. Chaque ouverture crée votre propre copie modifiable avec des images abstraites.",
+    "Elige un diseño para probar. Cada vez que lo abres se crea una copia editable con imágenes abstractas de muestra."
+  ],
+  "demoStory": [
+    "Instagram Story Collage",
+    "Instagram story collage",
+    "تصميم قصة Instagram",
+    "Instagram hikâye kolajı",
+    "Collage story Instagram",
+    "Collage para historia de Instagram"
+  ],
+  "demoTravel": [
+    "Reise Collage",
+    "Travel collage",
+    "تصميم الرحلات",
+    "Seyahat kolajı",
+    "Collage de voyage",
+    "Collage de viaje"
+  ],
+  "demoBirthday": [
+    "Geburtstag / Event Collage",
+    "Birthday / event collage",
+    "تصميم عيد ميلاد أو مناسبة",
+    "Doğum günü / etkinlik kolajı",
+    "Collage anniversaire / événement",
+    "Collage de cumpleaños / evento"
+  ],
+  "demoMinimal": [
+    "Minimal Clean Collage",
+    "Minimal clean collage",
+    "تصميم بسيط وأنيق",
+    "Sade ve temiz kolaj",
+    "Collage minimaliste",
+    "Collage minimalista"
+  ],
+  "demoPost": [
+    "Social Media Post",
+    "Social media post",
+    "منشور للشبكات الاجتماعية",
+    "Sosyal medya gönderisi",
+    "Publication sur les réseaux sociaux",
+    "Publicación para redes sociales"
+  ],
+  "tipsReset": [
+    "Tipps zurücksetzen",
+    "Reset tips",
+    "إعادة ضبط النصائح",
+    "İpuçlarını sıfırla",
+    "Réinitialiser les conseils",
+    "Restablecer consejos"
+  ],
+  "tipsResetDone": [
+    "Tipps werden beim nächsten Öffnen wieder angezeigt.",
+    "Tips will appear again the next time you open a screen.",
+    "ستظهر النصائح مجددًا عند فتح الشاشة في المرة القادمة.",
+    "İpuçları bir ekranı bir sonraki açışınızda yeniden gösterilecek.",
+    "Les conseils réapparaîtront à la prochaine ouverture d’un écran.",
+    "Los consejos volverán a mostrarse la próxima vez que abras una pantalla."
+  ],
+  "tipPhoto": [
+    "Tippe ein Foto an, um es zu bearbeiten.",
+    "Tap a photo to edit it.",
+    "اضغط على صورة لتعديلها.",
+    "Düzenlemek için bir fotoğrafa dokunun.",
+    "Touchez une photo pour la modifier.",
+    "Toca una foto para editarla."
+  ],
+  "tipZoom": [
+    "Mit zwei Fingern auf dem Foto in der Collage zoomen.",
+    "Use two fingers on a photo in the collage to zoom.",
+    "استخدم إصبعين على الصورة في التصميم للتكبير والتصغير.",
+    "Yakınlaştırmak için kolajdaki fotoğraf üzerinde iki parmağınızı kullanın.",
+    "Utilisez deux doigts sur une photo du collage pour zoomer.",
+    "Usa dos dedos sobre una foto del collage para ampliar."
+  ],
+  "tipDrag": [
+    "Ziehe Text oder Sticker in der Collage, um sie zu verschieben.",
+    "Drag text or stickers in the collage to move them.",
+    "اسحب النص أو الملصق داخل التصميم لتحريكه.",
+    "Taşımak için kolajdaki metni veya çıkartmayı sürükleyin.",
+    "Faites glisser le texte ou les stickers dans le collage pour les déplacer.",
+    "Arrastra el texto o los stickers en el collage para moverlos."
+  ],
+  "tipExport": [
+    "Wähle Galerie oder Social Media. Veröffentlicht wird in der Ziel-App.",
+    "Choose Gallery or Social Media. Publishing happens in the destination app.",
+    "اختر المعرض أو وسائل التواصل. يتم النشر في التطبيق المستهدف.",
+    "Galeri veya sosyal medyayı seçin. Yayınlama hedef uygulamada yapılır.",
+    "Choisissez Galerie ou Réseaux sociaux. La publication se fait dans l’application choisie.",
+    "Elige Galería o Redes sociales. La publicación se realiza en la aplicación de destino."
+  ],
   "newCollage": [
     "Neue Collage",
     "New collage",

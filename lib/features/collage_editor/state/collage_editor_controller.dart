@@ -1,3 +1,6 @@
+import '../../layout_recommendations/layout_recommendation_service.dart';
+import '../../layout_recommendations/photo_metadata_reader.dart';
+import '../models/photo_metadata.dart';
 import '../../stickers/sticker_overlay.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import '../models/photo_adjustments.dart';
@@ -28,6 +31,8 @@ final editorControllerProvider = ChangeNotifierProvider.autoDispose
     initialProject: project,
     repository: ref.read(projectRepositoryProvider),
   );
+  unawaited(controller.loadPhotoMetadata(
+      reader: ref.read(photoMetadataReaderProvider)));
   return controller;
 });
 
@@ -47,6 +52,8 @@ class CollageEditorController extends ChangeNotifier {
   final Random _random;
   final List<CollageProject> _undo = [];
   final List<CollageProject> _redo = [];
+  bool _disposed = false;
+  bool metadataLoading = false;
   Timer? _autosave;
   Offset? _textDragGlobalPosition;
 
@@ -229,6 +236,57 @@ class CollageEditorController extends ChangeNotifier {
     );
     _mutate(_project.copyWith(
         layoutTemplateId: template.id, clearCustomLayout: true));
+  }
+
+  List<LayoutRecommendation> get layoutRecommendations =>
+      const LayoutRecommendationService().recommend(_project.photos,
+          targetRatio: _project.aspectRatio.value,
+          staggerAmount: _project.canvas.staggerAmount);
+
+  bool autoLayout() {
+    final recommendations = layoutRecommendations;
+    if (metadataLoading || recommendations.isEmpty) return false;
+    final id = recommendations.first.layout.id;
+    if (_project.customLayout == null && _project.layoutTemplateId == id) {
+      return false;
+    }
+    setLayoutTemplate(id);
+    return true;
+  }
+
+  /// Enrich current state and undo snapshots without adding an editing action.
+  /// Merge by ID/path so an in-flight read never overwrites edits or replacements.
+  Future<void> loadPhotoMetadata(
+      {PhotoMetadataReader reader = const PhotoMetadataReader()}) async {
+    if (metadataLoading || _disposed) return;
+    final missing = _project.photos.where((p) => p.metadata == null).toList();
+    if (missing.isEmpty) return;
+    metadataLoading = true;
+    final found = <String, PhotoMetadata>{};
+    for (final photo in missing) {
+      final value = await reader.read(photo.localPath);
+      if (_disposed) return;
+      if (value != null) found['${photo.id}\n${photo.localPath}'] = value;
+    }
+    CollageProject enrich(CollageProject project) => project.copyWith(photos: [
+          for (final photo in project.photos)
+            photo.metadata != null
+                ? photo
+                : photo.copyWith(
+                    metadata: found['${photo.id}\n${photo.localPath}']),
+        ]);
+    if (found.isNotEmpty) {
+      _project = enrich(_project);
+      for (var i = 0; i < _undo.length; i++) {
+        _undo[i] = enrich(_undo[i]);
+      }
+      for (var i = 0; i < _redo.length; i++) {
+        _redo[i] = enrich(_redo[i]);
+      }
+      _scheduleAutosave();
+    }
+    metadataLoading = false;
+    notifyListeners();
   }
 
   bool varyLayout() {
@@ -465,6 +523,7 @@ class CollageEditorController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _autosave?.cancel();
     unawaited(_repository.save(_project));
     super.dispose();

@@ -303,3 +303,39 @@ Format enthält versioniertes JSON und portable PNG-Kopien mit relativen Pfaden;
 Text, Sticker, Filter, Stil und eigene Layouts bleiben editierbar.
 Format, Größenlimits, Dateiliste und Geräteprüfungen:
 [docs/project-archives.md](docs/project-archives.md).
+
+## Onboarding, Beispielprojekte und Einstiegstipps
+
+Beim ersten Start erklärt eine überspringbare Einführung die fünf wichtigsten
+Schritte. Fünf lokale Beispielprojekte sind über Startseite, Einführung und
+Einstellungen erreichbar; jedes Öffnen erstellt eine unabhängige bearbeitbare
+Kopie. Sechs abstrakte, nummerierte PNGs unter `assets/demo/` benötigen zusammen
+nur rund 23 KiB. Dezente Editor- und Exporttipps erscheinen höchstens zweimal
+pro Thema, sind schließbar und lassen sich in den Einstellungen zurücksetzen.
+Dort kann auch die Einführung erneut geöffnet werden.
+
+Alle neuen Texte sind in sechs Sprachen verfügbar, einschließlich Arabisch/RTL.
+Bedienung, Speicherung, Asset-Generator und Gerätecheckliste stehen in
+[docs/onboarding-and-examples.md](docs/onboarding-and-examples.md).
+Validierung: `dart format .`, `flutter analyze` ohne Befunde und `flutter test`
+mit **84 erfolgreichen Tests**. Der Android-Debug-Build wurde versucht und
+scheiterte am fehlenden Android SDK.
+
+## Smart Auto Layout und Empfehlungen
+
+Der Layout-Bereich zeigt drei lokal berechnete Empfehlungen mit schematischen
+Vorschauen und kurzen Begründungen. **Auto Layout** übernimmt die beste Wahl als
+einen Undo-Schritt, ohne Foto-Reihenfolge, gespeicherte Zuschnitte, Filter, Text,
+Sticker oder Style zu verändern. Im Foto-Auswahlschritt lassen sich Zielformat
+und Empfehlung bereits vor der Projekterstellung wählen.
+
+Die Regeln berücksichtigen Fotoanzahl, lokale Bildabmessungen, Editor-Drehung,
+Zielformat, Zellproportionen und Flächennutzung. Dazu kommen Boni für Story-Raster,
+Hoch-/Querformat, gemischte Formate und passende Hero-Fotos. Alte Projekte bleiben
+kompatibel; fehlende Abmessungen werden beim Öffnen im Editor lokal nachgeladen.
+Keine Cloud, Motiverkennung oder KI-API. Regeln, Dateien, Tests und Geräteprüfungen:
+[docs/smart-auto-layout.md](docs/smart-auto-layout.md).
+
+Validierung für Smart Auto Layout: `dart format .` erfolgreich,
+`flutter analyze` ohne Befunde und `flutter test` mit **95 erfolgreichen Tests**.
+`flutter build apk --debug` scheiterte am fehlenden Android SDK.
