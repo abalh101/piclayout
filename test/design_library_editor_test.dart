@@ -1,3 +1,4 @@
+import 'package:piclayout/features/collage_editor/models/photo_metadata.dart';
 import 'package:piclayout/features/stickers/sticker_overlay.dart';
 import 'dart:io';
 
@@ -63,7 +64,10 @@ void main() {
       photos: [
         for (var i = 0; i < 2; i++)
           PhotoAsset(
-              id: '$i', originalFileName: '$i.png', localPath: image.path),
+              id: '$i',
+              originalFileName: '$i.png',
+              localPath: image.path,
+              metadata: const PhotoMetadata(width: 16, height: 16)),
       ],
     );
     final libraryRepository = _MemoryDesignLibraryRepository();
