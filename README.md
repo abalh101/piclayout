@@ -171,3 +171,74 @@ On actual devices check:
    large photos, and unchanged project after selecting a different export ratio.
 5. Small screens, large system text, landscape, dark mode and keyboard dismissal.
 6. Android round/squircle launcher masks and iOS home-screen/App Store icon appearance.
+
+## Background & Style Studio
+
+Open **Style** in the editor. The scrollable sheet has Hintergrund, Rahmen,
+Schatten and Presets tabs and updates the collage live. Backgrounds: solid,
+two-color directional gradient, photo blur, procedural paper / soft grid / dots,
+and transparent. PNG preserves transparency; JPEG composites onto white. The
+checkerboard and selection outlines are preview-only. The export sheet explains
+the format difference.
+
+Blur supports the first photo, currently active photo or any numbered photo,
+strength, darken/lighten and reduced saturation. Its source is a **photo position**,
+not a file path or photo ID. Reordering changes that position's source; applying a
+template to fewer photos clamps it to the last available photo. No photos means
+the configured solid background is used. Originals are only read, never rewritten.
+
+Presets: **Clean White, Dark Mood, Soft Cream, Instagram Pop, Minimal Black,
+Travel Bright, Blur Poster**. Presets and Reset preserve photos, order, text,
+layout and stagger offset. Reset restores default canvas settings. Style changes,
+preset application and Reset support Undo/Redo; a slider gesture is one action.
+Existing autosave and “Als Vorlage speichern” include all new canvas settings.
+Templates and built-in presets contain no image files or image paths.
+
+Implementation and changed files:
+
+- `lib/features/collage_editor/models/canvas_style.dart` (new),
+  `canvas_settings.dart`, `style_presets.dart` (new): version-compatible optional
+  style JSON; old projects retain their original solid background.
+- `lib/features/collage_editor/rendering/style_renderer.dart` (new),
+  `project_image_loader.dart` (new), `layout_geometry.dart`: shared canvas rendering,
+  bounded decoding, consistent scale relative to a 390-unit short canvas edge.
+- `lib/features/collage_editor/widgets/styled_collage_scene.dart` (new),
+  `style_studio_sheet.dart` (new), `collage_canvas.dart`: cached preview, controls,
+  separate editor-only hit targets and selection outlines.
+- `lib/features/collage_editor/state/collage_editor_controller.dart`,
+  `lib/features/collage_editor/editor_page.dart`: integration, Reset and grouped undo.
+- `lib/features/export/collage_exporter.dart`,
+  `lib/features/export/widgets/export_center.dart`: shared rendering and transparent
+  format feedback. Social sharing and gallery storage keep their existing flow.
+- `test/style_studio_test.dart` (new), this `README.md`.
+
+Preview decoding is capped at 1024 pixels on the long edge, cached by project file
+path and released when removed or disposed. Slider changes do not decode photos.
+Export decodes background photos up to 2048 pixels; foreground photos use original
+resolution. Both call the same StyleRenderer and TextOverlayRenderer, rendering
+from saved files, not a screenshot. Blur sharpness may differ slightly because of
+preview resolution. Frames and shadows use the union of rounded photo cells:
+separate cells have separate outlines; touching cells share an outside outline,
+without doubled internal edges. Background patterns are generated locally.
+
+Validation: `dart format .`, `flutter analyze`, `flutter test` (33 passing tests).
+Seven new tests cover legacy JSON, full style round-trip and private-free
+saved templates, presets/source bounds, grouped undo/reset, shared-edge contours,
+actual PNG/JPEG pixels (including patterns and unchanged originals), plus a
+320×640 sheet with preset application/autosave/reset. Existing text, template,
+favorite, variation and social-export tests remain green.
+`flutter build apk --debug` was attempted: **No Android SDK found**. Native Android
+and iOS rendering/performance remain unverified in this Linux environment.
+
+Manual device checks for this feature:
+
+1. Compare editor and PNG/JPEG exports for every background, aspect ratio, rotated
+   or mirrored photo, fit/fill, frame and shadow; check touching and staggered cells.
+2. Check blur on 12 large photos, rapid slider gestures, switching source, removing
+   photos, editor reopen/background-resume and repeated exports for memory/jank.
+3. Check transparent PNG edges in an alpha-aware viewer and white JPEG backing;
+   gallery and social target apps may display transparency differently.
+4. Verify text stays above styles, selection borders/checkerboards never export,
+   save/restart/reopen and template application with different photo counts.
+5. Check small screens, large system font, landscape, dark mode, tab scrolling,
+   live preview visibility and Undo/Redo after preset, slider and Reset operations.

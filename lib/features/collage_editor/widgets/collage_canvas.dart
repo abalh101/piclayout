@@ -1,11 +1,8 @@
-import 'dart:io';
+import 'styled_collage_scene.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../projects/models/collage_project.dart';
-import '../models/photo_asset.dart';
-import '../models/photo_transform.dart';
 import '../models/text_overlay.dart';
 import '../rendering/layout_geometry.dart';
 import '../rendering/text_overlay_renderer.dart';
@@ -44,7 +41,6 @@ class _CollageCanvasState extends State<CollageCanvas> {
               final cells = LayoutGeometry.resolve(project, size);
               return DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Color(project.canvas.backgroundColor),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.16),
@@ -56,11 +52,12 @@ class _CollageCanvasState extends State<CollageCanvas> {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
+                    Positioned.fill(
+                        child: IgnorePointer(
+                            child: StyledCollageScene(project: project))),
                     for (final cell in cells)
                       if (cell.photoIndex < project.photos.length)
                         _PhotoCell(
-                          photo: project.photos[cell.photoIndex],
-                          project: project,
                           rect: cell.rect,
                           cornerRadius: cell.cornerRadius,
                           selected: controller.selectedPhotoId ==
@@ -199,97 +196,34 @@ class _TextPainter extends CustomPainter {
 }
 
 class _PhotoCell extends StatelessWidget {
-  const _PhotoCell({
-    required this.photo,
-    required this.project,
-    required this.rect,
-    required this.cornerRadius,
-    required this.selected,
-    required this.onTap,
-    required this.onScaleStart,
-    required this.onScaleUpdate,
-    required this.onScaleEnd,
-  });
-
-  final PhotoAsset photo;
-  final CollageProject project;
+  const _PhotoCell(
+      {required this.rect,
+      required this.cornerRadius,
+      required this.selected,
+      required this.onTap,
+      required this.onScaleStart,
+      required this.onScaleUpdate,
+      required this.onScaleEnd});
   final Rect rect;
   final double cornerRadius;
   final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback onScaleStart;
+  final VoidCallback onTap, onScaleStart, onScaleEnd;
   final ValueChanged<ScaleUpdateDetails> onScaleUpdate;
-  final VoidCallback onScaleEnd;
-
   @override
-  Widget build(BuildContext context) {
-    final transform = photo.transform;
-    final image = Image.file(
-      File(photo.localPath),
-      width: rect.width,
-      height: rect.height,
-      fit: transform.fitMode == PhotoFitMode.fill
-          ? BoxFit.cover
-          : BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return ColoredBox(
-          color: Theme.of(context).colorScheme.errorContainer,
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: Theme.of(context).colorScheme.onErrorContainer,
-          ),
-        );
-      },
-    );
-
-    return Positioned.fromRect(
+  Widget build(BuildContext context) => Positioned.fromRect(
       rect: rect,
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        onScaleStart: (_) => onScaleStart(),
-        onScaleUpdate: onScaleUpdate,
-        onScaleEnd: (_) => onScaleEnd(),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(cornerRadius),
-            border: selected
-                ? Border.all(
-                    color: Theme.of(context).colorScheme.primary,
-                    width: 2,
-                  )
-                : null,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(cornerRadius),
-            clipBehavior: Clip.antiAlias,
-            child: ColoredBox(
-              color: Color(project.canvas.backgroundColor),
-              child: Transform.translate(
-                offset: Offset(
-                  transform.offsetX * rect.width,
-                  transform.offsetY * rect.height,
-                ),
-                child: Transform.scale(
-                  scale: transform.scale,
-                  child: RotatedBox(
-                    quarterTurns: transform.rotationQuarterTurns,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.diagonal3Values(
-                        transform.flipX ? -1.0 : 1.0,
-                        1.0,
-                        1.0,
-                      ),
-                      child: image,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          onScaleStart: (_) => onScaleStart(),
+          onScaleUpdate: onScaleUpdate,
+          onScaleEnd: (_) => onScaleEnd(),
+          child: DecoratedBox(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(cornerRadius),
+                  border: selected
+                      ? Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2)
+                      : null))));
 }

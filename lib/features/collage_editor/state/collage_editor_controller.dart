@@ -162,8 +162,28 @@ class CollageEditorController extends ChangeNotifier {
     }
   }
 
+  void resetStyle() => updateCanvas(const CanvasSettings()
+      .copyWith(staggerAmount: _project.canvas.staggerAmount));
+
+  bool _editingCanvas = false;
+  void beginCanvasEdit() {
+    _editingCanvas = true;
+    beginInteractiveTransform();
+  }
+
+  void endCanvasEdit() {
+    if (!_editingCanvas) return;
+    _editingCanvas = false;
+    endInteractiveTransform();
+  }
+
   void updateCanvas(CanvasSettings settings) {
-    _mutate(_project.copyWith(canvas: settings));
+    if (_editingCanvas) {
+      _project = _project.copyWith(canvas: settings);
+      notifyListeners();
+    } else {
+      _mutate(_project.copyWith(canvas: settings));
+    }
   }
 
   void setTransform(String photoId, PhotoTransform transform) {

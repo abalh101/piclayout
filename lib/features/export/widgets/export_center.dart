@@ -1,3 +1,4 @@
+import '../../collage_editor/models/canvas_style.dart';
 import 'package:flutter/material.dart';
 import '../../projects/models/collage_project.dart';
 import '../export_settings.dart';
@@ -157,6 +158,13 @@ class _ExportCenterState extends State<ExportCenter> {
                                 : (value) =>
                                     setState(() => _format = value.first),
                           ),
+                          if (widget.project.canvas.style.backgroundType ==
+                              BackgroundType.transparent)
+                            Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Text(_format == ExportFormat.png
+                                    ? 'PNG exportiert den Hintergrund transparent.'
+                                    : 'JPEG ersetzt den transparenten Hintergrund durch Weiß.')),
                           const SizedBox(height: 16),
                           Text(
                               'Social-Media-Ziele öffnen die Ziel-App oder das Teilen-Menü. Wähle dort Story, Post oder Status und bestätige den Upload selbst.',

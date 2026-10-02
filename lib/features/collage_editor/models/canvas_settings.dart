@@ -1,5 +1,8 @@
+import 'canvas_style.dart';
+
 class CanvasSettings {
   const CanvasSettings({
+    this.style = const CanvasStyle(),
     this.spacing = 2,
     this.outerMargin = 0,
     this.cornerRadius = 0,
@@ -7,6 +10,7 @@ class CanvasSettings {
     this.staggerAmount = 0,
   });
 
+  final CanvasStyle style;
   final double spacing;
   final double outerMargin;
   final double cornerRadius;
@@ -14,6 +18,7 @@ class CanvasSettings {
   final double staggerAmount;
 
   CanvasSettings copyWith({
+    CanvasStyle? style,
     double? spacing,
     double? outerMargin,
     double? cornerRadius,
@@ -21,6 +26,7 @@ class CanvasSettings {
     double? staggerAmount,
   }) {
     return CanvasSettings(
+      style: style ?? this.style,
       spacing: spacing ?? this.spacing,
       outerMargin: outerMargin ?? this.outerMargin,
       cornerRadius: cornerRadius ?? this.cornerRadius,
@@ -30,6 +36,7 @@ class CanvasSettings {
   }
 
   Map<String, Object?> toJson() => {
+        'style': style.toJson(),
         'spacing': spacing,
         'outerMargin': outerMargin,
         'cornerRadius': cornerRadius,
@@ -39,6 +46,8 @@ class CanvasSettings {
 
   static CanvasSettings fromJson(Map<String, Object?> json) {
     return CanvasSettings(
+      style: CanvasStyle.fromJson(
+          Map<String, Object?>.from(json['style'] as Map? ?? {})),
       spacing: (json['spacing'] as num?)?.toDouble() ?? 2,
       outerMargin: (json['outerMargin'] as num?)?.toDouble() ?? 0,
       cornerRadius: (json['cornerRadius'] as num?)?.toDouble() ?? 0,

@@ -77,6 +77,6 @@ class LayoutGeometry {
   }
 
   static double _scaleFor(Size size) {
-    return (size.shortestSide / 390).clamp(0.35, 8.0).toDouble();
+    return size.shortestSide / 390;
   }
 }

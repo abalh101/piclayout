@@ -1,3 +1,4 @@
+import 'widgets/style_studio_sheet.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -219,7 +220,7 @@ class _ToolsPanel extends ConsumerWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _showStyleSheet(context, controller),
+                    onPressed: () => showStyleStudio(context, controller),
                     icon: const Icon(Icons.tune),
                     label: Text(strings.style),
                   ),
@@ -292,88 +293,6 @@ class _ToolsPanel extends ConsumerWidget {
           icon: Icon(favorite ? Icons.star : Icons.star_border),
         ),
       ],
-    );
-  }
-
-  Future<void> _showStyleSheet(
-    BuildContext context,
-    CollageEditorController controller,
-  ) async {
-    final strings = AppLocalizations.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: controller,
-          builder: (context, _) {
-            final canvas = controller.project.canvas;
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _SliderTile(
-                      label: strings.spacing,
-                      value: canvas.spacing,
-                      min: 0,
-                      max: 32,
-                      onChanged: (value) => controller.updateCanvas(
-                        canvas.copyWith(spacing: value),
-                      ),
-                    ),
-                    _SliderTile(
-                      label: strings.outerMargin,
-                      value: canvas.outerMargin,
-                      min: 0,
-                      max: 42,
-                      onChanged: (value) => controller.updateCanvas(
-                        canvas.copyWith(outerMargin: value),
-                      ),
-                    ),
-                    _SliderTile(
-                      label: strings.cornerRadius,
-                      value: canvas.cornerRadius,
-                      min: 0,
-                      max: 42,
-                      onChanged: (value) => controller.updateCanvas(
-                        canvas.copyWith(cornerRadius: value),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(strings.background),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 10,
-                      children: [
-                        for (final color in const [
-                          0xFFFFFFFF,
-                          0xFF000000,
-                          0xFFF3F4F6,
-                          0xFFEAF2FF,
-                          0xFFFFF7ED,
-                          0xFFF4F0FF,
-                        ])
-                          _ColorDot(
-                            color: Color(color),
-                            selected: canvas.backgroundColor == color,
-                            onTap: () => controller.updateCanvas(
-                              canvas.copyWith(backgroundColor: color),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -508,48 +427,6 @@ class _SliderTile extends StatelessWidget {
           onChanged: onChanged,
         ),
       ],
-    );
-  }
-}
-
-class _ColorDot extends StatelessWidget {
-  const _ColorDot({
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: selected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.outlineVariant,
-            width: selected ? 3 : 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(3),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.black12),
-            ),
-            child: const SizedBox(width: 30, height: 30),
-          ),
-        ),
-      ),
     );
   }
 }
