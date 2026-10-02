@@ -53,6 +53,7 @@ class DesignLibraryNotifier extends StateNotifier<AsyncValue<DesignLibrary>> {
     required String name,
     required CollageProject project,
     required bool includeTextOverlays,
+    bool includeStickers = false,
   }) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) throw ArgumentError.value(name, 'name');
@@ -62,6 +63,7 @@ class DesignLibraryNotifier extends StateNotifier<AsyncValue<DesignLibrary>> {
       name: trimmed,
       project: project,
       includeTextOverlays: includeTextOverlays,
+      includeStickers: includeStickers,
     );
     final next = current.copyWith(templates: [...current.templates, template]);
     state = AsyncValue.data(next);

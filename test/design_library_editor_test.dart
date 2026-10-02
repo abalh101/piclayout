@@ -1,3 +1,4 @@
+import 'package:piclayout/features/stickers/sticker_overlay.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,12 +12,15 @@ import 'package:piclayout/features/collage_editor/editor_page.dart';
 import 'package:piclayout/features/collage_editor/layouts/layout_library.dart';
 import 'package:piclayout/features/collage_editor/models/photo_asset.dart';
 import 'package:piclayout/features/collage_editor/state/collage_editor_controller.dart';
+import 'package:piclayout/features/custom_layouts/state/custom_layout_providers.dart';
 import 'package:piclayout/features/projects/models/collage_project.dart';
 import 'package:piclayout/features/projects/services/project_repository.dart';
 import 'package:piclayout/features/projects/state/project_providers.dart';
 import 'package:piclayout/features/templates/models/design_library.dart';
 import 'package:piclayout/features/templates/services/design_library_repository.dart';
 import 'package:piclayout/features/templates/state/design_library_providers.dart';
+
+import 'support/custom_layout_fixtures.dart';
 
 class _MemoryDesignLibraryRepository extends DesignLibraryRepository {
   DesignLibrary data = const DesignLibrary();
@@ -64,6 +68,7 @@ void main() {
     );
     final libraryRepository = _MemoryDesignLibraryRepository();
     final container = ProviderContainer(overrides: [
+      customLayoutRepositoryProvider.overrideWithValue(LayoutMemoryLibrary()),
       designLibraryRepositoryProvider.overrideWithValue(libraryRepository),
       projectRepositoryProvider.overrideWithValue(_MemoryProjectRepository()),
     ]);
@@ -89,19 +94,25 @@ void main() {
     await tester.pump();
     expect(libraryRepository.data.favoriteLayouts, hasLength(1));
 
+    final controller = container.read(editorControllerProvider(project));
+    controller.addSticker(StickerCatalog.items.first);
+    await tester.pumpAndSettle();
     final saveButton = find.text('Als Vorlage speichern');
     await tester.ensureVisible(saveButton);
     await tester.tap(saveButton);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Mein Design');
+    await tester.tap(find.text('Sticker übernehmen'));
+    await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('Vorlage speichern'));
     await tester.pumpAndSettle();
     expect(libraryRepository.data.templates.single.name, 'Mein Design');
+    expect(libraryRepository.data.templates.single.includeStickers, isTrue);
+    expect(libraryRepository.data.templates.single.stickers, hasLength(1));
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
 
-    final controller = container.read(editorControllerProvider(project));
     controller.updateCanvas(controller.project.canvas.copyWith(spacing: 20));
     final myTemplates = find.text('Meine Vorlagen');
     await tester.ensureVisible(myTemplates);

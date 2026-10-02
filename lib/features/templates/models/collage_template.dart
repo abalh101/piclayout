@@ -1,3 +1,5 @@
+import '../../stickers/sticker_overlay.dart';
+import '../../custom_layouts/models/custom_layout.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../collage_editor/layouts/layout_library.dart';
@@ -16,13 +18,19 @@ class CollageTemplate {
     required this.canvas,
     this.includeTextOverlays = false,
     this.textOverlays = const [],
+    this.customLayout,
+    this.includeStickers = false,
+    this.stickers = const [],
   });
 
+  final bool includeStickers;
+  final List<StickerOverlay> stickers;
   final String id;
   final String name;
   final int photoCount;
   final String aspectRatioId;
   final String layoutTemplateId;
+  final CustomLayout? customLayout;
   final CanvasSettings canvas;
   final bool includeTextOverlays;
   final List<TextOverlay> textOverlays;
@@ -32,13 +40,17 @@ class CollageTemplate {
     required String name,
     required CollageProject project,
     required bool includeTextOverlays,
+    bool includeStickers = false,
   }) {
     return CollageTemplate(
+      includeStickers: includeStickers,
+      stickers: includeStickers ? List.of(project.stickers) : const [],
       id: id,
       name: name.trim(),
       photoCount: project.photos.length,
       aspectRatioId: project.aspectRatioId,
       layoutTemplateId: project.layoutTemplateId,
+      customLayout: project.customLayout,
       canvas: project.canvas,
       includeTextOverlays: includeTextOverlays,
       textOverlays:
@@ -52,8 +64,15 @@ class CollageTemplate {
       project.photos.length,
     );
     return project.copyWith(
+      stickers: includeStickers
+          ? [for (final s in stickers) s.copyWith(id: const Uuid().v4())]
+          : project.stickers,
       aspectRatioId: AspectRatios.byId(aspectRatioId).id,
       layoutTemplateId: layout.id,
+      customLayout: customLayout?.photoCount == project.photos.length
+          ? customLayout
+          : null,
+      clearCustomLayout: customLayout?.photoCount != project.photos.length,
       canvas: canvas,
       textOverlays: includeTextOverlays
           ? [
@@ -65,11 +84,16 @@ class CollageTemplate {
   }
 
   Map<String, Object?> toJson() => {
+        'includeStickers': includeStickers,
+        'stickers': includeStickers
+            ? stickers.map((s) => s.toJson()).toList()
+            : const <Object>[],
         'id': id,
         'name': name,
         'photoCount': photoCount,
         'aspectRatioId': aspectRatioId,
         'layoutTemplateId': layoutTemplateId,
+        if (customLayout != null) 'customLayout': customLayout!.toJson(),
         'canvas': canvas.toJson(),
         'includeTextOverlays': includeTextOverlays,
         'textOverlays': includeTextOverlays
@@ -80,6 +104,11 @@ class CollageTemplate {
   factory CollageTemplate.fromJson(Map<String, Object?> json) {
     final includeText = json['includeTextOverlays'] as bool? ?? false;
     return CollageTemplate(
+      includeStickers: json['includeStickers'] == true,
+      stickers: json['includeStickers'] == true
+          ? StickerOverlay.parseList(json['stickers'])
+          : const [],
+      customLayout: CustomLayout.tryParse(json['customLayout']),
       id: json['id'] as String,
       name: json['name'] as String,
       photoCount: json['photoCount'] as int? ?? 0,

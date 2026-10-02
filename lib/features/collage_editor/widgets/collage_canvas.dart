@@ -1,3 +1,5 @@
+import '../../stickers/sticker_layer.dart';
+import '../../stickers/sticker_sheet.dart';
 import 'styled_collage_scene.dart';
 import 'dart:math' as math;
 
@@ -105,6 +107,10 @@ class _CollageCanvasState extends State<CollageCanvas> {
                       size: size,
                       onEditText: widget.onEditText,
                     ),
+                    StickerLayer(
+                        controller: controller,
+                        size: size,
+                        onEdit: () => showStickerEditor(context, controller)),
                   ],
                 ),
               );

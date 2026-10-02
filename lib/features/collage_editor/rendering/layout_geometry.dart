@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import '../layouts/layout_library.dart';
@@ -23,14 +24,17 @@ class LayoutGeometry {
     CollageProject project,
     Size canvasSize,
   ) {
+    if (project.photos.isEmpty) return [];
     final template = LayoutLibrary.byIdOrDefault(
       project.layoutTemplateId,
       project.photos.length,
     );
-    final cells = LayoutLibrary.cellsFor(
-      template,
-      staggerAmount: project.canvas.staggerAmount,
-    );
+    final cells = project.customLayout?.photoCount == project.photos.length
+        ? project.customLayout!.layoutCells
+        : LayoutLibrary.cellsFor(
+            template,
+            staggerAmount: project.canvas.staggerAmount,
+          );
     return resolveCells(
       cells,
       canvasSize,
@@ -48,7 +52,7 @@ class LayoutGeometry {
     required double cornerRadius,
   }) {
     final scale = _scaleFor(canvasSize);
-    final gap = spacing * scale;
+    var gap = spacing * scale;
     final margin = outerMargin * scale;
     final radius = cornerRadius * scale;
     final innerWidth =
@@ -57,6 +61,14 @@ class LayoutGeometry {
         .clamp(1.0, double.maxFinite)
         .toDouble();
 
+    // Large style spacing must not invert narrow custom cells.
+    for (final cell in cells) {
+      gap = math.min(
+          gap,
+          math.min(cell.rect.width * innerWidth,
+                  cell.rect.height * innerHeight) *
+              .8);
+    }
     return cells.map((cell) {
       final rect = cell.rect;
       final leftGap = rect.x <= 0 ? 0.0 : gap / 2;

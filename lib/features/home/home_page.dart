@@ -1,3 +1,5 @@
+import '../project_archive/project_archive_actions.dart';
+import '../project_archive/project_archive_controller.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -19,6 +21,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context);
     final projects = ref.watch(projectsProvider);
+    final archiveBusy = ref.watch(projectArchiveControllerProvider).busy;
 
     return Scaffold(
       appBar: AppBar(
@@ -50,6 +53,20 @@ class HomePage extends ConsumerWidget {
                 icon: const Icon(Icons.add_photo_alternate_outlined),
                 label: Text(strings.newCollage),
               ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const ValueKey('import-project'),
+                onPressed: archiveBusy
+                    ? null
+                    : () => importProjectArchive(context, ref),
+                icon: const Icon(Icons.file_open_outlined),
+                label: Text(strings.tr('archiveImport')),
+              ),
+              if (archiveBusy) ...[
+                const SizedBox(height: 8),
+                const LinearProgressIndicator(),
+                Text(strings.tr('archiveWorking')),
+              ],
               const SizedBox(height: 24),
               Text(
                 strings.recentProjects,
@@ -173,6 +190,7 @@ class _ProjectCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context);
+    final archiveBusy = ref.watch(projectArchiveControllerProvider).busy;
     final firstPhoto = project.photos.isNotEmpty ? project.photos.first : null;
 
     return InkWell(
@@ -239,6 +257,10 @@ class _ProjectCard extends ConsumerWidget {
                 onSelected: (value) =>
                     _handleMenu(context, ref, value, project),
                 itemBuilder: (context) => [
+                  PopupMenuItem(
+                      value: 'archive',
+                      enabled: !archiveBusy,
+                      child: Text(strings.tr('archiveExport'))),
                   PopupMenuItem(value: 'rename', child: Text(strings.rename)),
                   PopupMenuItem(
                       value: 'duplicate', child: Text(strings.duplicate)),
@@ -259,7 +281,9 @@ class _ProjectCard extends ConsumerWidget {
     CollageProject project,
   ) async {
     final notifier = ref.read(projectsProvider.notifier);
-    if (value == 'rename') {
+    if (value == 'archive') {
+      await exportProjectArchive(context, ref, project);
+    } else if (value == 'rename') {
       final name = await _askName(context, project.name);
       if (name != null) {
         await notifier.rename(project, name);

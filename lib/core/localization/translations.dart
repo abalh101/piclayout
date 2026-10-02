@@ -1139,4 +1139,476 @@ const translations = <String, List<String>>{
     '3 rangées',
     '3 filas'
   ],
+  "customLayout": [
+    "Eigenes Layout",
+    "Custom layout",
+    "تخطيط مخصص",
+    "Özel düzen",
+    "Disposition personnalisée",
+    "Diseño personalizado"
+  ],
+  "editCustomLayout": [
+    "Layout bearbeiten",
+    "Edit layout",
+    "تعديل التخطيط",
+    "Düzeni düzenle",
+    "Modifier la disposition",
+    "Editar diseño"
+  ],
+  "saveCustomLayout": [
+    "Als Layout speichern",
+    "Save as layout",
+    "حفظ كتخطيط",
+    "Düzen olarak kaydet",
+    "Enregistrer comme disposition",
+    "Guardar como diseño"
+  ],
+  "myCustomLayouts": [
+    "Eigene Layouts",
+    "My layouts",
+    "تخطيطاتي",
+    "Düzenlerim",
+    "Mes dispositions",
+    "Mis diseños"
+  ],
+  "customLayoutName": [
+    "Layoutname",
+    "Layout name",
+    "اسم التخطيط",
+    "Düzen adı",
+    "Nom de la disposition",
+    "Nombre del diseño"
+  ],
+  "customLayoutSaved": [
+    "Layout gespeichert",
+    "Layout saved",
+    "تم حفظ التخطيط",
+    "Düzen kaydedildi",
+    "Disposition enregistrée",
+    "Diseño guardado"
+  ],
+  "customLayoutSaveFailed": [
+    "Layout konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "Could not save layout. Please try again.",
+    "تعذر حفظ التخطيط. حاول مرة أخرى.",
+    "Düzen kaydedilemedi. Tekrar deneyin.",
+    "Impossible d’enregistrer la disposition. Réessayez.",
+    "No se pudo guardar el diseño. Inténtalo de nuevo."
+  ],
+  "customLayoutLoadFailed": [
+    "Eigene Layouts konnten nicht geladen werden. Erneut versuchen.",
+    "Could not load custom layouts. Retry.",
+    "تعذر تحميل التخطيطات المخصصة. أعد المحاولة.",
+    "Özel düzenler yüklenemedi. Tekrar dene.",
+    "Impossible de charger les dispositions. Réessayer.",
+    "No se pudieron cargar los diseños. Reintentar."
+  ],
+  "noCustomLayouts": [
+    "Noch keine eigenen Layouts für diese Fotoanzahl.",
+    "No custom layouts for this photo count yet.",
+    "لا توجد تخطيطات مخصصة لهذا العدد من الصور بعد.",
+    "Bu fotoğraf sayısı için henüz özel düzen yok.",
+    "Aucune disposition pour ce nombre de photos.",
+    "Aún no hay diseños para esta cantidad de fotos."
+  ],
+  "layoutBuilderHint": [
+    "Tippe auf eine Zelle. Ziehe die Griffe oder nutze die Regler darunter. Fertig übernimmt deine Änderungen.",
+    "Tap a cell. Drag the handles or use the sliders below. Done applies your changes.",
+    "اضغط على خلية. اسحب المقابض أو استخدم أشرطة التمرير أدناه. اضغط تم لتطبيق التغييرات.",
+    "Bir hücreye dokunun. Tutamaçları sürükleyin veya aşağıdaki kaydırıcıları kullanın. Bitti değişiklikleri uygular.",
+    "Touchez une cellule. Déplacez les poignées ou utilisez les curseurs. Terminé applique les modifications.",
+    "Toca una celda. Arrastra los controles o usa los deslizadores. Listo aplica los cambios."
+  ],
+  "layoutBuilderAdjusted": [
+    "Das bisherige Layout enthält Leerflächen oder zu kleine Zellen. Als Start wurde ein passendes, lückenloses Layout gewählt.",
+    "The previous layout has empty areas or cells that are too small. A compatible layout without gaps was selected as a starting point.",
+    "التخطيط السابق يحتوي على فراغات أو خلايا صغيرة جداً. تم اختيار تخطيط مناسب دون فراغات للبدء.",
+    "Önceki düzende boşluklar veya çok küçük hücreler var. Başlangıç için boşluksuz uygun bir düzen seçildi.",
+    "La disposition précédente contient des vides ou des cellules trop petites. Une disposition adaptée sans vides a été choisie.",
+    "El diseño anterior tiene huecos o celdas demasiado pequeñas. Se eligió un diseño compatible sin huecos para empezar."
+  ],
+  "layoutBuilderStart": [
+    "Startlayout",
+    "Starting layout",
+    "تخطيط البداية",
+    "Başlangıç düzeni",
+    "Disposition de départ",
+    "Diseño inicial"
+  ],
+  "layoutBuilderCell": [
+    "Ausgewählte Zelle",
+    "Selected cell",
+    "الخلية المحددة",
+    "Seçili hücre",
+    "Cellule sélectionnée",
+    "Celda seleccionada"
+  ],
+  "layoutBuilderMinimum": [
+    "Mindestgröße: 12 % je Achse. Außenkanten bleiben bündig. Abstände und Rahmen folgen deinem Stil.",
+    "Minimum size: 12% on each axis. Outer edges stay aligned. Spacing and frames follow your style.",
+    "الحد الأدنى للحجم ١٢٪ لكل محور. تبقى الحواف الخارجية متراصة. التباعد والإطارات تتبع النمط المختار.",
+    "Her eksende en az %12. Dış kenarlar hizalı kalır. Aralıklar ve çerçeveler stilinize uyar.",
+    "Minimum : 12 % par axe. Les bords extérieurs restent alignés. Espacements et cadres suivent votre style.",
+    "Mínimo: 12 % por eje. Los bordes exteriores quedan alineados. Los espacios y marcos siguen tu estilo."
+  ],
+  "layoutBuilderNoDividers": [
+    "Diese Zelle hat keine verschiebbaren Trennlinien.",
+    "This cell has no movable dividers.",
+    "لا توجد فواصل قابلة للتحريك لهذه الخلية.",
+    "Bu hücrede taşınabilir ayırıcı yok.",
+    "Cette cellule n’a pas de séparation déplaçable.",
+    "Esta celda no tiene separadores móviles."
+  ],
+  "layoutBuilderVertical": [
+    "Vertikale Trennlinie",
+    "Vertical divider",
+    "فاصل عمودي",
+    "Dikey ayırıcı",
+    "Séparation verticale",
+    "Separador vertical"
+  ],
+  "layoutBuilderHorizontal": [
+    "Horizontale Trennlinie",
+    "Horizontal divider",
+    "فاصل أفقي",
+    "Yatay ayırıcı",
+    "Séparation horizontale",
+    "Separador horizontal"
+  ],
+  "stickers": [
+    "Sticker",
+    "Stickers",
+    "ملصقات",
+    "Çıkartmalar",
+    "Autocollants",
+    "Pegatinas"
+  ],
+  "includeStickers": [
+    "Sticker übernehmen",
+    "Include stickers",
+    "تضمين الملصقات",
+    "Çıkartmaları dahil et",
+    "Inclure les autocollants",
+    "Incluir pegatinas"
+  ],
+  "stCategory_emojis": [
+    "Emojis",
+    "Emojis",
+    "رموز تعبيرية",
+    "Emojiler",
+    "Émojis",
+    "Emojis"
+  ],
+  "stCategory_shapes": [
+    "Formen",
+    "Shapes",
+    "أشكال",
+    "Şekiller",
+    "Formes",
+    "Formas"
+  ],
+  "stCategory_arrows": [
+    "Pfeile",
+    "Arrows",
+    "أسهم",
+    "Oklar",
+    "Flèches",
+    "Flechas"
+  ],
+  "stCategory_hearts": [
+    "Herzen/Sterne",
+    "Hearts/Stars",
+    "قلوب ونجوم",
+    "Kalpler/Yıldızlar",
+    "Cœurs/Étoiles",
+    "Corazones/Estrellas"
+  ],
+  "stCategory_story": [
+    "Social/Story",
+    "Social/Story",
+    "قصص وتواصل",
+    "Sosyal/Hikâye",
+    "Réseaux/Story",
+    "Redes/Historia"
+  ],
+  "stCategory_labels": [
+    "Datum/Ort",
+    "Date/Place",
+    "تاريخ ومكان",
+    "Tarih/Yer",
+    "Date/Lieu",
+    "Fecha/Lugar"
+  ],
+  "stHeart": ["Herz", "Heart", "قلب", "Kalp", "Cœur", "Corazón"],
+  "stSparkles": [
+    "Glitzer",
+    "Sparkles",
+    "بريق",
+    "Parıltı",
+    "Étincelles",
+    "Destellos"
+  ],
+  "stStar": ["Stern", "Star", "نجمة", "Yıldız", "Étoile", "Estrella"],
+  "stPin": ["Pin", "Pin", "دبوس", "İşaretçi", "Repère", "Marcador"],
+  "stSmile": ["Lächeln", "Smile", "ابتسامة", "Gülümseme", "Sourire", "Sonrisa"],
+  "stFire": ["Feuer", "Fire", "نار", "Ateş", "Feu", "Fuego"],
+  "stCircle": ["Kreis", "Circle", "دائرة", "Daire", "Cercle", "Círculo"],
+  "stRectangle": [
+    "Rechteck",
+    "Rectangle",
+    "مستطيل",
+    "Dikdörtgen",
+    "Rectangle",
+    "Rectángulo"
+  ],
+  "stRounded": [
+    "Abgerundet",
+    "Rounded",
+    "مستطيل مستدير",
+    "Yuvarlatılmış",
+    "Arrondi",
+    "Redondeado"
+  ],
+  "stLine": ["Linie", "Line", "خط", "Çizgi", "Ligne", "Línea"],
+  "stBubble": [
+    "Sprechblase",
+    "Speech bubble",
+    "فقاعة كلام",
+    "Konuşma balonu",
+    "Bulle",
+    "Bocadillo"
+  ],
+  "stLeft": ["Links", "Left", "يسار", "Sol", "Gauche", "Izquierda"],
+  "stRight": ["Rechts", "Right", "يمين", "Sağ", "Droite", "Derecha"],
+  "stUp": ["Oben", "Up", "أعلى", "Yukarı", "Haut", "Arriba"],
+  "stDown": ["Unten", "Down", "أسفل", "Aşağı", "Bas", "Abajo"],
+  "stCamera": [
+    "Kamera",
+    "Camera",
+    "كاميرا",
+    "Kamera",
+    "Appareil photo",
+    "Cámara"
+  ],
+  "stParty": ["Party", "Party", "احتفال", "Kutlama", "Fête", "Fiesta"],
+  "stWow": ["WOW!", "WOW!", "واو!", "VAY!", "WAOUH !", "¡GUAU!"],
+  "stDate": ["Datum", "Date", "التاريخ", "Tarih", "Date", "Fecha"],
+  "stPlace": ["Mein Ort", "My place", "مكاني", "Yerim", "Mon lieu", "Mi lugar"],
+  "stHint": [
+    "Ziehen zum Verschieben, mit zwei Fingern skalieren und drehen. Zum Bearbeiten doppelt antippen oder auswählen und „Sticker bearbeiten“ öffnen.",
+    "Drag to move; use two fingers to resize and rotate. Double-tap to edit, or select and open “Edit sticker”.",
+    "اسحب للتحريك واستخدم إصبعين لتغيير الحجم والتدوير. انقر مرتين للتعديل أو حدد الملصق وافتح تعديل الملصق.",
+    "Taşımak için sürükleyin; boyut ve dönüş için iki parmak kullanın. Düzenlemek için çift dokunun veya seçip Çıkartmayı düzenle seçeneğini açın.",
+    "Glissez pour déplacer ; utilisez deux doigts pour redimensionner et tourner. Touchez deux fois pour modifier, ou sélectionnez puis ouvrez Modifier l’autocollant.",
+    "Arrastra para mover; usa dos dedos para cambiar tamaño y girar. Toca dos veces para editar o selecciona y abre Editar pegatina."
+  ],
+  "stOnCanvas": [
+    "Sticker auf der Collage",
+    "Stickers on canvas",
+    "ملصقات التصميم",
+    "Kolajdaki çıkartmalar",
+    "Autocollants du collage",
+    "Pegatinas del collage"
+  ],
+  "stEdit": [
+    "Sticker bearbeiten",
+    "Edit sticker",
+    "تعديل الملصق",
+    "Çıkartmayı düzenle",
+    "Modifier l’autocollant",
+    "Editar pegatina"
+  ],
+  "stLabelText": [
+    "Label-Text",
+    "Label text",
+    "نص الملصق",
+    "Etiket metni",
+    "Texte de l’étiquette",
+    "Texto de etiqueta"
+  ],
+  "stSize": ["Größe", "Size", "الحجم", "Boyut", "Taille", "Tamaño"],
+  "stRotation": [
+    "Drehung",
+    "Rotation",
+    "الدوران",
+    "Döndürme",
+    "Rotation",
+    "Rotación"
+  ],
+  "stOpacity": [
+    "Deckkraft",
+    "Opacity",
+    "التعتيم",
+    "Opaklık",
+    "Opacité",
+    "Opacidad"
+  ],
+  "stColor": ["Farbe", "Color", "اللون", "Renk", "Couleur", "Color"],
+  "stBackground": [
+    "Sticker-Hintergrund",
+    "Sticker background",
+    "خلفية الملصق",
+    "Çıkartma arka planı",
+    "Fond de l’autocollant",
+    "Fondo de pegatina"
+  ],
+  "stNoBackground": [
+    "Ohne Hintergrund",
+    "No background",
+    "بدون خلفية",
+    "Arka plan yok",
+    "Sans fond",
+    "Sin fondo"
+  ],
+  "stEmojiColor": [
+    "Emojis behalten ihre Gerätefarben.",
+    "Emojis retain their device colors.",
+    "تحتفظ الرموز التعبيرية بألوان الجهاز.",
+    "Emojiler cihaz renklerini korur.",
+    "Les émojis gardent les couleurs de l’appareil.",
+    "Los emojis conservan los colores del dispositivo."
+  ],
+  "stDuplicate": [
+    "Duplizieren",
+    "Duplicate",
+    "تكرار",
+    "Çoğalt",
+    "Dupliquer",
+    "Duplicar"
+  ],
+  "stFront": [
+    "Ganz nach vorne",
+    "Bring to front",
+    "إلى المقدمة",
+    "En öne getir",
+    "Au premier plan",
+    "Traer al frente"
+  ],
+  "stBack": [
+    "Ganz nach hinten",
+    "Send to back",
+    "إلى الخلف",
+    "En arkaya gönder",
+    "À l’arrière-plan",
+    "Enviar al fondo"
+  ],
+  "stColor0": ["Weiß", "White", "أبيض", "Beyaz", "Blanc", "Blanco"],
+  "stColor1": ["Schwarz", "Black", "أسود", "Siyah", "Noir", "Negro"],
+  "stColor2": ["Pink", "Pink", "وردي", "Pembe", "Rose", "Rosa"],
+  "stColor3": ["Gelb", "Yellow", "أصفر", "Sarı", "Jaune", "Amarillo"],
+  "stColor4": ["Grün", "Green", "أخضر", "Yeşil", "Vert", "Verde"],
+  "stColor5": ["Blau", "Blue", "أزرق", "Mavi", "Bleu", "Azul"],
+  "stColor6": ["Violett", "Purple", "بنفسجي", "Mor", "Violet", "Violeta"],
+  "archiveImport": [
+    "Projekt importieren",
+    "Import project",
+    "استيراد مشروع",
+    "Projeyi içe aktar",
+    "Importer un projet",
+    "Importar proyecto"
+  ],
+  "archiveExport": [
+    "Projekt exportieren",
+    "Export project",
+    "تصدير المشروع",
+    "Projeyi dışa aktar",
+    "Exporter le projet",
+    "Exportar proyecto"
+  ],
+  "archiveWorking": [
+    "Projektdatei wird verarbeitet …",
+    "Processing project file…",
+    "جارٍ معالجة ملف المشروع…",
+    "Proje dosyası işleniyor…",
+    "Traitement du fichier projet…",
+    "Procesando archivo de proyecto…"
+  ],
+  "archiveImported": [
+    "Projekt importiert",
+    "Project imported",
+    "تم استيراد المشروع",
+    "Proje içe aktarıldı",
+    "Projet importé",
+    "Proyecto importado"
+  ],
+  "archiveCancelled": [
+    "Import abgebrochen",
+    "Import cancelled",
+    "تم إلغاء الاستيراد",
+    "İçe aktarma iptal edildi",
+    "Importation annulée",
+    "Importación cancelada"
+  ],
+  "archiveWrongFile": [
+    "Bitte eine .piclayout-Projektdatei wählen.",
+    "Please choose a .piclayout project file.",
+    "يرجى اختيار ملف مشروع بامتداد .piclayout.",
+    "Lütfen bir .piclayout proje dosyası seçin.",
+    "Choisissez un fichier projet .piclayout.",
+    "Elige un archivo de proyecto .piclayout."
+  ],
+  "archiveInvalid": [
+    "Die Projektdatei ist beschädigt oder hat ein ungültiges Format.",
+    "The project file is damaged or has an invalid format.",
+    "ملف المشروع تالف أو تنسيقه غير صالح.",
+    "Proje dosyası bozuk veya biçimi geçersiz.",
+    "Le fichier projet est endommagé ou son format est invalide.",
+    "El archivo de proyecto está dañado o su formato no es válido."
+  ],
+  "archiveVersionError": [
+    "Diese Projektversion wird nicht unterstützt. Bitte PicLayout aktualisieren.",
+    "This project version is not supported. Please update PicLayout.",
+    "إصدار المشروع غير مدعوم. يرجى تحديث PicLayout.",
+    "Bu proje sürümü desteklenmiyor. Lütfen PicLayout uygulamasını güncelleyin.",
+    "Cette version du projet n’est pas prise en charge. Mettez PicLayout à jour.",
+    "Esta versión del proyecto no es compatible. Actualiza PicLayout."
+  ],
+  "archiveMissingImages": [
+    "Benötigte Projektbilder fehlen oder sind nicht im privaten Projektspeicher verfügbar.",
+    "Required project images are missing or unavailable in private project storage.",
+    "صور المشروع المطلوبة مفقودة أو غير متاحة في التخزين الخاص للمشروع.",
+    "Gerekli proje görselleri eksik veya özel proje depolamasında bulunamıyor.",
+    "Des images nécessaires manquent ou sont indisponibles dans le stockage privé du projet.",
+    "Faltan imágenes necesarias o no están disponibles en el almacenamiento privado del proyecto."
+  ],
+  "archiveNoSpace": [
+    "Nicht genügend Speicherplatz. Bitte Speicher freigeben und erneut versuchen.",
+    "Not enough storage. Free up space and try again.",
+    "مساحة التخزين غير كافية. حرر مساحة وحاول مجددًا.",
+    "Yeterli depolama alanı yok. Alan açıp yeniden deneyin.",
+    "Espace insuffisant. Libérez de l’espace et réessayez.",
+    "No hay suficiente espacio. Libera espacio e inténtalo de nuevo."
+  ],
+  "archiveStorageError": [
+    "Projektdatei konnte nicht gelesen oder gespeichert werden. Bitte Speicher und Zugriff prüfen.",
+    "Could not read or save the project file. Check storage and access.",
+    "تعذرت قراءة ملف المشروع أو حفظه. تحقق من التخزين وإمكانية الوصول.",
+    "Proje dosyası okunamadı veya kaydedilemedi. Depolamayı ve erişimi kontrol edin.",
+    "Impossible de lire ou enregistrer le projet. Vérifiez le stockage et les accès.",
+    "No se pudo leer o guardar el proyecto. Comprueba el almacenamiento y el acceso."
+  ],
+  "archiveTooLarge": [
+    "Projektdatei zu groß: maximal 128 MB insgesamt, 32 MB je Bild und 40 Megapixel je Foto.",
+    "Project too large: maximum 128 MB total, 32 MB per image and 40 megapixels per photo.",
+    "المشروع كبير جدًا: الحد 128 ميغابايت إجمالًا و32 ميغابايت و40 ميغابكسل لكل صورة.",
+    "Proje çok büyük: toplam en fazla 128 MB, görsel başına 32 MB ve fotoğraf başına 40 megapiksel.",
+    "Projet trop volumineux : 128 Mo au total, 32 Mo et 40 mégapixels par photo au maximum.",
+    "Proyecto demasiado grande: máximo 128 MB en total, 32 MB y 40 megapíxeles por foto."
+  ],
+  "archivePickerError": [
+    "Dateiauswahl nicht verfügbar. Bitte erneut versuchen.",
+    "File picker unavailable. Please try again.",
+    "اختيار الملفات غير متاح. حاول مجددًا.",
+    "Dosya seçici kullanılamıyor. Lütfen yeniden deneyin.",
+    "Sélection de fichier indisponible. Réessayez.",
+    "Selector de archivos no disponible. Inténtalo de nuevo."
+  ],
+  "archiveShareError": [
+    "Projektdatei konnte nicht geteilt werden. Bitte erneut versuchen.",
+    "Could not share the project file. Please try again.",
+    "تعذرت مشاركة ملف المشروع. حاول مجددًا.",
+    "Proje dosyası paylaşılamadı. Lütfen yeniden deneyin.",
+    "Impossible de partager le projet. Réessayez.",
+    "No se pudo compartir el proyecto. Inténtalo de nuevo."
+  ],
 };

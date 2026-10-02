@@ -28,6 +28,7 @@ Implemented:
 - Locally saved favorite layouts and reusable design templates without photos or image paths.
 - Undoable layout variation that keeps photo order, canvas style, and text.
 - Data-driven layout library with classic grids, uneven rows, hero layouts, and staggered two-column layouts.
+- Custom layouts with draggable dividers, local reuse, undo/redo and PNG/JPEG export.
 - PNG and JPEG export from original local image files, not from a screen screenshot.
 - German and English app strings.
 - Layout tests for the most fragile geometry rules.
@@ -250,3 +251,55 @@ Die App bietet lokal gespeicherte Einstellungen, sechs manuell wählbare Sprache
 Foto-Filter mit Undo/Redo und Autosave. Bedienung, Datenmodell, Rendering,
 Gerätetests und die zu ersetzende Support-Adresse sind in
 [docs/settings-and-photo-editing.md](docs/settings-and-photo-editing.md) beschrieben.
+
+## Eigene Layouts
+
+Im Editor öffnet **Eigenes Layout** den Layout-Editor. Dort lassen sich eine
+Ausgangsaufteilung wählen und innere Trennlinien per Griff oder Schieberegler
+verschieben. Durch Antippen einer Zelle erscheinen ihre verstellbaren Grenzen.
+Jede Zelle behält mindestens 12 % der Breite und Höhe der inneren Collagefläche;
+die Aufteilung bleibt lückenlos und ohne Überlappungen. Nicht geeignete
+Ausgangslayouts werden mit einem Hinweis durch eine passende Aufteilung ersetzt.
+
+**Fertig** übernimmt den Entwurf als einen rückgängig machbaren Schritt und löst
+Autosave aus. Zurück oder Abbrechen verwirft den Entwurf; Zurücksetzen stellt den
+Zustand beim Öffnen wieder her. **Als Layout speichern** speichert separat eine
+benannte Kopie in der lokalen Layout-Bibliothek, auch ohne den Entwurf zu übernehmen.
+Unter **Eigene Layouts** erscheinen die gespeicherten Layouts für die aktuelle
+Fotoanzahl. Sie enthalten nur Aufteilung und Metadaten, keine Fotos oder Dateipfade.
+
+Eigene Layouts sind zusätzlich im Projekt und in gespeicherten Designvorlagen
+enthalten. Foto-Reihenfolge, Zuschnitt, Filter, Text und Stil bleiben beim Anwenden
+erhalten. Ein Standardlayout oder eine Layout-Variation ersetzt die eigene
+Aufteilung. Ändert sich die Fotoanzahl, greift ein passendes Standardlayout;
+Undo stellt die vorherige Aufteilung wieder her. Vorschau und PNG/JPEG-Export
+verwenden dieselbe Geometrie. Bei engen Zellen wird der Abstand begrenzt, damit
+die Bildflächen eine positive Größe behalten.
+
+Automatisierte Tests prüfen Geometrie einschließlich zufälliger Verschiebungen,
+Speicherung und Fehlerfälle, Projekt- und Vorlagenkompatibilität, Undo/Redo,
+Export-Pixel sowie die Bedienung auf einem 320-Pixel-Bildschirm in allen sechs
+Sprachen einschließlich Arabisch/RTL. Auf echten Geräten sind Touch-Bedienung,
+große Systemschrift und die Leistung mit zwölf hochauflösenden Fotos noch zu prüfen.
+
+Validierung dieses Arbeitsstands: `flutter analyze` ohne Befunde,
+`flutter test` mit 59 erfolgreichen Tests.
+
+## Sticker, Emojis und Formen
+
+Der Editor bietet einen lokalen Sticker-Katalog mit 23 Emojis, Formen, Symbolen
+und Textlabels. Sticker unterstützen Verschieben, Skalieren, Drehen, Farbe,
+Deckkraft, Duplizieren, Reihenfolge, Undo/Redo und Autosave. Vorlagen können Sticker
+optional übernehmen; alle Exportwege zeichnen sie mit demselben Renderer.
+Bedienung, Ebenenfolge, Dateiliste, Tests und Geräteprüfung stehen in
+[docs/stickers.md](docs/stickers.md).
+
+## Projektdateien sichern und übertragen
+
+**Projekt exportieren** im Projektkarten- oder Editor-Menü erstellt eine
+bearbeitbare `.piclayout`-Datei und öffnet das Teilen-Menü. **Projekt importieren**
+auf der Startseite legt daraus ein neues lokales Projekt an. Das ZIP-basierte
+Format enthält versioniertes JSON und portable PNG-Kopien mit relativen Pfaden;
+Text, Sticker, Filter, Stil und eigene Layouts bleiben editierbar.
+Format, Größenlimits, Dateiliste und Geräteprüfungen:
+[docs/project-archives.md](docs/project-archives.md).

@@ -1,3 +1,5 @@
+import '../../stickers/sticker_overlay.dart';
+import '../../custom_layouts/models/custom_layout.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
 import '../../collage_editor/models/canvas_settings.dart';
@@ -16,8 +18,11 @@ class CollageProject {
     required this.photos,
     this.canvas = const CanvasSettings(),
     this.textOverlays = const [],
+    this.customLayout,
+    this.stickers = const [],
   });
 
+  final List<StickerOverlay> stickers;
   final String id;
   final String name;
   final DateTime createdAt;
@@ -25,6 +30,7 @@ class CollageProject {
   final int formatVersion;
   final String aspectRatioId;
   final String layoutTemplateId;
+  final CustomLayout? customLayout;
   final List<PhotoAsset> photos;
   final CanvasSettings canvas;
   final List<TextOverlay> textOverlays;
@@ -42,8 +48,12 @@ class CollageProject {
     List<PhotoAsset>? photos,
     CanvasSettings? canvas,
     List<TextOverlay>? textOverlays,
+    List<StickerOverlay>? stickers,
+    CustomLayout? customLayout,
+    bool clearCustomLayout = false,
   }) {
     return CollageProject(
+      stickers: stickers ?? this.stickers,
       id: id ?? this.id,
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
@@ -54,6 +64,8 @@ class CollageProject {
       photos: photos ?? this.photos,
       canvas: canvas ?? this.canvas,
       textOverlays: textOverlays ?? this.textOverlays,
+      customLayout:
+          clearCustomLayout ? null : customLayout ?? this.customLayout,
     );
   }
 
@@ -61,14 +73,18 @@ class CollageProject {
     if (photos.isEmpty) {
       return this;
     }
+    if (customLayout != null && customLayout!.photoCount == photos.length) {
+      return this;
+    }
     final template = LayoutLibrary.byIdOrDefault(
       layoutTemplateId,
       photos.length,
     );
-    return copyWith(layoutTemplateId: template.id);
+    return copyWith(layoutTemplateId: template.id, clearCustomLayout: true);
   }
 
   Map<String, Object?> toJson() => {
+        'stickers': stickers.map((s) => s.toJson()).toList(),
         'id': id,
         'name': name,
         'createdAt': createdAt.toIso8601String(),
@@ -76,6 +92,7 @@ class CollageProject {
         'formatVersion': formatVersion,
         'aspectRatioId': aspectRatioId,
         'layoutTemplateId': layoutTemplateId,
+        if (customLayout != null) 'customLayout': customLayout!.toJson(),
         'photos': photos.map((photo) => photo.toJson()).toList(),
         'canvas': canvas.toJson(),
         'textOverlays':
@@ -84,6 +101,8 @@ class CollageProject {
 
   static CollageProject fromJson(Map<String, Object?> json) {
     return CollageProject(
+      stickers: StickerOverlay.parseList(json['stickers']),
+      customLayout: CustomLayout.tryParse(json['customLayout']),
       id: json['id'] as String,
       name: json['name'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),

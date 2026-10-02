@@ -1,3 +1,7 @@
+import '../project_archive/project_archive_actions.dart';
+import '../project_archive/project_archive_controller.dart';
+import '../stickers/sticker_sheet.dart';
+import '../custom_layouts/widgets/custom_layout_section.dart';
 import 'widgets/photo_edit_sheet.dart';
 import 'widgets/style_studio_sheet.dart';
 import 'dart:async';
@@ -50,6 +54,15 @@ class EditorPage extends ConsumerWidget {
         appBar: AppBar(
           title: Text(controller.project.name),
           actions: [
+            PopupMenuButton<String>(
+              enabled: !ref.watch(projectArchiveControllerProvider).busy,
+              onSelected: (_) =>
+                  exportProjectArchive(context, ref, controller.project),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                    value: 'archive', child: Text(strings.tr('archiveExport')))
+              ],
+            ),
             IconButton(
               tooltip: strings.tr('undo'),
               onPressed: controller.canUndo ? controller.undo : null,
@@ -67,6 +80,9 @@ class EditorPage extends ConsumerWidget {
             ),
           ],
         ),
+        bottomNavigationBar: ref.watch(projectArchiveControllerProvider).busy
+            ? const LinearProgressIndicator()
+            : null,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -154,6 +170,20 @@ class _ToolsPanel extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton.icon(
+                  key: const ValueKey('add-sticker'),
+                  onPressed: () => showStickerPicker(context, controller),
+                  icon: const Icon(Icons.emoji_emotions_outlined),
+                  label: Text(strings.tr('stickers'))),
+              if (controller.selectedSticker != null)
+                FilledButton.icon(
+                    key: const ValueKey('edit-sticker'),
+                    onPressed: () => showStickerEditor(context, controller),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(strings.tr('stEdit'))),
+            ]),
+            const SizedBox(height: 12),
             ThumbnailStrip(controller: controller),
             const SizedBox(height: 12),
             Text(strings.format, style: Theme.of(context).textTheme.labelLarge),
@@ -204,10 +234,12 @@ class _ToolsPanel extends ConsumerWidget {
               icon: const Icon(Icons.shuffle),
               label: Text(strings.variation),
             ),
-            if (LayoutLibrary.byIdOrDefault(
-              project.layoutTemplateId,
-              project.photos.length,
-            ).supportsStagger)
+            CustomLayoutSection(controller: controller),
+            if (project.customLayout == null &&
+                LayoutLibrary.byIdOrDefault(
+                  project.layoutTemplateId,
+                  project.photos.length,
+                ).supportsStagger)
               _SliderTile(
                 label: strings.stagger,
                 value: project.canvas.staggerAmount,
@@ -282,7 +314,8 @@ class _ToolsPanel extends ConsumerWidget {
       children: [
         ChoiceChip(
           label: Text(AppLocalizations.of(context).tr(layout.title)),
-          selected: controller.project.layoutTemplateId == layout.id,
+          selected: controller.project.customLayout == null &&
+              controller.project.layoutTemplateId == layout.id,
           onSelected: (_) => controller.setLayoutTemplate(layout.id),
         ),
         IconButton(

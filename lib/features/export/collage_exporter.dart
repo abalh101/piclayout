@@ -1,3 +1,4 @@
+import '../stickers/sticker_renderer.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -65,6 +66,7 @@ class CollageExporter {
     }
 
     TextOverlayRenderer.paint(canvas, size, project.textOverlays);
+    StickerRenderer.paint(canvas, size, project.stickers);
 
     final picture = recorder.endRecording();
     late ui.Image outputImage;

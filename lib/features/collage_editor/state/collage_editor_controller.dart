@@ -1,3 +1,5 @@
+import '../../stickers/sticker_overlay.dart';
+import '../../custom_layouts/models/custom_layout.dart';
 import '../models/photo_adjustments.dart';
 import 'dart:async';
 import 'dart:math';
@@ -51,12 +53,15 @@ class CollageEditorController extends ChangeNotifier {
   CollageProject _project;
   String? selectedPhotoId;
   String? selectedTextId;
+  String? selectedStickerId;
 
   CollageProject get project => _project;
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
-  bool get canVaryLayout => LayoutLibrary.templatesFor(_project.photos.length)
-      .any((layout) => layout.id != _project.layoutTemplateId);
+  bool get canVaryLayout =>
+      _project.customLayout != null ||
+      LayoutLibrary.templatesFor(_project.photos.length)
+          .any((layout) => layout.id != _project.layoutTemplateId);
 
   PhotoAsset? get selectedPhoto {
     final id = selectedPhotoId;
@@ -73,12 +78,14 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void selectPhoto(String photoId) {
+    selectedStickerId = null;
     selectedPhotoId = photoId;
     selectedTextId = null;
     notifyListeners();
   }
 
   void selectText(String textId) {
+    selectedStickerId = null;
     selectedTextId = textId;
     selectedPhotoId = null;
     notifyListeners();
@@ -86,6 +93,7 @@ class CollageEditorController extends ChangeNotifier {
 
   TextOverlay addText(String text) {
     final overlay = TextOverlay(id: const Uuid().v4(), text: text);
+    selectedStickerId = null;
     selectedTextId = overlay.id;
     selectedPhotoId = null;
     _mutate(
@@ -133,8 +141,85 @@ class CollageEditorController extends ChangeNotifier {
     ));
   }
 
+  StickerOverlay? get selectedSticker =>
+      _project.stickers.where((s) => s.id == selectedStickerId).firstOrNull;
+
+  void selectSticker(String id) {
+    selectedStickerId = id;
+    selectedPhotoId = null;
+    selectedTextId = null;
+    notifyListeners();
+  }
+
+  StickerOverlay addSticker(StickerDefinition definition, {String? label}) {
+    final sticker = definition.create(const Uuid().v4(), label: label);
+    selectSticker(sticker.id);
+    _mutate(_project.copyWith(stickers: [..._project.stickers, sticker]));
+    return sticker;
+  }
+
+  void updateSticker(StickerOverlay sticker, {bool live = false}) {
+    if (!_project.stickers.any((s) => s.id == sticker.id)) return;
+    final next = _project.copyWith(stickers: [
+      for (final s in _project.stickers)
+        if (s.id == sticker.id) sticker else s,
+    ]);
+    if (live) {
+      _project = next;
+      notifyListeners();
+    } else {
+      _mutate(next);
+    }
+  }
+
+  void removeSticker() {
+    final sticker = selectedSticker;
+    if (sticker == null) return;
+    selectedStickerId = null;
+    _mutate(_project.copyWith(stickers: [
+      for (final s in _project.stickers)
+        if (s.id != sticker.id) s,
+    ]));
+  }
+
+  void duplicateSticker() {
+    final sticker = selectedSticker;
+    if (sticker == null) return;
+    final copy = sticker.copyWith(
+        id: const Uuid().v4(), x: sticker.x + .04, y: sticker.y + .04);
+    selectedStickerId = copy.id;
+    _mutate(_project.copyWith(stickers: [..._project.stickers, copy]));
+  }
+
+  void reorderSticker({required bool front}) {
+    final sticker = selectedSticker;
+    if (sticker == null) return;
+    final rest = _project.stickers.where((s) => s.id != sticker.id).toList();
+    if ((front ? _project.stickers.last : _project.stickers.first).id ==
+        sticker.id) {
+      return;
+    }
+    _mutate(_project.copyWith(
+        stickers: front ? [...rest, sticker] : [sticker, ...rest]));
+  }
+
+  void _validateStickerSelection() {
+    if (selectedSticker == null) selectedStickerId = null;
+    if (selectedStickerId != null) {
+      selectedPhotoId = null;
+      selectedTextId = null;
+    }
+  }
+
   void setAspectRatio(AspectRatioPreset preset) {
     _mutate(_project.copyWith(aspectRatioId: preset.id));
+  }
+
+  bool applyCustomLayout(CustomLayout layout) {
+    if (layout.photoCount != _project.photos.length) return false;
+    if (identical(_project.customLayout, layout)) return true;
+    _mutate(_project.copyWith(customLayout: layout));
+    return true;
   }
 
   void setLayoutTemplate(String layoutTemplateId) {
@@ -142,21 +227,26 @@ class CollageEditorController extends ChangeNotifier {
       layoutTemplateId,
       _project.photos.length,
     );
-    _mutate(_project.copyWith(layoutTemplateId: template.id));
+    _mutate(_project.copyWith(
+        layoutTemplateId: template.id, clearCustomLayout: true));
   }
 
   bool varyLayout() {
     final candidates = LayoutLibrary.templatesFor(_project.photos.length)
-        .where((layout) => layout.id != _project.layoutTemplateId)
+        .where((layout) =>
+            _project.customLayout != null ||
+            layout.id != _project.layoutTemplateId)
         .toList();
     if (candidates.isEmpty) return false;
     final choice = candidates[_random.nextInt(candidates.length)];
-    _mutate(_project.copyWith(layoutTemplateId: choice.id));
+    _mutate(_project.copyWith(
+        layoutTemplateId: choice.id, clearCustomLayout: true));
     return true;
   }
 
   void applyTemplate(CollageTemplate template) {
     _mutate(template.applyTo(_project));
+    _validateStickerSelection();
     if (selectedTextId != null &&
         !_project.textOverlays.any((item) => item.id == selectedTextId)) {
       selectedTextId = null;
@@ -302,6 +392,7 @@ class CollageEditorController extends ChangeNotifier {
     }
     _redo.add(_project);
     _project = _undo.removeLast();
+    _validateStickerSelection();
     selectedPhotoId =
         _project.photos.any((photo) => photo.id == selectedPhotoId)
             ? selectedPhotoId
@@ -309,7 +400,9 @@ class CollageEditorController extends ChangeNotifier {
     if (!_project.textOverlays.any((item) => item.id == selectedTextId)) {
       selectedTextId = null;
     }
-    if (selectedTextId != null) selectedPhotoId = null;
+    if (selectedTextId != null || selectedStickerId != null) {
+      selectedPhotoId = null;
+    }
     notifyListeners();
     _scheduleAutosave();
   }
@@ -320,6 +413,7 @@ class CollageEditorController extends ChangeNotifier {
     }
     _undo.add(_project);
     _project = _redo.removeLast();
+    _validateStickerSelection();
     if (!_project.textOverlays.any((item) => item.id == selectedTextId)) {
       selectedTextId = null;
     }

@@ -12,7 +12,8 @@ Future<void> showSaveTemplateDialog(
   CollageEditorController controller,
 ) async {
   final strings = AppLocalizations.of(context);
-  final input = await showDialog<({String name, bool includeText})>(
+  final input =
+      await showDialog<({String name, bool includeText, bool includeStickers})>(
     context: context,
     builder: (_) => _SaveTemplateDialog(strings: strings),
   );
@@ -22,6 +23,7 @@ Future<void> showSaveTemplateDialog(
           name: input.name,
           project: controller.project,
           includeTextOverlays: input.includeText,
+          includeStickers: input.includeStickers,
         );
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,6 +51,7 @@ class _SaveTemplateDialog extends StatefulWidget {
 class _SaveTemplateDialogState extends State<_SaveTemplateDialog> {
   final TextEditingController _nameController = TextEditingController();
   bool _includeText = false;
+  bool _includeStickers = false;
 
   @override
   void dispose() {
@@ -59,25 +62,34 @@ class _SaveTemplateDialogState extends State<_SaveTemplateDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
         title: Text(widget.strings.saveAsTemplate),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              maxLength: 60,
-              decoration:
-                  InputDecoration(labelText: widget.strings.templateName),
-              onChanged: (_) => setState(() {}),
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(widget.strings.includeTemplateText),
-              value: _includeText,
-              onChanged: (value) =>
-                  setState(() => _includeText = value ?? false),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                maxLength: 60,
+                decoration:
+                    InputDecoration(labelText: widget.strings.templateName),
+                onChanged: (_) => setState(() {}),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(widget.strings.tr('includeStickers')),
+                value: _includeStickers,
+                onChanged: (value) =>
+                    setState(() => _includeStickers = value ?? false),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(widget.strings.includeTemplateText),
+                value: _includeText,
+                onChanged: (value) =>
+                    setState(() => _includeText = value ?? false),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -90,6 +102,7 @@ class _SaveTemplateDialogState extends State<_SaveTemplateDialog> {
                 : () => Navigator.pop(context, (
                       name: _nameController.text.trim(),
                       includeText: _includeText,
+                      includeStickers: _includeStickers,
                     )),
             child: Text(widget.strings.saveTemplate),
           ),
@@ -150,8 +163,12 @@ Future<void> showMyTemplatesSheet(
                                       template.layoutTemplateId,
                                       controller.project.photos.length,
                                     );
-                                    final adjusted = resolved.id !=
-                                        template.layoutTemplateId;
+                                    final adjusted = template.customLayout !=
+                                            null
+                                        ? template.customLayout!.photoCount !=
+                                            controller.project.photos.length
+                                        : resolved.id !=
+                                            template.layoutTemplateId;
                                     controller.applyTemplate(template);
                                     Navigator.pop(sheetContext);
                                     if (adjusted) {
