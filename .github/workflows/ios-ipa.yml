@@ -199,8 +199,34 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Build unsigned IPA
-        run: flutter build ipa --release --no-codesign
+      - name: Build and package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter build ipa --release --no-codesign
+
+          archive_path="build/ios/archive/Runner.xcarchive"
+          app_path="$archive_path/Products/Applications/Runner.app"
+          ipa_path="build/ios/ipa/PicLayout-unsigned.ipa"
+          payload_path="build/ios/ipa/Payload"
+
+          if [[ ! -d "$app_path" ]]; then
+            echo "::error::Expected unsigned app bundle was not found at $app_path."
+            echo "Contents of build/ios:"
+            find build/ios -maxdepth 4 -print 2>/dev/null || true
+            exit 1
+          fi
+
+          rm -rf "$payload_path"
+          mkdir -p "$payload_path"
+          cp -R "$app_path" "$payload_path/Runner.app"
+          rm -f "$ipa_path"
+          ditto -c -k --sequesterRsrc --keepParent "$payload_path" "$ipa_path"
+
+          if ! unzip -Z1 "$ipa_path" | grep -q '^Payload/Runner\.app/'; then
+            echo "::error::The generated IPA does not contain Payload/Runner.app/."
+            exit 1
+          fi
 
       - name: Verify IPA output
         shell: bash
