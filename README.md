@@ -264,7 +264,9 @@ Style tests cover legacy JSON, full style round-trip and private-free
 saved templates, presets/source bounds, grouped undo/reset, shared-edge contours,
 actual PNG/JPEG pixels (including patterns and unchanged originals), plus a
 320×640 sheet with preset application/autosave/reset. Existing text, template,
-favorite, variation and social-export tests remain green.
+favorite, variation and social-export tests remain part of the full suite. See
+the release checklist for the current results. The former Windows fixture cleanup
+errors are fixed; [cleanup details and CI coverage](docs/windows-test-cleanup.md).
 Native rendering and performance still require Android/iOS device validation.
 
 Manual device checks for this feature:
@@ -354,6 +356,29 @@ Bedienung, Speicherung, Asset-Generator und Gerätecheckliste stehen in
 [docs/onboarding-and-examples.md](docs/onboarding-and-examples.md).
 Automatisierte Prüfungen laufen zentral über die GitHub Actions CI; native
 Geräteprüfungen bleiben Teil der Release-Checkliste.
+
+## 12 photos and canvas dividers
+
+Select **1–12 photos** and review their count before creating a collage. Larger
+layout choices include 2×4/4×2, 3×3, 2×5/5×2 and 3×4/4×3 grids, balanced rows and
+staggered columns. Existing layouts and saved projects stay compatible. Unused
+grid slots display the canvas background without phantom photo placeholders.
+
+Choose **Edit dividers** in the editor's layout tools, then drag an inner line or
+handle directly on the collage. Changes appear live, autosave, and form one
+undo/redo step per gesture. **Done editing dividers** resumes photo/text/sticker
+gestures. Minimum cell sizes are 12% on each axis; preview and export share the
+edited geometry and crop logic. Layouts with holes or undersized cells retain
+their appearance and have no direct divider mode. Details and device checks:
+[12 photos and dividers](docs/twelve-photos-and-dividers.md).
+
+## iOS IPA workflow template
+
+The manual **iOS IPA template** GitHub Actions workflow defaults to an unsigned
+Xcode archive and needs **no Apple signing secrets now**. A later signed run can
+produce a downloadable IPA using GitHub Secrets. Windows cannot build iOS
+locally. Setup, exact secrets, artifact download, Ad Hoc installation and
+TestFlight instructions: [iOS IPA builds](docs/ios-ipa-builds.md).
 
 ## Smart Auto Layout und Empfehlungen
 

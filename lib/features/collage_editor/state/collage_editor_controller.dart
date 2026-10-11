@@ -3,6 +3,7 @@ import '../../layout_recommendations/photo_metadata_reader.dart';
 import '../models/photo_metadata.dart';
 import '../../stickers/sticker_overlay.dart';
 import '../../custom_layouts/models/custom_layout.dart';
+import '../../custom_layouts/services/layout_builder_seed.dart';
 import '../models/photo_adjustments.dart';
 import 'dart:async';
 import 'dart:math';
@@ -58,6 +59,10 @@ class CollageEditorController extends ChangeNotifier {
   bool metadataLoading = false;
   Timer? _autosave;
   Offset? _textDragGlobalPosition;
+  CollageProject? _dividerStart;
+  CustomLayout? _dividerLayout;
+  LayoutDivider? _dragDivider;
+  bool _editingDividers = false;
 
   CollageProject _project;
   String? selectedPhotoId;
@@ -67,6 +72,71 @@ class CollageEditorController extends ChangeNotifier {
   CollageProject get project => _project;
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
+  // Only expose the exact current geometry; never substitute a different seed.
+  CustomLayout? get editableCanvasLayout =>
+      _project.customLayout ??
+      (_project.photos.isEmpty
+          ? null
+          : LayoutBuilderSeed.fromTemplate(
+              LayoutLibrary.byIdOrDefault(
+                  _project.layoutTemplateId, _project.photos.length),
+              _project.canvas.staggerAmount));
+  bool get canEditDividers =>
+      editableCanvasLayout?.dividers.isNotEmpty ?? false;
+  bool get editingDividers => _editingDividers && canEditDividers;
+
+  void toggleDividerEditing() {
+    endDividerDrag();
+    _editingDividers = !_editingDividers && canEditDividers;
+    notifyListeners();
+  }
+
+  void beginDividerDrag(LayoutDivider divider) {
+    endDividerDrag();
+    final layout = editableCanvasLayout;
+    if (layout == null) return;
+    final matching = layout.dividers.where((item) => item.id == divider.id);
+    if (matching.isEmpty) return;
+    _autosave?.cancel();
+    _dividerStart = _project;
+    _dividerLayout = layout;
+    _dragDivider = matching.first;
+  }
+
+  void updateDividerDrag(double position) {
+    if (!position.isFinite) return;
+    final start = _dividerStart;
+    final layout = _dividerLayout;
+    final divider = _dragDivider;
+    if (start == null || layout == null || divider == null) return;
+    final moved = layout.moveDivider(divider, position);
+    if (identical(moved, layout)) {
+      _project = _project.copyWith(
+          customLayout: start.customLayout,
+          clearCustomLayout: start.customLayout == null);
+    } else {
+      _project = _project.copyWith(customLayout: moved);
+    }
+    notifyListeners();
+  }
+
+  /// A whole gesture is one history entry, including many live updates.
+  void endDividerDrag() {
+    final start = _dividerStart;
+    if (start == null) return;
+    final changed = _project.customLayout != start.customLayout;
+    _dividerStart = null;
+    _dividerLayout = null;
+    _dragDivider = null;
+    if (changed) {
+      _undo.add(start);
+      if (_undo.length > 80) _undo.removeAt(0);
+      _redo.clear();
+    }
+    _scheduleAutosave();
+    notifyListeners();
+  }
+
   bool get canVaryLayout =>
       _project.customLayout != null ||
       LayoutLibrary.templatesFor(_project.photos.length)
@@ -280,6 +350,7 @@ class CollageEditorController extends ChangeNotifier {
         ]);
     if (found.isNotEmpty) {
       _project = enrich(_project);
+      if (_dividerStart != null) _dividerStart = enrich(_dividerStart!);
       for (var i = 0; i < _undo.length; i++) {
         _undo[i] = enrich(_undo[i]);
       }
@@ -448,6 +519,7 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void undo() {
+    endDividerDrag();
     if (_undo.isEmpty) {
       return;
     }
@@ -469,6 +541,7 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void redo() {
+    endDividerDrag();
     if (_redo.isEmpty) {
       return;
     }
@@ -483,6 +556,7 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   Future<void> saveNow() async {
+    endDividerDrag();
     _autosave?.cancel();
     await _repository.save(_project);
   }
@@ -533,12 +607,14 @@ class CollageEditorController extends ChangeNotifier {
       );
 
   void _mutate(CollageProject next) {
+    endDividerDrag();
     _undo.add(_project);
     if (_undo.length > 80) {
       _undo.removeAt(0);
     }
     _redo.clear();
     _project = next.normalizedForPhotoCount();
+    if (!canEditDividers) _editingDividers = false;
     notifyListeners();
     _scheduleAutosave();
   }

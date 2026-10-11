@@ -1,6 +1,7 @@
 import '../../stickers/sticker_layer.dart';
 import '../../stickers/sticker_sheet.dart';
 import 'styled_collage_scene.dart';
+import 'canvas_divider_layer.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -60,7 +61,8 @@ class _CollageCanvasState extends State<CollageCanvas> {
                         child: IgnorePointer(
                             child: StyledCollageScene(project: project))),
                     for (final cell in cells)
-                      if (cell.photoIndex < project.photos.length)
+                      if (!controller.editingDividers &&
+                          cell.photoIndex < project.photos.length)
                         _PhotoCell(
                           rect: cell.rect,
                           cornerRadius: cell.cornerRadius,
@@ -103,13 +105,19 @@ class _CollageCanvasState extends State<CollageCanvas> {
                         ),
                     _TextOverlayLayer(
                       controller: controller,
+                      interactive: !controller.editingDividers,
                       size: size,
                       onEditText: widget.onEditText,
                     ),
                     StickerLayer(
                         controller: controller,
+                        interactive: !controller.editingDividers,
                         size: size,
                         onEdit: () => showStickerEditor(context, controller)),
+                    if (controller.editingDividers)
+                      Positioned.fill(
+                          child: CanvasDividerLayer(
+                              controller: controller, size: size)),
                   ],
                 ),
               );
@@ -125,11 +133,13 @@ class _TextOverlayLayer extends StatelessWidget {
   const _TextOverlayLayer({
     required this.controller,
     required this.size,
+    this.interactive = true,
     this.onEditText,
   });
 
   final CollageEditorController controller;
   final Size size;
+  final bool interactive;
   final VoidCallback? onEditText;
 
   @override
@@ -146,7 +156,8 @@ class _TextOverlayLayer extends StatelessWidget {
               ),
             ),
           ),
-          for (final overlay in overlays) _textHitTarget(context, overlay),
+          if (interactive)
+            for (final overlay in overlays) _textHitTarget(context, overlay),
         ],
       ),
     );

@@ -28,6 +28,7 @@ import 'package:piclayout/features/templates/state/design_library_providers.dart
 import 'package:piclayout/features/tutorial_tips/tutorial_tip_controller.dart';
 import 'support/custom_layout_fixtures.dart';
 import 'support/onboarding_fixtures.dart';
+import 'support/real_image_io.dart';
 
 const _portrait = PhotoMetadata(width: 80, height: 120);
 
@@ -86,20 +87,19 @@ Widget host(Widget child,
           child: child!),
       home: child,
     );
-void main() {
-  late Directory root;
-  late List<XFile> files;
-  setUpAll(() async {
-    root = await Directory.systemTemp.createTemp('recommend_ui');
-    files = [];
-    for (var i = 0; i < 6; i++) {
-      final file = File('${root.path}/photo$i.png');
-      await file.writeAsBytes(img.encodePng(img.Image(width: 80, height: 120)));
-      files.add(XFile(file.path));
-    }
-  });
-  tearDownAll(() => root.delete(recursive: true));
+Future<List<XFile>> createPhotoFixtures(WidgetTester tester) async {
+  final root = await Directory.systemTemp.createTemp('recommend_ui');
+  addTearDown(() => deleteImageFixtureDirectory(tester, root));
+  final files = <XFile>[];
+  for (var i = 0; i < 6; i++) {
+    final file = File('${root.path}/photo$i.png');
+    await file.writeAsBytes(img.encodePng(img.Image(width: 80, height: 120)));
+    files.add(XFile(file.path));
+  }
+  return files;
+}
 
+void main() {
   testWidgets(
       'Recommendation cards and reasons fit six languages, RTL, large text and a small screen',
       (tester) async {
@@ -157,63 +157,121 @@ void main() {
     }
   });
 
+  testWidgets('Review shows the 12-photo cap and creates all 12 photos',
+      (tester) async {
+    await withRealImageIo(tester, () async {
+      final files = await createPhotoFixtures(tester);
+      final repository = _Projects();
+      final container = ProviderContainer(overrides: [
+        photoMetadataReaderProvider.overrideWithValue(_Reader()),
+        settingsRepositoryProvider.overrideWithValue(_Settings()),
+        projectRepositoryProvider.overrideWithValue(repository),
+        designLibraryRepositoryProvider.overrideWithValue(_Library()),
+        customLayoutRepositoryProvider.overrideWithValue(LayoutMemoryLibrary()),
+        onboardingRepositoryProvider.overrideWithValue(MemoryOnboarding(
+            value: const OnboardingState(completed: true, dismissedTips: {
+          'tipPhoto',
+          'tipZoom',
+          'tipDrag',
+          'tipExport'
+        }))),
+      ]);
+      addTearDown(container.dispose);
+      // Older platform pickers can ignore their requested maximum. The review
+      // still clearly shows 12 and never sends a 13th photo to the repository.
+      final picked =
+          List.generate(13, (i) => XFile(files[i % files.length].path));
+      await tester.pumpWidget(UncontrolledProviderScope(
+          container: container,
+          child: host(SelectionReviewPage(files: picked),
+              locale: const Locale('en'))));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('selection-photo-count')))
+              .data,
+          startsWith('12 / 12'));
+      final review =
+          tester.widget<ReorderableListView>(find.byType(ReorderableListView));
+      expect(review.itemCount, 12);
+      review.onReorderItem!(0, 11);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('create-collage')));
+      await tester.pumpAndSettle();
+      expect(repository.picked, hasLength(12));
+      expect(repository.picked!.last, picked.first);
+      final page = tester.widget<EditorPage>(find.byType(EditorPage));
+      final controller = container.read(editorControllerProvider(page.project));
+      expect(controller.project.photos, hasLength(12));
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets(
       'Review chooses target and recommended layout; Editor Auto Layout and undo work',
       (tester) async {
-    tester.view.physicalSize = const Size(320, 700);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final repository = _Projects();
-    final container = ProviderContainer(overrides: [
-      photoMetadataReaderProvider.overrideWithValue(_Reader()),
-      settingsRepositoryProvider.overrideWithValue(_Settings()),
-      projectRepositoryProvider.overrideWithValue(repository),
-      designLibraryRepositoryProvider.overrideWithValue(_Library()),
-      customLayoutRepositoryProvider.overrideWithValue(LayoutMemoryLibrary()),
-      onboardingRepositoryProvider.overrideWithValue(MemoryOnboarding(
-          value: const OnboardingState(
-              completed: true,
-              dismissedTips: {'tipPhoto', 'tipZoom', 'tipDrag', 'tipExport'}))),
-    ]);
-    addTearDown(container.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(
-        container: container, child: host(SelectionReviewPage(files: files))));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('16:9'));
-    await tester.pumpAndSettle();
-    expect(
-        tester
-            .widget<RecommendedLayouts>(find.byType(RecommendedLayouts))
-            .targetRatio,
-        16 / 9);
-    await tester.tap(find.text('9:16'));
-    await tester.pumpAndSettle();
-    final recommendations = tester
-        .widget<RecommendedLayouts>(find.byType(RecommendedLayouts))
-        .recommendations;
-    final chosen = recommendations[1].layout.id;
-    final card = find.byKey(ValueKey('recommend-$chosen'));
-    await tester.ensureVisible(card);
-    await tester.tap(card);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('create-collage')));
-    await tester.pumpAndSettle();
-    expect(repository.ratio, '9_16');
-    expect(repository.picked!.map((file) => file.path),
-        files.map((file) => file.path));
-    expect(repository.saved!.layoutTemplateId, chosen);
-    final page = tester.widget<EditorPage>(find.byType(EditorPage));
-    final controller = container.read(editorControllerProvider(page.project));
-    await tester.ensureVisible(find.byKey(const ValueKey('auto-layout')));
-    await tester.tap(find.byKey(const ValueKey('auto-layout')));
-    await tester.pumpAndSettle();
-    expect(
-        controller.project.layoutTemplateId, recommendations.first.layout.id);
-    await tester.tap(find.byTooltip('Rückgängig'));
-    await tester.pumpAndSettle();
-    expect(controller.project.layoutTemplateId, chosen);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
+    await withRealImageIo(tester, () async {
+      final files = await createPhotoFixtures(tester);
+      tester.view.physicalSize = const Size(320, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = _Projects();
+      final container = ProviderContainer(overrides: [
+        photoMetadataReaderProvider.overrideWithValue(_Reader()),
+        settingsRepositoryProvider.overrideWithValue(_Settings()),
+        projectRepositoryProvider.overrideWithValue(repository),
+        designLibraryRepositoryProvider.overrideWithValue(_Library()),
+        customLayoutRepositoryProvider.overrideWithValue(LayoutMemoryLibrary()),
+        onboardingRepositoryProvider.overrideWithValue(MemoryOnboarding(
+            value: const OnboardingState(completed: true, dismissedTips: {
+          'tipPhoto',
+          'tipZoom',
+          'tipDrag',
+          'tipExport'
+        }))),
+      ]);
+      addTearDown(container.dispose);
+      await tester.pumpWidget(UncontrolledProviderScope(
+          container: container,
+          child: host(SelectionReviewPage(files: files))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('16:9'));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<RecommendedLayouts>(find.byType(RecommendedLayouts))
+              .targetRatio,
+          16 / 9);
+      await tester.tap(find.text('9:16'));
+      await tester.pumpAndSettle();
+      final recommendations = tester
+          .widget<RecommendedLayouts>(find.byType(RecommendedLayouts))
+          .recommendations;
+      final chosen = recommendations[1].layout.id;
+      final card = find.byKey(ValueKey('recommend-$chosen'));
+      await tester.ensureVisible(card);
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('create-collage')));
+      await tester.pumpAndSettle();
+      expect(repository.ratio, '9_16');
+      expect(repository.picked!.map((file) => file.path),
+          files.map((file) => file.path));
+      expect(repository.saved!.layoutTemplateId, chosen);
+      final page = tester.widget<EditorPage>(find.byType(EditorPage));
+      final controller = container.read(editorControllerProvider(page.project));
+      await tester.ensureVisible(find.byKey(const ValueKey('auto-layout')));
+      await tester.tap(find.byKey(const ValueKey('auto-layout')));
+      await tester.pumpAndSettle();
+      expect(
+          controller.project.layoutTemplateId, recommendations.first.layout.id);
+      await tester.tap(find.byTooltip('Rückgängig'));
+      await tester.pumpAndSettle();
+      expect(controller.project.layoutTemplateId, chosen);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 }

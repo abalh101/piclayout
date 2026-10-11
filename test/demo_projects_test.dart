@@ -84,7 +84,12 @@ void main() {
             .createCopy(DemoProjectFactory.designs[2], name: 'Birthday');
     final controller = CollageEditorController(
         initialProject: project, repository: repository);
-    addTearDown(controller.dispose);
+    addTearDown(() async {
+      controller.dispose();
+      // dispose starts a final save. Queue and await a save behind it before
+      // the earlier directory teardown runs (teardowns run in reverse order).
+      await repository.save(controller.project);
+    });
     controller.updateCanvas(project.canvas.copyWith(spacing: 20));
     expect(controller.canUndo, isTrue);
     controller.undo();

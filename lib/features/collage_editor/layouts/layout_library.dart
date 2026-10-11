@@ -1,10 +1,11 @@
 import '../models/layout_template.dart';
+import '../../../app/app_config.dart';
 
 class LayoutLibrary {
   const LayoutLibrary._();
 
   static List<LayoutTemplate> templatesFor(int photoCount) {
-    if (photoCount <= 0) {
+    if (photoCount <= 0 || photoCount > AppConfig.maxPhotos) {
       return const [];
     }
 
@@ -116,8 +117,23 @@ class LayoutLibrary {
       case 6:
         add(2, 3, '2 x 3');
         add(3, 2, '3 x 2');
+      case 7:
+        add(3, 3, '3 x 3');
+        add(4, 2, '4 x 2');
+      case 8:
+        // Preserve the existing grid ID and add two complete partitions.
+        add(3, 3, '3 x 3');
+        add(2, 4, '2 x 4');
+        add(4, 2, '4 x 2');
       case 9:
         add(3, 3, '3 x 3');
+      case 10:
+        add(3, 4, '3 x 4');
+        add(2, 5, '2 x 5');
+        add(5, 2, '5 x 2');
+      case 11:
+        add(3, 4, '3 x 4');
+        add(4, 3, '4 x 3');
       case 12:
         add(3, 4, '3 x 4');
         add(4, 3, '4 x 3');

@@ -1,5 +1,37 @@
 // Order: German, English, Arabic, Turkish, French, Spanish.
 const translations = <String, List<String>>{
+  'canvasDividersEdit': [
+    'Trennlinien bearbeiten',
+    'Edit dividers',
+    'تعديل الفواصل',
+    'Ayırıcıları düzenle',
+    'Modifier les séparations',
+    'Editar divisores'
+  ],
+  'canvasDividersDone': [
+    'Trennlinien fertig',
+    'Done editing dividers',
+    'إنهاء تعديل الفواصل',
+    'Ayırıcı düzenlemeyi bitir',
+    'Terminer les séparations',
+    'Terminar divisores'
+  ],
+  'canvasDividersHint': [
+    'Ziehe die inneren Linien oder Griffe direkt auf der Collage.',
+    'Drag the inner lines or handles directly on the collage.',
+    'اسحب الخطوط الداخلية أو المقابض مباشرة على الكولاج.',
+    'İç çizgileri veya tutamaçları doğrudan kolaj üzerinde sürükleyin.',
+    'Faites glisser les lignes intérieures ou les poignées sur le collage.',
+    'Arrastra las líneas interiores o los controles sobre el collage.'
+  ],
+  'canvasDividersUnavailable': [
+    'Dieses Layout hat keine sicher verstellbaren Trennlinien. Wähle ein vollständiges Raster oder ein eigenes Layout.',
+    'This layout has no safely adjustable dividers. Choose a complete grid or a custom layout.',
+    'لا يحتوي هذا التخطيط على فواصل قابلة للتعديل بأمان. اختر شبكة كاملة أو تخطيطًا مخصصًا.',
+    'Bu düzende güvenle ayarlanabilen ayırıcı yok. Tam bir ızgara veya özel düzen seçin.',
+    'Cette disposition ne permet pas de séparations réglables. Choisissez une grille complète ou une disposition personnalisée.',
+    'Este diseño no tiene divisores ajustables de forma segura. Elige una cuadrícula completa o un diseño personalizado.'
+  ],
   "recRecommended": [
     "Empfohlen",
     "Recommended",

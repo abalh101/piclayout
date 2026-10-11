@@ -61,6 +61,10 @@ class ProjectRepository {
 
   Future<CollageProject> createFromPickedImages(List<XFile> picked,
       {String aspectRatioId = '9_16'}) async {
+    if (picked.isEmpty || picked.length > AppConfig.maxPhotos) {
+      throw ArgumentError.value(picked.length, 'picked.length',
+          'Select 1 to ${AppConfig.maxPhotos} photos');
+    }
     final now = DateTime.now();
     final projectId = _uuid.v4();
     final dir = await _projectDirectory(projectId, create: true);
@@ -68,7 +72,7 @@ class ProjectRepository {
       ..createSync(recursive: true);
     final photos = <PhotoAsset>[];
 
-    for (var i = 0; i < picked.length && i < AppConfig.maxPhotos; i++) {
+    for (var i = 0; i < picked.length; i++) {
       final source = picked[i];
       final extension = p.extension(source.path).isEmpty
           ? '.jpg'

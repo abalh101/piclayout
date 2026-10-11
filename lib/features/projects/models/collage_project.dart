@@ -1,4 +1,5 @@
 import '../../stickers/sticker_overlay.dart';
+import '../../../app/app_config.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
@@ -70,6 +71,10 @@ class CollageProject {
   }
 
   CollageProject normalizedForPhotoCount() {
+    if (photos.length > AppConfig.maxPhotos) {
+      throw ArgumentError.value(photos.length, 'photos.length',
+          'Projects support at most ${AppConfig.maxPhotos} photos');
+    }
     if (photos.isEmpty) {
       return this;
     }

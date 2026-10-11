@@ -80,6 +80,11 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
               header: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                        '${_files.length} / ${AppConfig.maxPhotos} ${strings.selectedPhotos}',
+                        key: const ValueKey('selection-photo-count'),
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
                     Text(strings.format,
                         style: Theme.of(context).textTheme.titleMedium),
                     Wrap(spacing: 8, children: [

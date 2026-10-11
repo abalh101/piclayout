@@ -9,7 +9,11 @@ permissions:
 
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -22,3 +26,6 @@ jobs:
       - run: dart format --set-exit-if-changed .
       - run: flutter analyze
       - run: flutter test
+      - name: Verify serial Windows cleanup
+        if: runner.os == 'Windows'
+        run: flutter test --concurrency=1

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../app/app_config.dart';
 import '../collage_editor/layouts/layout_library.dart';
 import '../collage_editor/models/layout_template.dart';
 import '../collage_editor/models/photo_asset.dart';
@@ -56,7 +57,7 @@ class LayoutRecommendationService {
   List<LayoutRecommendation> recommend(List<PhotoAsset> photos,
       {required double targetRatio, double staggerAmount = 0}) {
     if (photos.isEmpty ||
-        photos.length > 12 ||
+        photos.length > AppConfig.maxPhotos ||
         !targetRatio.isFinite ||
         targetRatio <= 0) {
       return const [];

@@ -6,6 +6,12 @@ Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
 
 ## Ergebnis des Qualitäts-Passes (11.10.2026)
 
+**Current Windows test status:** the later cleanup pass resolved all four fixture
+failures. `dart format .` completed, `flutter analyze` found no issues, and both
+normal and serial full-suite runs pass **all 116 tests**. CI now includes Windows
+and Ubuntu. The older failing-run details below are historical; the cleanup
+blocker is resolved. See [windows-test-cleanup.md](windows-test-cleanup.md).
+
 - `flutter pub get`: erfolgreich. Die zurückgezogene indirekte Version
   `jni_flutter 1.0.4` wurde im Lockfile gezielt auf `1.0.4+1` aktualisiert.
 - `dart format .`: erfolgreich; `flutter analyze`: keine Befunde.
@@ -26,6 +32,33 @@ Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
 - Platzhaltersuche: keine Beispiel-App-ID oder aktive Beispiel-Support-Adresse
   mehr im Produktcode. Beispiel-Domains bleiben nur als Validierungsregeln bzw.
   negative Testdaten. Keine Keystore-Dateien oder Signing-Secrets hinzugefügt.
+
+## Additional checks: 12 photos, dividers and iOS workflow
+
+Current validation after fixture cleanup: `dart format .` completed,
+`flutter analyze` reported no issues, and both normal and serial full-suite runs
+pass **all 116 tests**, including all ten newly added feature tests. The former
+four Windows cleanup failures are resolved; no error was suppressed or test
+skipped. APK/iOS builds and remote workflow execution were outside this reduced,
+source-only validation scope. Details: [windows-test-cleanup.md](windows-test-cleanup.md).
+
+- [ ] Exercise 1–12 photo import, reorder, replacement, removal, reopen, templates
+  and project archives; verify existing 1–6 photo behavior.
+- [ ] Drag vertical/horizontal inner canvas dividers; verify minimum cell sizes,
+  live updates, one undo step per gesture, redo, autosave and close/reopen.
+- [ ] Compare edited preview with PNG/JPEG, gallery saves and social shares,
+  including crop, rotation, flip, filters, text and stickers on 12 photos.
+- [ ] Check unsupported layouts retain their appearance and do not switch
+  geometry when attempting to enable divider mode.
+- [ ] Run the manual iOS workflow on macOS CI. Its default unsigned archive needs
+  no signing secrets and is not installable on an iPhone.
+- [ ] When ready for distribution, configure the five signing secrets listed in
+  [ios-ipa-builds.md](ios-ipa-builds.md), select a matching App Store/Ad Hoc profile,
+  and verify installation through TestFlight or a registered test device.
+
+Feature details: [twelve-photos-and-dividers.md](twelve-photos-and-dividers.md).
+No local IPA build, signing-material handling or remote workflow run is part of
+this Windows source-only feature pass.
 
 ## Gemeinsame Vorbereitung
 

@@ -1,0 +1,181 @@
+name: iOS IPA template
+
+# Manual only. The default needs no Apple secrets and produces an unsigned
+# archive, not an installable IPA. See docs/ios-ipa-builds.md before signed mode.
+on:
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: 'Build a signed IPA (requires signing secrets configured later)'
+        type: boolean
+        default: false
+      distribution:
+        description: 'Signed distribution; must match the provisioning profile'
+        type: choice
+        options:
+          - app-store-connect
+          - release-testing
+        default: app-store-connect
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test
+
+      # This template is not executed locally. Signing files are created only
+      # on an ephemeral GitHub macOS runner after an explicit signed dispatch.
+      - name: Configure signing for a future signed build
+        if: ${{ inputs.signed }}
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          DISTRIBUTION: ${{ inputs.distribution }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          for name in IOS_CERTIFICATE_BASE64 IOS_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 IOS_KEYCHAIN_PASSWORD IOS_TEAM_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Signed IPA mode requires GitHub Secret $name. Configure it later using docs/ios-ipa-builds.md, or run with signed unchecked for an unsigned archive."
+              exit 1
+            fi
+          done
+          python3 - <<'PY'
+          import base64, os, pathlib
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          for secret, filename in [
+              ('IOS_CERTIFICATE_BASE64', 'piclayout-signing.p12'),
+              ('IOS_PROVISIONING_PROFILE_BASE64', 'piclayout.mobileprovision'),
+          ]:
+              try:
+                  encoded = ''.join(os.environ[secret].split())
+                  (root / filename).write_bytes(base64.b64decode(encoded, validate=True))
+              except (ValueError, TypeError):
+                  raise SystemExit(f'::error::{secret} must contain a valid Base64-encoded file.')
+          PY
+          security cms -D -i "$RUNNER_TEMP/piclayout.mobileprovision" -o "$RUNNER_TEMP/piclayout-profile.plist"
+          python3 - <<'PY'
+          import datetime, os, pathlib, plistlib, re, shutil
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          with (root / 'piclayout-profile.plist').open('rb') as file:
+              profile = plistlib.load(file)
+          team = os.environ['IOS_TEAM_ID']
+          bundle = 'com.abalh101.piclayout'
+          uuid = profile.get('UUID', '')
+          entitlements = profile.get('Entitlements', {})
+          method = os.environ['DISTRIBUTION']
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit('::error::' + message)
+          require(re.fullmatch(r'[A-Z0-9]{10}', team), 'IOS_TEAM_ID must be your 10-character Apple team ID.')
+          require(re.fullmatch(r'[A-Fa-f0-9-]{36}', uuid), 'Provisioning profile has an invalid UUID.')
+          require(team in profile.get('TeamIdentifier', []), 'Profile belongs to a different Apple team.')
+          app_id = entitlements.get('application-identifier', '')
+          require(app_id.partition('.')[2] == bundle, 'Profile must use the explicit App ID com.abalh101.piclayout.')
+          expiry = profile.get('ExpirationDate')
+          require(isinstance(expiry, datetime.datetime) and expiry > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None), 'Provisioning profile is expired or has no valid expiry date.')
+          require(not entitlements.get('get-task-allow', False), 'Use an Apple Distribution certificate and distribution profile, not a development profile.')
+          require(not profile.get('ProvisionsAllDevices', False), 'This template supports App Store and Ad Hoc profiles, not Enterprise profiles.')
+          devices = profile.get('ProvisionedDevices', [])
+          require((method == 'release-testing' and bool(devices)) or
+                  (method == 'app-store-connect' and not devices),
+                  'Distribution choice does not match the profile: release-testing requires Ad Hoc registered devices; app-store-connect requires an App Store profile.')
+          # Configure only Runner build settings in this disposable checkout.
+          # No signing material or project changes are committed or uploaded.
+          project = pathlib.Path('ios/Runner.xcodeproj/project.pbxproj')
+          count = 0
+          def signing_settings(match):
+              global count
+              body = match.group(2)
+              if not re.search(r'PRODUCT_BUNDLE_IDENTIFIER\s*=\s*com\.abalh101\.piclayout\s*;', body):
+                  return match.group(0)
+              count += 1
+              body = re.sub(r'\n[ \t]*(?:CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]")\s*=.*?;', '', body)
+              settings = {
+                  'CODE_SIGN_STYLE': 'Manual', 'DEVELOPMENT_TEAM': team,
+                  'CODE_SIGN_IDENTITY': 'Apple Distribution',
+                  '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': 'Apple Distribution',
+                  'PROVISIONING_PROFILE_SPECIFIER': uuid,
+              }
+              body += ''.join(f'\n\t\t\t\t{key} = "{value}";' for key, value in settings.items())
+              return match.group(1) + body + match.group(3)
+          updated = re.sub(r'(buildSettings = \{)(.*?)(\n[ \t]*\};)', signing_settings, project.read_text(), flags=re.S)
+          require(count == 3, 'Expected three Runner configurations; review the signing template after Xcode project changes.')
+          project.write_text(updated)
+          options = {
+              'method': method, 'destination': 'export', 'teamID': team,
+              'signingStyle': 'manual', 'signingCertificate': 'Apple Distribution',
+              'provisioningProfiles': {bundle: uuid}, 'manageAppVersionAndBuildNumber': False,
+          }
+          with (root / 'piclayout-export-options.plist').open('wb') as file:
+              plistlib.dump(options, file)
+          # Install in both locations for compatibility with current Xcode versions.
+          for folder in ['Library/MobileDevice/Provisioning Profiles',
+                         'Library/Developer/Xcode/UserData/Provisioning Profiles']:
+              destination = pathlib.Path.home() / folder
+              destination.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(root / 'piclayout.mobileprovision', destination / f'{uuid}.mobileprovision')
+          with open(os.environ['GITHUB_ENV'], 'a') as file:
+              file.write(f'PICLAYOUT_PROFILE_UUID={uuid}\n')
+          PY
+          security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$RUNNER_TEMP/piclayout-signing.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/piclayout-signing.keychain-db"
+          security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$RUNNER_TEMP/piclayout-signing.keychain-db"
+          security import "$RUNNER_TEMP/piclayout-signing.p12" -P "$IOS_CERTIFICATE_PASSWORD" -t cert -f pkcs12 -k "$RUNNER_TEMP/piclayout-signing.keychain-db" >/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$IOS_KEYCHAIN_PASSWORD" "$RUNNER_TEMP/piclayout-signing.keychain-db" >/dev/null
+          security list-keychains -d user -s "$RUNNER_TEMP/piclayout-signing.keychain-db" "$HOME/Library/Keychains/login.keychain-db"
+
+      - name: Build signed IPA
+        if: ${{ inputs.signed }}
+        run: flutter build ipa --release --export-options-plist="$RUNNER_TEMP/piclayout-export-options.plist" --dart-define="SUPPORT_EMAIL=$SUPPORT_EMAIL"
+      - name: Upload signed IPA only
+        if: ${{ inputs.signed }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: PicLayout-signed-ipa
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Build unsigned archive without Apple secrets
+        if: ${{ !inputs.signed }}
+        run: |
+          flutter build ipa --release --no-codesign --dart-define="SUPPORT_EMAIL=$SUPPORT_EMAIL"
+          tar -czf build/ios/PicLayout-unsigned.xcarchive.tar.gz -C build/ios/archive Runner.xcarchive
+      - name: Upload unsigned archive only
+        if: ${{ !inputs.signed }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: PicLayout-unsigned-archive-NOT-INSTALLABLE
+          path: build/ios/PicLayout-unsigned.xcarchive.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean up temporary signing material on the hosted runner
+        if: ${{ always() && inputs.signed }}
+        shell: bash
+        run: |
+          security delete-keychain "$RUNNER_TEMP/piclayout-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/piclayout-signing.p12" "$RUNNER_TEMP/piclayout.mobileprovision" "$RUNNER_TEMP/piclayout-profile.plist" "$RUNNER_TEMP/piclayout-export-options.plist"
+          if [[ "${PICLAYOUT_PROFILE_UUID:-}" =~ ^[A-Fa-f0-9-]{36}$ ]]; then
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$PICLAYOUT_PROFILE_UUID.mobileprovision" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PICLAYOUT_PROFILE_UUID.mobileprovision"
+          fi

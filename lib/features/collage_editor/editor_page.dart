@@ -290,6 +290,22 @@ class _ToolsPanel extends ConsumerWidget {
               label: Text(strings.variation),
             ),
             CustomLayoutSection(controller: controller),
+            OutlinedButton.icon(
+              key: const ValueKey('toggle-canvas-dividers'),
+              onPressed: controller.canEditDividers
+                  ? controller.toggleDividerEditing
+                  : null,
+              icon: Icon(
+                  controller.editingDividers ? Icons.check : Icons.drag_handle),
+              label: Text(strings.tr(controller.editingDividers
+                  ? 'canvasDividersDone'
+                  : 'canvasDividersEdit')),
+            ),
+            Text(
+                strings.tr(controller.canEditDividers
+                    ? 'canvasDividersHint'
+                    : 'canvasDividersUnavailable'),
+                style: Theme.of(context).textTheme.bodySmall),
             if (project.customLayout == null &&
                 LayoutLibrary.byIdOrDefault(
                   project.layoutTemplateId,
