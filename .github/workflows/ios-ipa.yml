@@ -1,8 +1,11 @@
-name: iOS IPA template
+name: Build iOS IPA
 
 # Manual only. The default needs no Apple secrets and produces an unsigned
 # archive, not an installable IPA. See docs/ios-ipa-builds.md before signed mode.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       signed:
@@ -22,6 +25,7 @@ permissions:
 
 jobs:
   ios:
+    if: ${{ false }}
     runs-on: macos-15
     timeout-minutes: 45
     env:
@@ -179,3 +183,41 @@ jobs:
           if [[ "${PICLAYOUT_PROFILE_UUID:-}" =~ ^[A-Fa-f0-9-]{36}$ ]]; then
             rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$PICLAYOUT_PROFILE_UUID.mobileprovision" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PICLAYOUT_PROFILE_UUID.mobileprovision"
           fi
+
+  build-ipa:
+    name: Build unsigned iOS IPA
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build unsigned IPA
+        run: flutter build ipa --release --no-codesign
+
+      - name: Verify IPA output
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          ipa_files=(build/ios/ipa/*.ipa)
+          if (( ${#ipa_files[@]} == 0 )); then
+            echo "::error::No IPA was produced in build/ios/ipa/."
+            exit 1
+          fi
+          printf 'IPA output:\n%s\n' "${ipa_files[@]}"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PicLayout-iOS-IPA
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 14
