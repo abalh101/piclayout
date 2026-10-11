@@ -24,11 +24,20 @@ class AppMetadata {
 }
 
 class ProblemReportService {
-  ProblemReportService({MailLauncher? launch}) : _launch = launch ?? _open;
+  ProblemReportService(
+      {MailLauncher? launch, String supportEmail = AppConfig.supportEmail})
+      : _launch = launch ?? _open,
+        supportEmail = supportEmail.trim();
   final MailLauncher _launch;
+  final String supportEmail;
+  bool get isConfigured =>
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(supportEmail) &&
+      !const ['example.com', 'example.org', 'example.net']
+          .contains(supportEmail.split('@').last.toLowerCase());
   static Future<bool> _open(Uri uri) =>
       launchUrl(uri, mode: LaunchMode.externalApplication);
   Uri mailto(AppMetadata metadata, {required String prompt}) {
+    if (!isConfigured) throw StateError('Support email is not configured');
     final fields = {
       'subject': '${AppConfig.appName} – Problem',
       'body':
@@ -36,7 +45,7 @@ class ProblemReportService {
     };
     return Uri(
         scheme: 'mailto',
-        path: AppConfig.supportEmail,
+        path: supportEmail,
         query: fields.entries
             .map((e) =>
                 '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
@@ -44,6 +53,7 @@ class ProblemReportService {
   }
 
   Future<bool> open(AppMetadata metadata, {required String prompt}) async {
+    if (!isConfigured) return false;
     try {
       return await _launch(mailto(metadata, prompt: prompt));
     } catch (_) {

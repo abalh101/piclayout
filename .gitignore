@@ -10,3 +10,12 @@ ios/Flutter/Flutter.podspec
 android/.gradle/
 *.iml
 *.log
+
+# Production signing material (including keys outside android/).
+**/key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.mobileprovision
+*.p8

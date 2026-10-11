@@ -135,15 +135,11 @@ allen sechs Sprachen, Arabisch/RTL, Dark Mode, große Schrift und kleine Display
 sowie den Weg von Format-/Layoutwahl über Projekterstellung bis Auto Layout/Undo
 im Editor ab.
 
-Abschließend ausgeführt:
-
-- `dart format .`: erfolgreich.
-- `flutter analyze`: keine Befunde.
-- `flutter test`: **95 Tests erfolgreich**, einschließlich der bestehenden Tests.
-- `flutter build apk --debug`: versucht, abgebrochen mit **No Android SDK found**.
-
-Native Android-/iOS-Builds und tatsächliche Touch-Bedienung sind hier nicht
-bestätigt. Auf echten Android-/iOS-Geräten prüfen:
+Aktuelle automatisierte Prüfungen laufen in GitHub Actions: Formatprüfung,
+`flutter analyze` und die gesamte Testsuite. Der Android-Debug-Build wurde im
+Release-Pass auf Windows bestätigt. iOS-Builds, signierte Builds und tatsächliche
+Touch-Bedienung bleiben offen; siehe [Release-Checkliste](release-checklist.md).
+Auf echten Android-/iOS-Geräten prüfen:
 
 1. 1–12 Bilder, gemischte Orientierungen, Panorama, sehr hohes Foto und sechs
    Hochformatfotos in 9:16. Vorschau und tatsächlich angewendetes Layout vergleichen.

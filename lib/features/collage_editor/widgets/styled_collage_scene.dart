@@ -16,6 +16,7 @@ class StyledCollageScene extends StatefulWidget {
 
 class _StyledCollageSceneState extends State<StyledCollageScene> {
   final _images = <String, ui.Image>{};
+  final _sourceSizes = <String, Size>{};
   final _requests = <String, Object>{};
   final _failed = <String>{};
   @override
@@ -33,7 +34,10 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
   void _sync() {
     final paths = widget.project.photos.map((p) => p.localPath).toSet();
     for (final path in _images.keys.toList()) {
-      if (!paths.contains(path)) _images.remove(path)?.dispose();
+      if (!paths.contains(path)) {
+        _images.remove(path)?.dispose();
+        _sourceSizes.remove(path);
+      }
     }
     _requests.removeWhere((path, _) => !paths.contains(path));
     _failed.removeWhere((path) => !paths.contains(path));
@@ -51,7 +55,9 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
 
   Future<void> _load(String path, Object token) async {
     try {
-      final image = await loadProjectImage(path, maxEdge: 1024);
+      Size? sourceSize;
+      final image = await loadProjectImage(path,
+          maxEdge: 1024, onSourceSize: (size) => sourceSize = size);
       if (!mounted || _requests[path] != token) {
         image.dispose();
         return;
@@ -59,6 +65,7 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
       setState(() {
         _requests.remove(path);
         _images[path] = image;
+        _sourceSizes[path] = sourceSize!;
       });
     } catch (_) {
       if (mounted && _requests[path] == token) {
@@ -80,13 +87,15 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-      painter: _ScenePainter(widget.project, Map.of(_images), Set.of(_failed)));
+      painter: _ScenePainter(widget.project, Map.of(_images),
+          Map.of(_sourceSizes), Set.of(_failed)));
 }
 
 class _ScenePainter extends CustomPainter {
-  _ScenePainter(this.project, this.images, this.failed);
+  _ScenePainter(this.project, this.images, this.sourceSizes, this.failed);
   final CollageProject project;
   final Map<String, ui.Image> images;
+  final Map<String, Size> sourceSizes;
   final Set<String> failed;
   @override
   void paint(Canvas canvas, Size size) {
@@ -119,7 +128,8 @@ class _ScenePainter extends CustomPainter {
       if (image != null) {
         StyleRenderer.photo(
             canvas, image, cell.rect, cell.cornerRadius, photo.transform,
-            adjustments: photo.adjustments);
+            adjustments: photo.adjustments,
+            sourceSize: sourceSizes[photo.localPath]);
       } else {
         canvas.drawRRect(
             RRect.fromRectAndRadius(

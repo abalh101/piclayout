@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 class ExportSizePreset {
   const ExportSizePreset({
     required this.width,
@@ -27,16 +29,25 @@ class AspectRatioPreset {
 
   List<ExportSizePreset> exportSizes() {
     const shortSide = [1080, 1440, 2160];
-    return shortSide.map((base) {
+    final sizes = <ExportSizePreset>[];
+    for (final base in shortSide) {
       final isPortrait = height >= width;
-      final exportWidth = isPortrait ? base : (base * value).round();
-      final exportHeight = isPortrait ? (base / value).round() : base;
-      return ExportSizePreset(
+      final w = isPortrait ? base.toDouble() : base * value;
+      final h = isPortrait ? base / value : base.toDouble();
+      final factor = math.min(1.0, 8192 / math.max(w, h));
+      final exportWidth = (w * factor).round();
+      final exportHeight = (h * factor).round();
+      if (sizes.any(
+          (size) => size.width == exportWidth && size.height == exportHeight)) {
+        continue;
+      }
+      sizes.add(ExportSizePreset(
         width: exportWidth,
         height: exportHeight,
         label: '$exportWidth x $exportHeight',
-      );
-    }).toList();
+      ));
+    }
+    return sizes;
   }
 
   Map<String, Object?> toJson() => {
@@ -78,7 +89,45 @@ class AspectRatios {
   static AspectRatioPreset byId(String id) {
     return all.firstWhere(
       (preset) => preset.id == id,
-      orElse: () => story,
+      orElse: () => customById(id) ?? story,
     );
+  }
+
+  /// Canonical IDs keep custom formats portable in projects and archives.
+  static AspectRatioPreset? customById(String id) {
+    final match = RegExp(r'^custom_(\d{1,10})_(\d{1,10})$').firstMatch(id);
+    if (match == null) return null;
+    final w = int.parse(match[1]!);
+    final h = int.parse(match[2]!);
+    if (w <= 0 || h <= 0 || w / h < 1 / 8 || w / h > 8) return null;
+    return AspectRatioPreset(id: id, label: '$w:$h', width: w, height: h);
+  }
+
+  /// Accept width/height units or a ratio; at most three decimal places.
+  static AspectRatioPreset parse(String width, String height) {
+    int units(String input) {
+      final text = input.trim().replaceAll(',', '.');
+      if (!RegExp(r'^\d{1,7}(\.\d{1,3})?$').hasMatch(text)) {
+        throw const FormatException('Invalid dimension');
+      }
+      final value = double.parse(text);
+      if (value <= 0 || value > 1000000) {
+        throw const FormatException('Invalid dimension');
+      }
+      return (value * 1000).round();
+    }
+
+    var w = units(width), h = units(height);
+    if (w / h < 1 / 8 || w / h > 8) {
+      throw const FormatException('Ratio must be between 1:8 and 8:1');
+    }
+    final divisor = w.gcd(h);
+    w ~/= divisor;
+    h ~/= divisor;
+    for (final preset in all) {
+      if (w * preset.height == h * preset.width) return preset;
+    }
+    return AspectRatioPreset(
+        id: 'custom_${w}_$h', label: '$w:$h', width: w, height: h);
   }
 }

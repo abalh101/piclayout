@@ -24,6 +24,8 @@ import '../models/photo_asset.dart';
 import '../models/photo_transform.dart';
 import '../models/text_overlay.dart';
 import '../rendering/text_overlay_renderer.dart';
+import '../rendering/photo_crop.dart';
+import '../rendering/layout_geometry.dart';
 
 final editorControllerProvider = ChangeNotifierProvider.autoDispose
     .family<CollageEditorController, CollageProject>((ref, project) {
@@ -219,6 +221,7 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void setAspectRatio(AspectRatioPreset preset) {
+    if (_project.aspectRatioId == preset.id) return;
     _mutate(_project.copyWith(aspectRatioId: preset.id));
   }
 
@@ -485,15 +488,41 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   CollageProject _replaceTransform(String photoId, PhotoTransform transform) {
-    return _project.copyWith(
-      photos: [
-        for (final photo in _project.photos)
-          if (photo.id == photoId)
-            photo.copyWith(transform: transform)
-          else
-            photo,
-      ],
-    );
+    return _clampPhotos(
+        _project.copyWith(
+          photos: [
+            for (final photo in _project.photos)
+              if (photo.id == photoId)
+                photo.copyWith(transform: transform)
+              else
+                photo,
+          ],
+        ),
+        onlyId: photoId);
+  }
+
+  static CollageProject _clampPhotos(CollageProject project, {String? onlyId}) {
+    final ratio = project.aspectRatio.value;
+    final size = ratio >= 1 ? Size(390 * ratio, 390) : Size(390, 390 / ratio);
+    final cells = LayoutGeometry.resolve(project, size);
+    return project.copyWith(photos: [
+      for (var i = 0; i < project.photos.length; i++)
+        onlyId != null && project.photos[i].id != onlyId
+            ? project.photos[i]
+            : project.photos[i].metadata == null
+                ? project.photos[i].copyWith(
+                    transform: PhotoCrop.clamp(
+                        project.photos[i].transform, Size.zero, Size.zero))
+                : project.photos[i].copyWith(
+                    transform: PhotoCrop.clamp(
+                        project.photos[i].transform,
+                        Size(project.photos[i].metadata!.width.toDouble(),
+                            project.photos[i].metadata!.height.toDouble()),
+                        cells
+                            .firstWhere((cell) => cell.photoIndex == i)
+                            .rect
+                            .size)),
+    ]);
   }
 
   CollageProject _replaceText(TextOverlay overlay) => _project.copyWith(

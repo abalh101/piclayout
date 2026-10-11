@@ -101,13 +101,10 @@ Duplizieren und Löschen in allen sechs Sprachen, einschließlich Arabisch/RTL,
 auf 320 × 640 Pixeln und im Dark Mode. Der bestehende Vorlagentest prüft die
 neue Checkbox.
 
-Erfolgreich ausgeführt: `dart format .` (79 Dateien), `flutter analyze`
-(keine Befunde), `flutter test` (66 Tests erfolgreich) und `git diff --check`.
-Sieben neue Tests ergänzen die zuvor 59 Tests; der vorhandene Vorlagentest wurde
-um die optionale Sticker-Übernahme erweitert.
-
-`flutter build apk --debug` wurde versucht: **No Android SDK found**.
-Ein nativer Android-Build und iOS-Build wurden daher nicht bestätigt.
+Aktuelle automatisierte Prüfungen laufen in GitHub Actions: Formatprüfung,
+`flutter analyze` und die gesamte Testsuite. Der Android-Debug-Build wurde im
+Release-Pass auf Windows bestätigt. Signierte Builds und native Geräteprüfungen
+bleiben offen; siehe [Release-Checkliste](release-checklist.md).
 
 Auf echten Geräten prüfen:
 

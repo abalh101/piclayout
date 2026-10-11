@@ -1,0 +1,7 @@
+# Copy to android/key.properties (ignored), then fill locally.
+# storeFile is absolute or relative to android/. Use forward slashes on Windows.
+# Keep the keystore outside the repository. Never commit passwords or keys.
+storeFile=
+storePassword=
+keyAlias=
+keyPassword=

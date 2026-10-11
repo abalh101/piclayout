@@ -43,8 +43,14 @@ Undo stellt das vorherige Foto einschließlich seiner Effekte wieder her.
 
 ## Support konfigurieren
 
-**Vor Veröffentlichung `AppConfig.supportEmail` in `lib/app/app_config.dart`
-von `support@example.com` auf die echte Support-Adresse ändern.**
+Im Projekt ist keine echte Support-Adresse vorhanden. Vor Veröffentlichung eine
+betreute Mailbox festlegen und für jeden Produktionsbuild
+`--dart-define=SUPPORT_EMAIL=...` übergeben; `AppConfig.supportEmail` liest diesen
+Wert ohne Standardadresse. Leere, ungültige und example.com/.org/.net-Adressen
+deaktivieren „Problem melden“ mit einem übersetzten Hinweis. Es wird dann kein
+Mail-Entwurf geöffnet und keine leere Adresse zum Kopieren angeboten. Die Adresse
+ist öffentlich im Binary; sie ist kein Secret. Vollständige Build-Schritte stehen
+in der [Release-Checkliste](release-checklist.md).
 
 Problem melden öffnet einen E-Mail-Entwurf über `url_launcher`. Nur Betreff und
 Text werden übergeben: App-Name, Version/Build, Betriebssystem, generischer
@@ -103,9 +109,9 @@ Neue Tests in `test/settings_test.dart` und `test/photo_adjustments_test.dart`:
 - Alle zehn Filter in PNG und JPEG; Vergleich mit gemeinsamem Preview-Renderer
   und byteweise unveränderte Originaldatei.
 
-Android-Debug-Build hier versucht, aber kein Android SDK installiert. Auf diesem
-Linux-Host sind kein Xcode/iOS-Build und keine echte Android-/iOS-Geräteprüfung
-möglich. `flutter doctor -v` bestätigt die fehlende Android-Toolchain.
+Android-Debug-Kompilierung wurde im Release-Pass auf Windows bestätigt. iOS-Builds
+benötigen macOS/Xcode. Native Geräteprüfungen sind weiterhin offen; den aktuellen
+Release-Status dokumentiert die [Release-Checkliste](release-checklist.md).
 
 Auf echten Geräten prüfen:
 
@@ -157,7 +163,6 @@ Erweitert:
 - `lib/features/templates/widgets/templates_sheet.dart`
 - `pubspec.yaml`, `pubspec.lock`, `README.md`
 
-Prüfergebnis dieser Implementierung: `dart format .` erfolgreich;
-`flutter analyze` ohne Befunde; `flutter test` mit 45 erfolgreichen Tests
-(davon 12 neue). `git diff --check` ohne Befunde. `flutter build apk --debug`
-wegen fehlendem Android SDK abgebrochen; kein APK und kein iOS-Build erzeugt.
+Aktuelle automatisierte Prüfungen: GitHub Actions führt Formatprüfung,
+`flutter analyze` und die gesamte Testsuite aus. Support-Tests prüfen zusätzlich
+fehlende/ungültige Konfiguration und die deaktivierte Einstellungsaktion.

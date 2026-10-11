@@ -138,7 +138,8 @@ class ProjectRepository {
       for (final photo in normalized.photos)
         {
           ...photo.toJson(),
-          'localPath': p.join('images', p.basename(photo.localPath))
+          // Persist portable paths, independent of the host OS.
+          'localPath': 'images/${p.basename(photo.localPath)}'
         },
     ];
     await tmp.writeAsString(

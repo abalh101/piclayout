@@ -1,4 +1,4 @@
-package com.example.piclayout
+package com.abalh101.piclayout
 
 import android.Manifest
 import android.content.ClipData

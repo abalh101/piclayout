@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:path/path.dart' as p;
 import 'package:archive/archive.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -154,7 +155,8 @@ void main() {
     for (var i = 0; i < imported.photos.length; i++) {
       final photo = imported.photos[i];
       expect(photo.id, isNot(project.photos[i].id));
-      expect(photo.localPath, contains('/${imported.id}/images/'));
+      expect(p.basename(p.dirname(photo.localPath)), 'images');
+      expect(p.basename(p.dirname(p.dirname(photo.localPath))), imported.id);
       expect(await File(photo.localPath).exists(), isTrue);
       expect(photo.transform.toJson(), project.photos[i].transform.toJson());
       expect(

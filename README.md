@@ -12,7 +12,16 @@ The app focuses on the core workflow:
 
 ## Current Status
 
-The Android and iOS platform projects are included. The source is formatted, `flutter analyze` reports no issues, and `flutter test` passes with Flutter 3.47.5 / Dart 3.13.4.
+The Android and iOS platform projects are included. Development and CI use Flutter
+3.47.4 / Dart 3.13.3. Android debug builds are verified on Windows; iOS builds and
+real-device gallery/social sharing tests remain required before publication.
+Release preparation and remaining manual steps are tracked in
+[docs/release-checklist.md](docs/release-checklist.md).
+
+The latest local pass completed formatting and analysis without issues. The full
+Windows test run still has four temporary-image cleanup errors (OS error 32);
+the suite is not yet fully green. Details and affected tests are recorded in the
+release checklist. No tests are skipped or cleanup errors suppressed.
 
 Implemented:
 
@@ -22,6 +31,8 @@ Implemented:
 - Local project storage in the app documents directory.
 - Project rename, duplicate, and delete.
 - Editor for aspect ratio, layout, spacing, outer margin, corner radius, background color, and stagger amount.
+- Custom aspect ratios from width/height input, saved locally for reuse; existing presets remain available.
+- Shared Fill crop bounds for preview and export, including quarter-turn rotation and flipping.
 - Photo selection, pan, zoom, fill/fit, reset, rotate, flip, replace, remove, and thumbnail reordering.
 - Undo and redo for editor changes.
 - Text overlays with drag, rotation, size, color, background, alignment, undo/redo, and project persistence.
@@ -30,15 +41,16 @@ Implemented:
 - Data-driven layout library with classic grids, uneven rows, hero layouts, and staggered two-column layouts.
 - Custom layouts with draggable dividers, local reuse, undo/redo and PNG/JPEG export.
 - PNG and JPEG export from original local image files, not from a screen screenshot.
-- German and English app strings.
+- German, English, Arabic (RTL), Turkish, French and Spanish app strings.
 - Layout tests for the most fragile geometry rules.
 
-Not implemented yet:
+Remaining validation and limitations:
 
 - Platform gallery and social sharing still require the device checks below.
-- Custom aspect ratio entry.
-- High-fidelity crop boundary clamping for every rotation/fit combination.
-- Production signing, bundle identifiers, store assets, and release settings.
+- Production signing credentials, store assets, privacy/support URLs and store registration.
+
+Custom format input, persistence, export limits and Fill/Fit crop behavior are
+described in [docs/custom-formats-and-cropping.md](docs/custom-formats-and-cropping.md).
 
 ## Setup
 
@@ -63,14 +75,40 @@ Run on iOS:
 flutter run -d ios
 ```
 
-iOS builds require macOS, Xcode, CocoaPods, a valid Apple Developer Team, and normal signing configuration. Do not store certificates or private keys in this repository. Photo picking uses the native photo picker; the iOS photo library purpose string is in `ios/Runner/Info.plist`. Android 10+ gallery saving uses MediaStore without storage permission; Android 9 and earlier request WRITE_EXTERNAL_STORAGE (limited to maxSdkVersion 28). iOS includes NSPhotoLibraryAddUsageDescription.
+iOS builds require macOS, compatible Xcode, a valid Apple Developer Team and signing
+configuration. Configure the native dependency integration required by your Flutter
+setup (Swift Package Manager or CocoaPods). Do not store certificates or private
+keys in this repository. Photo picking uses the native photo picker; the iOS photo
+library purpose strings are in `ios/Runner/Info.plist`. Android 10+ gallery saving
+uses MediaStore without storage permission; Android 9 and earlier request
+WRITE_EXTERNAL_STORAGE (limited to maxSdkVersion 28). iOS includes
+NSPhotoLibraryAddUsageDescription.
+
+## Release configuration and CI
+
+Android namespace/application ID and iOS Runner bundle ID are
+`com.abalh101.piclayout`; confirm registration in your store accounts before release.
+Android release builds require `android/key.properties` and an external upload
+keystore. Start from `android/key.properties.example`. Missing signing configuration
+stops the release build; there is no debug-key fallback. Debug builds need no
+production credentials.
+
+There is no real support mailbox in this repository. Provide one using
+`--dart-define=SUPPORT_EMAIL=...` on each production build. Without a valid value,
+the app shows a localized unavailable message and disables problem reporting.
+For signing, versioning, privacy and device validation follow the
+[release checklist](docs/release-checklist.md).
+
+GitHub Actions runs `flutter pub get`, `dart format --set-exit-if-changed .`,
+`flutter analyze` and `flutter test` on every push and pull request. CI contains
+no signing credentials and does not publish builds.
 
 ## Suggested Next Steps
 
-1. Configure unique Android application ID, iOS bundle identifier, release signing, and store icons before publishing.
+1. Register the configured app ID and complete production signing, support, privacy and store assets before publishing.
 2. Test the picker, editor, export, and share sheet on real Android and iOS devices.
 3. Complete gallery permission and social destination tests below.
-4. Improve crop clamping so fill mode never reveals empty areas.
+4. Validate custom formats and Fill crop bounds with large photos on real devices.
 
 
 ## Export Center and gallery
@@ -155,10 +193,10 @@ messages, direct-share fallback, duplicate-export prevention, lock release after
 failure, project preservation, PNG/JPEG text rendering, and a small export screen
 in light and dark mode. Native platform code is not validated by flutter analyze.
 
-This Linux environment has no Android SDK or connected Android/iOS device.
-`flutter build apk --debug` was attempted and stopped with “No Android SDK found”.
-An iOS build requires macOS/Xcode; the new Kotlin and Swift paths still need builds
-and device validation before release.
+The release-readiness pass verified `flutter build apk --debug` on Windows with
+an Android SDK. That validates compilation of the Kotlin integration, not gallery
+or social-app behavior. A signed release build and actual device tests remain
+required. iOS compilation and signing require macOS/Xcode.
 
 On actual devices check:
 
@@ -222,14 +260,12 @@ preview resolution. Frames and shadows use the union of rounded photo cells:
 separate cells have separate outlines; touching cells share an outside outline,
 without doubled internal edges. Background patterns are generated locally.
 
-Validation: `dart format .`, `flutter analyze`, `flutter test` (33 passing tests).
-Seven new tests cover legacy JSON, full style round-trip and private-free
+Style tests cover legacy JSON, full style round-trip and private-free
 saved templates, presets/source bounds, grouped undo/reset, shared-edge contours,
 actual PNG/JPEG pixels (including patterns and unchanged originals), plus a
 320×640 sheet with preset application/autosave/reset. Existing text, template,
 favorite, variation and social-export tests remain green.
-`flutter build apk --debug` was attempted: **No Android SDK found**. Native Android
-and iOS rendering/performance remain unverified in this Linux environment.
+Native rendering and performance still require Android/iOS device validation.
 
 Manual device checks for this feature:
 
@@ -249,7 +285,7 @@ Manual device checks for this feature:
 Die App bietet lokal gespeicherte Einstellungen, sechs manuell wählbare Sprachen
 (inklusive Arabisch/RTL), Problem melden per E-Mail sowie nicht-destruktive
 Foto-Filter mit Undo/Redo und Autosave. Bedienung, Datenmodell, Rendering,
-Gerätetests und die zu ersetzende Support-Adresse sind in
+Gerätetests und die Support-Konfiguration sind in
 [docs/settings-and-photo-editing.md](docs/settings-and-photo-editing.md) beschrieben.
 
 ## Eigene Layouts
@@ -282,8 +318,7 @@ Export-Pixel sowie die Bedienung auf einem 320-Pixel-Bildschirm in allen sechs
 Sprachen einschließlich Arabisch/RTL. Auf echten Geräten sind Touch-Bedienung,
 große Systemschrift und die Leistung mit zwölf hochauflösenden Fotos noch zu prüfen.
 
-Validierung dieses Arbeitsstands: `flutter analyze` ohne Befunde,
-`flutter test` mit 59 erfolgreichen Tests.
+Automatisierte Prüfungen laufen zentral über die GitHub Actions CI.
 
 ## Sticker, Emojis und Formen
 
@@ -317,9 +352,8 @@ Dort kann auch die Einführung erneut geöffnet werden.
 Alle neuen Texte sind in sechs Sprachen verfügbar, einschließlich Arabisch/RTL.
 Bedienung, Speicherung, Asset-Generator und Gerätecheckliste stehen in
 [docs/onboarding-and-examples.md](docs/onboarding-and-examples.md).
-Validierung: `dart format .`, `flutter analyze` ohne Befunde und `flutter test`
-mit **84 erfolgreichen Tests**. Der Android-Debug-Build wurde versucht und
-scheiterte am fehlenden Android SDK.
+Automatisierte Prüfungen laufen zentral über die GitHub Actions CI; native
+Geräteprüfungen bleiben Teil der Release-Checkliste.
 
 ## Smart Auto Layout und Empfehlungen
 
@@ -336,6 +370,5 @@ kompatibel; fehlende Abmessungen werden beim Öffnen im Editor lokal nachgeladen
 Keine Cloud, Motiverkennung oder KI-API. Regeln, Dateien, Tests und Geräteprüfungen:
 [docs/smart-auto-layout.md](docs/smart-auto-layout.md).
 
-Validierung für Smart Auto Layout: `dart format .` erfolgreich,
-`flutter analyze` ohne Befunde und `flutter test` mit **95 erfolgreichen Tests**.
-`flutter build apk --debug` scheiterte am fehlenden Android SDK.
+Automatisierte Prüfungen laufen zentral über die GitHub Actions CI; native
+Geräteprüfungen bleiben Teil der Release-Checkliste.

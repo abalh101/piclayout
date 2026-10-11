@@ -4,6 +4,7 @@ import 'package:piclayout/features/tutorial_tips/tutorial_tip_controller.dart';
 import 'dart:io';
 import 'package:piclayout/features/settings/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:piclayout/app/piclayout_app.dart';
@@ -85,16 +86,18 @@ void main() {
       'Mail contains allowed metadata and encoded prompt, no attachments or paths',
       () async {
     Uri? launched;
-    final service = ProblemReportService(launch: (uri) async {
-      launched = uri;
-      return true;
-    });
+    final service = ProblemReportService(
+        supportEmail: 'support@piclayout.test',
+        launch: (uri) async {
+          launched = uri;
+          return true;
+        });
     const metadata = AppMetadata(
         version: '1.2.3+4', platform: 'android', device: 'Android device');
     const prompt = 'Bitte beschreibe hier dein Problem & Details';
     expect(await service.open(metadata, prompt: prompt), isTrue);
     expect(launched!.scheme, 'mailto');
-    expect(launched!.path, 'support@example.com');
+    expect(launched!.path, 'support@piclayout.test');
     expect(launched!.queryParameters.keys, ['subject', 'body']);
     expect(launched!.queryParameters['body'], contains(prompt));
     expect(launched!.queryParameters['body'], contains('1.2.3+4'));
@@ -110,13 +113,68 @@ void main() {
       expect(launched.toString(), isNot(contains(forbidden)));
     }
     expect(
-        await ProblemReportService(launch: (_) async => false)
-            .open(metadata, prompt: prompt),
+        await ProblemReportService(
+            supportEmail: 'support@piclayout.test',
+            launch: (_) async => false).open(metadata, prompt: prompt),
         isFalse);
     expect(
-        await ProblemReportService(launch: (_) async => throw Exception())
+        await ProblemReportService(
+                supportEmail: 'support@piclayout.test',
+                launch: (_) async => throw Exception())
             .open(metadata, prompt: prompt),
         isFalse);
+  });
+  test('Missing or invalid support never launches an empty mail draft',
+      () async {
+    const metadata = AppMetadata(
+        version: '1+1', platform: 'android', device: 'Android device');
+    for (final email in ['', '   ', 'invalid', 'support@example.com']) {
+      var launched = false;
+      final service = ProblemReportService(
+          supportEmail: email,
+          launch: (_) async {
+            launched = true;
+            return true;
+          });
+      expect(service.isConfigured, isFalse);
+      expect(await service.open(metadata, prompt: 'Problem'), isFalse);
+      expect(launched, isFalse);
+      expect(
+          () => service.mailto(metadata, prompt: 'Problem'), throwsStateError);
+    }
+    expect(
+        ProblemReportService(supportEmail: ' support@piclayout.test ')
+            .supportEmail,
+        'support@piclayout.test');
+  });
+  testWidgets('Unconfigured support shows a disabled localized entry',
+      (tester) async {
+    final container = ProviderContainer(overrides: [
+      settingsRepositoryProvider.overrideWithValue(MemorySettings()),
+      problemReportServiceProvider
+          .overrideWithValue(ProblemReportService(supportEmail: '')),
+      appMetadataProvider.overrideWith((ref) async => const AppMetadata(
+          version: '1+1', platform: 'android', device: 'Android device')),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+            locale: Locale('de'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            home: SettingsPage())));
+    await tester.pumpAndSettle();
+    expect(find.text('Support-Kontakt ist derzeit nicht verfügbar.'),
+        findsOneWidget);
+    final tile = tester.widget<ListTile>(find.ancestor(
+        of: find.text('Problem melden'), matching: find.byType(ListTile)));
+    expect(tile.onTap, isNull);
   });
   test('Cache cleaning leaves photos and unrelated temporary files intact',
       () async {
@@ -185,8 +243,8 @@ void main() {
       projectRepositoryProvider.overrideWithValue(EmptyProjects()),
       appMetadataProvider.overrideWith((ref) async => const AppMetadata(
           version: '1.0+1', platform: 'android', device: 'Android device')),
-      problemReportServiceProvider
-          .overrideWithValue(ProblemReportService(launch: (_) async => false)),
+      problemReportServiceProvider.overrideWithValue(ProblemReportService(
+          supportEmail: 'support@piclayout.test', launch: (_) async => false)),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -203,7 +261,7 @@ void main() {
         TextDirection.rtl);
     await tester.tap(find.text('الإبلاغ عن مشكلة'));
     await tester.pumpAndSettle();
-    expect(find.text('support@example.com'), findsOneWidget);
+    expect(find.text('support@piclayout.test'), findsOneWidget);
     expect(find.text('نسخ'), findsOneWidget);
     await tester.tap(find.text('تم'));
     await tester.pumpAndSettle();

@@ -27,7 +27,7 @@ void main() {
     final saved =
         jsonDecode(await jsonFile.readAsString()) as Map<String, dynamic>;
     expect((saved['photos'] as List).single['localPath'],
-        p.join('images', p.basename(imported.path)));
+        'images/${p.basename(imported.path)}');
 
     final reopened = (await repository.loadProjects()).single;
     expect(reopened.photos.single.localPath, imported.path);

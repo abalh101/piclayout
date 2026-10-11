@@ -27,6 +27,7 @@ import 'state/collage_editor_controller.dart';
 import 'widgets/collage_canvas.dart';
 import 'widgets/thumbnail_strip.dart';
 import 'widgets/text_overlay_sheet.dart';
+import 'widgets/custom_aspect_ratio_dialog.dart';
 
 class EditorPage extends ConsumerWidget {
   const EditorPage({
@@ -210,6 +211,37 @@ class _ToolsPanel extends ConsumerWidget {
                     selected: project.aspectRatioId == ratio.id,
                     onSelected: (_) => controller.setAspectRatio(ratio),
                   ),
+                for (final ratio in {
+                  for (final item in library.aspectRatios) item.id: item,
+                  if (AspectRatios.customById(project.aspectRatioId) != null)
+                    project.aspectRatioId: project.aspectRatio,
+                }.values)
+                  ChoiceChip(
+                    key: ValueKey('ratio-${ratio.id}'),
+                    label: Text(ratio.label),
+                    selected: project.aspectRatioId == ratio.id,
+                    onSelected: (_) => controller.setAspectRatio(ratio),
+                  ),
+                ActionChip(
+                  key: const ValueKey('custom-aspect-ratio'),
+                  avatar: const Icon(Icons.aspect_ratio),
+                  label: Text(strings.tr('customRatio')),
+                  onPressed: () async {
+                    final ratio = await showCustomAspectRatioDialog(context);
+                    if (ratio == null || !context.mounted) return;
+                    try {
+                      await ref
+                          .read(designLibraryProvider.notifier)
+                          .saveAspectRatio(ratio);
+                      if (context.mounted) controller.setAspectRatio(ratio);
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(strings.tr('settingsError'))));
+                      }
+                    }
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 16),

@@ -1,6 +1,7 @@
 import '../models/photo_adjustments.dart';
 import 'photo_filter_renderer.dart';
 import 'dart:math' as math;
+import 'photo_crop.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../models/canvas_settings.dart';
@@ -166,14 +167,16 @@ class StyleRenderer {
 
   static void photo(Canvas canvas, ui.Image image, Rect cell, double radius,
       PhotoTransform transform,
-      {PhotoAdjustments adjustments = const PhotoAdjustments()}) {
+      {PhotoAdjustments adjustments = const PhotoAdjustments(),
+      Size? sourceSize}) {
+    final source =
+        sourceSize ?? Size(image.width.toDouble(), image.height.toDouble());
+    transform = PhotoCrop.clamp(transform, source, cell.size);
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(cell, Radius.circular(radius)));
     final rotation = transform.rotationQuarterTurns % 4;
-    final rotatedWidth =
-        rotation.isOdd ? image.height.toDouble() : image.width.toDouble();
-    final rotatedHeight =
-        rotation.isOdd ? image.width.toDouble() : image.height.toDouble();
+    final rotatedWidth = rotation.isOdd ? source.height : source.width;
+    final rotatedHeight = rotation.isOdd ? source.width : source.height;
     final baseScale = transform.fitMode == PhotoFitMode.fill
         ? math.max(cell.width / rotatedWidth, cell.height / rotatedHeight)
         : math.min(cell.width / rotatedWidth, cell.height / rotatedHeight);
@@ -188,8 +191,8 @@ class StyleRenderer {
         Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
         Rect.fromCenter(
             center: Offset.zero,
-            width: image.width * baseScale * userScale,
-            height: image.height * baseScale * userScale),
+            width: source.width * baseScale * userScale,
+            height: source.height * baseScale * userScale),
         Paint()
           ..colorFilter = PhotoFilterRenderer.filter(adjustments)
           ..isAntiAlias = true

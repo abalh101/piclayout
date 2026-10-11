@@ -1,8 +1,8 @@
 class AppConfig {
   const AppConfig._();
 
-  // Replace before release with your real support mailbox.
-  static const supportEmail = 'support@example.com';
+  // Set with --dart-define=SUPPORT_EMAIL=... for production builds.
+  static const supportEmail = String.fromEnvironment('SUPPORT_EMAIL');
 
   static const appName = 'PicLayout';
   static const projectFormatVersion = 1;

@@ -73,9 +73,12 @@ class _CollageCanvasState extends State<CollageCanvas> {
                           },
                           onScaleStart: () {
                             final photo = project.photos[cell.photoIndex];
-                            _gestureStartScale = photo.transform.scale;
                             controller.selectPhoto(photo.id);
                             controller.beginInteractiveTransform();
+                            controller.updateTransformLive(
+                                photo.id, photo.transform);
+                            _gestureStartScale =
+                                controller.selectedPhoto!.transform.scale;
                           },
                           onScaleUpdate: (details) {
                             final photo =
@@ -85,18 +88,14 @@ class _CollageCanvasState extends State<CollageCanvas> {
                               photo.id,
                               current.copyWith(
                                 scale: (_gestureStartScale * details.scale)
-                                    .clamp(0.6, 5.0)
+                                    .clamp(0.5, 5.0)
                                     .toDouble(),
-                                offsetX: (current.offsetX +
-                                        details.focalPointDelta.dx /
-                                            cell.rect.width)
-                                    .clamp(-1.5, 1.5)
-                                    .toDouble(),
-                                offsetY: (current.offsetY +
-                                        details.focalPointDelta.dy /
-                                            cell.rect.height)
-                                    .clamp(-1.5, 1.5)
-                                    .toDouble(),
+                                offsetX: current.offsetX +
+                                    details.focalPointDelta.dx /
+                                        cell.rect.width,
+                                offsetY: current.offsetY +
+                                    details.focalPointDelta.dy /
+                                        cell.rect.height,
                               ),
                             );
                           },

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../collage_editor/models/layout_template.dart';
+import '../../collage_editor/models/aspect_ratio_preset.dart';
 import '../../projects/models/collage_project.dart';
 import '../models/collage_template.dart';
 import '../models/design_library.dart';
@@ -25,6 +26,7 @@ class DesignLibraryNotifier extends StateNotifier<AsyncValue<DesignLibrary>> {
 
   final DesignLibraryRepository _repository;
   late final Future<void> _initialLoad;
+  Future<void> _ratioWrites = Future<void>.value();
 
   Future<void> _load() async {
     final loaded = await AsyncValue.guard(_repository.load);
@@ -47,6 +49,31 @@ class DesignLibraryNotifier extends StateNotifier<AsyncValue<DesignLibrary>> {
     final next = current.copyWith(favoriteLayouts: favorites);
     state = AsyncValue.data(next);
     await _repository.save(next);
+  }
+
+  Future<void> saveAspectRatio(AspectRatioPreset ratio) {
+    final operation = _ratioWrites
+        .catchError((Object _) {})
+        .then((_) => _saveAspectRatio(ratio));
+    _ratioWrites = operation;
+    return operation;
+  }
+
+  Future<void> _saveAspectRatio(AspectRatioPreset ratio) async {
+    if (AspectRatios.customById(ratio.id) == null) return;
+    final current = await _current();
+    if (current.aspectRatios.any((item) => item.id == ratio.id)) return;
+    final next =
+        current.copyWith(aspectRatios: [...current.aspectRatios, ratio]);
+    if (mounted) state = AsyncValue.data(next);
+    try {
+      await _repository.save(next);
+    } catch (_) {
+      if (mounted && identical(state.value, next)) {
+        state = AsyncValue.data(current);
+      }
+      rethrow;
+    }
   }
 
   Future<CollageTemplate> saveTemplate({

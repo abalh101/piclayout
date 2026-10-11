@@ -105,14 +105,10 @@ Neue Tests in `test/onboarding_test.dart` und `test/demo_projects_test.dart`:
 
 Bestehende App-Einstellungstests starten explizit mit abgeschlossenem Onboarding.
 
-Ausgeführt:
-
-- `dart format .` erfolgreich.
-- `flutter analyze` ohne Befunde.
-- `flutter test`: **84 Tests erfolgreich**, einschließlich der bestehenden Tests.
-- `flutter build apk --debug`: versucht, **No Android SDK found**.
-
-Native Builds und echte Touch-Bedienung sind damit nicht bestätigt.
+Aktuelle automatisierte Prüfungen laufen in GitHub Actions: Formatprüfung,
+`flutter analyze` und die gesamte Testsuite. Der Android-Debug-Build wurde im
+Release-Pass auf Windows bestätigt. Signierte Builds, iOS-Builds und echte
+Touch-Bedienung bleiben offen; siehe [Release-Checkliste](release-checklist.md).
 
 ## Auf echten Geräten prüfen
 

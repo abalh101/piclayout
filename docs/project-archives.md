@@ -137,8 +137,9 @@ UI-Tests prüfen Import, Startseitenaktualisierung, Abbruch, Fehlermeldung und
 Projektkarten-Export in allen sechs Sprachen auf 320 × 640 Pixeln im Dark Mode.
 Dateidialog und Teilen-Menü sind dabei simuliert.
 
-`flutter build apk --debug` wurde versucht und scheiterte mit
-**No Android SDK found**. Native Android- und iOS-Builds sind hier nicht bestätigt.
+Der Android-Debug-Build wurde im Release-Pass auf Windows bestätigt. iOS-Builds,
+signierte Release-Builds und echte Geräteprüfungen bleiben offen; siehe
+[Release-Checkliste](release-checklist.md).
 
 Auf echten Geräten prüfen:
 

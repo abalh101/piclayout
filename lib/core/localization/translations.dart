@@ -738,6 +738,55 @@ const translations = <String, List<String>>{
     "Décrivez votre problème ici",
     "Describe tu problema aquí"
   ],
+  "customRatio": [
+    "Eigenes Format",
+    "Custom ratio",
+    "نسبة مخصصة",
+    "Özel oran",
+    "Format personnalisé",
+    "Proporción personalizada"
+  ],
+  "ratioWidth": ["Breite", "Width", "العرض", "Genişlik", "Largeur", "Anchura"],
+  "ratioHeight": [
+    "Höhe",
+    "Height",
+    "الارتفاع",
+    "Yükseklik",
+    "Hauteur",
+    "Altura"
+  ],
+  "ratioHint": [
+    "Zum Beispiel 21 und 9 oder 1920 und 1080. Bis zu 3 Nachkommastellen; Verhältnis 1:8 bis 8:1.",
+    "For example 21 and 9 or 1920 and 1080. Up to 3 decimal places; ratio 1:8 to 8:1.",
+    "مثلاً 21 و9 أو 1920 و1080. حتى 3 منازل عشرية؛ النسبة من 1:8 إلى 8:1.",
+    "Örneğin 21 ve 9 veya 1920 ve 1080. En fazla 3 ondalık basamak; oran 1:8 ile 8:1.",
+    "Par exemple 21 et 9 ou 1920 et 1080. Jusqu’à 3 décimales ; rapport de 1:8 à 8:1.",
+    "Por ejemplo 21 y 9 o 1920 y 1080. Hasta 3 decimales; proporción de 1:8 a 8:1."
+  ],
+  "ratioError": [
+    "Positive Werte bis 1.000.000 mit höchstens 3 Nachkommastellen und Verhältnis 1:8 bis 8:1 eingeben.",
+    "Enter positive values up to 1,000,000 with up to 3 decimal places and a ratio between 1:8 and 8:1.",
+    "أدخل قيماً موجبة حتى 1000000 بثلاث منازل عشرية كحد أقصى ونسبة بين 1:8 و8:1.",
+    "1.000.000’a kadar pozitif değerler, en fazla 3 ondalık basamak ve 1:8 ile 8:1 arasında oran girin.",
+    "Saisissez des valeurs positives jusqu’à 1 000 000, avec au plus 3 décimales et un rapport de 1:8 à 8:1.",
+    "Introduce valores positivos hasta 1.000.000, hasta 3 decimales y una proporción de 1:8 a 8:1."
+  ],
+  "ratioSave": [
+    "Speichern und anwenden",
+    "Save and apply",
+    "حفظ وتطبيق",
+    "Kaydet ve uygula",
+    "Enregistrer et appliquer",
+    "Guardar y aplicar"
+  ],
+  "supportUnavailable": [
+    "Support-Kontakt ist derzeit nicht verfügbar.",
+    "Support contact is currently unavailable.",
+    "جهة اتصال الدعم غير متاحة حاليًا.",
+    "Destek iletişimi şu anda kullanılamıyor.",
+    "Le contact d’assistance est actuellement indisponible.",
+    "El contacto de soporte no está disponible actualmente."
+  ],
   "noMail": [
     "Keine E-Mail-App verfügbar. Du kannst die Support-Adresse kopieren.",
     "No email app available. You can copy the support address.",
