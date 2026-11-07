@@ -4,6 +4,22 @@ Status: Quellcode für Release-Vorbereitung eingerichtet; Store-Freigabe erst na
 den unten dokumentierten manuellen Prüfungen. Häkchen gelten pro Release-Kandidat.
 Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
 
+## Aktueller Prüfstand: Editor-Überarbeitung (07.11.2026)
+
+- Formatprüfung: 108 Dart-Dateien, keine Änderungen erforderlich.
+- `flutter analyze --no-pub`: keine Befunde.
+- Vollständige Testsuite: **134 Tests erfolgreich**, sowohl im normalen Lauf
+  als auch mit `--concurrency=1` unter Windows.
+- Veralteten Demo-Test korrigiert: Bildformat automatisch erkennen, Kopien
+  byteweise und Bildmaße gegen die Original-Assets prüfen.
+- `flutter build apk --debug --no-pub`: erfolgreich. APK:
+  `build/app/outputs/flutter-apk/app-debug.apk`.
+- Editor-Ansichten bei 430 × 932 und 740 × 360 visuell geprüft.
+- Native Geräteprüfungen, iOS-Kompilierung und signierte Release-Builds bleiben
+  offen. Build-Warnungen und Umfang: [Editor-Audit](editor-refinement-audit.md).
+
+Die folgenden Ergebnisse vom Oktober dokumentieren frühere Prüfstände.
+
 ## Ergebnis des Qualitäts-Passes (11.10.2026)
 
 **Current Windows test status:** the later cleanup pass resolved all four fixture
@@ -81,8 +97,8 @@ this Windows source-only feature pass.
   `dart format --set-exit-if-changed .`, `flutter analyze`, `flutter test` ausführen.
   `pubspec.lock` mitführen. CI läuft bei Push/PR und prüft Dart-Code; sie ersetzt
   keine nativen Builds oder echte Geräteprüfungen.
-- [ ] Windows-Dateisperren der Test-Aufräumroutinen beheben und die gesamte
-  Testsuite ohne Fehler abschließen (siehe aktuelles Prüfergebnis oben).
+- [x] Windows-Dateisperren der Test-Aufräumroutinen beheben und die gesamte
+  Testsuite ohne Fehler abschließen (134 Tests in beiden Läufen am 07.11.2026).
 
 ## Android: Signing und Build
 

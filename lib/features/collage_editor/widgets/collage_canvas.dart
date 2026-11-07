@@ -5,6 +5,7 @@ import 'canvas_divider_layer.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../../../core/localization/app_localizations.dart';
 
 import '../models/text_overlay.dart';
 import '../rendering/layout_geometry.dart';
@@ -64,6 +65,8 @@ class _CollageCanvasState extends State<CollageCanvas> {
                       if (!controller.editingDividers &&
                           cell.photoIndex < project.photos.length)
                         _PhotoCell(
+                          label:
+                              '${AppLocalizations.of(context).tr('Bild')} ${cell.photoIndex + 1}',
                           rect: cell.rect,
                           cornerRadius: cell.cornerRadius,
                           selected: controller.selectedPhotoId ==
@@ -169,32 +172,48 @@ class _TextOverlayLayer extends StatelessWidget {
     layout.dispose();
     final selected = controller.selectedTextId == overlay.id;
     return Positioned.fromRect(
-      rect: bounds,
+      rect: Rect.fromCenter(
+          center: bounds.center,
+          width: math.max(48, bounds.width),
+          height: math.max(48, bounds.height)),
       child: Transform.rotate(
         angle: overlay.rotation * math.pi / 180,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => controller.selectText(overlay.id),
-          onDoubleTap: () {
-            controller.selectText(overlay.id);
-            onEditText?.call();
-          },
-          onPanStart: (details) =>
-              controller.beginTextDrag(overlay.id, details.globalPosition),
-          onPanUpdate: (details) =>
-              controller.updateTextDrag(details.globalPosition, size),
-          onPanEnd: (_) => controller.endTextDrag(),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: selected
-                  ? Border.all(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )
-                  : null,
-            ),
-          ),
-        ),
+        child: Semantics(
+            label: overlay.text,
+            button: true,
+            selected: selected,
+            onTap: () {
+              controller.selectText(overlay.id);
+              onEditText?.call();
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => controller.selectText(overlay.id),
+              onDoubleTap: () {
+                controller.selectText(overlay.id);
+                onEditText?.call();
+              },
+              onPanStart: (details) =>
+                  controller.beginTextDrag(overlay.id, details.globalPosition),
+              onPanUpdate: (details) =>
+                  controller.updateTextDrag(details.globalPosition, size),
+              onPanEnd: (_) => controller.endTextDrag(),
+              onPanCancel: controller.endTextDrag,
+              child: Center(
+                  child: SizedBox(
+                      width: bounds.width,
+                      height: bounds.height,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: selected
+                              ? Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                      ))),
+            )),
       ),
     );
   }
@@ -218,6 +237,7 @@ class _TextPainter extends CustomPainter {
 class _PhotoCell extends StatelessWidget {
   const _PhotoCell(
       {required this.rect,
+      required this.label,
       required this.cornerRadius,
       required this.selected,
       required this.onTap,
@@ -225,6 +245,7 @@ class _PhotoCell extends StatelessWidget {
       required this.onScaleUpdate,
       required this.onScaleEnd});
   final Rect rect;
+  final String label;
   final double cornerRadius;
   final bool selected;
   final VoidCallback onTap, onScaleStart, onScaleEnd;
@@ -232,18 +253,22 @@ class _PhotoCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Positioned.fromRect(
       rect: rect,
-      child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          onScaleStart: (_) => onScaleStart(),
-          onScaleUpdate: onScaleUpdate,
-          onScaleEnd: (_) => onScaleEnd(),
-          child: DecoratedBox(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(cornerRadius),
-                  border: selected
-                      ? Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2)
-                      : null))));
+      child: Semantics(
+          label: label,
+          button: true,
+          selected: selected,
+          child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              onScaleStart: (_) => onScaleStart(),
+              onScaleUpdate: onScaleUpdate,
+              onScaleEnd: (_) => onScaleEnd(),
+              child: DecoratedBox(
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(cornerRadius),
+                      border: selected
+                          ? Border.all(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2)
+                          : null)))));
 }

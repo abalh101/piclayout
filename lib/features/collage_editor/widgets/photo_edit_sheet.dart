@@ -40,14 +40,23 @@ class _PhotoEditorState extends State<_PhotoEditor> {
           photo
     ]);
     Widget slider(String key, double value, double min, double max,
-            ValueChanged<double> change) =>
+            ValueChanged<double> change,
+            {bool enabled = true}) =>
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${t(key)} · ${value.toStringAsFixed(2)}'),
-          Slider(
-              value: value,
-              min: min,
-              max: max,
-              onChanged: (value) => setState(() => change(value))),
+          Text('${t(key)} · ${(value * 100).round()}%'),
+          Semantics(
+              label: t(key),
+              child: Slider(
+                  key: ValueKey(key),
+                  value: value,
+                  min: min,
+                  max: max,
+                  label: '${(value * 100).round()}%',
+                  semanticFormatterCallback: (value) =>
+                      '${(value * 100).round()}%',
+                  onChanged: enabled
+                      ? (value) => setState(() => change(value))
+                      : null)),
         ]);
     return SafeArea(
         child: SizedBox(
@@ -73,7 +82,8 @@ class _PhotoEditorState extends State<_PhotoEditor> {
                 ]),
                 const SizedBox(height: 16),
                 slider('filterIntensity', _draft.filterIntensity, 0, 1,
-                    (v) => _draft = _draft.copyWith(filterIntensity: v)),
+                    (v) => _draft = _draft.copyWith(filterIntensity: v),
+                    enabled: _draft.preset != PhotoFilterPreset.original),
                 slider('brightness', _draft.brightness, -1, 1,
                     (v) => _draft = _draft.copyWith(brightness: v)),
                 slider('contrast', _draft.contrast, 0, 2,
@@ -89,16 +99,17 @@ class _PhotoEditorState extends State<_PhotoEditor> {
               ])),
               Padding(
                   padding: const EdgeInsets.all(12),
-                  child:
-                      Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(strings.cancel)),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                        onPressed: () => Navigator.pop(context, _draft),
-                        child: Text(strings.done)),
-                  ])),
+                  child: OverflowBar(
+                      alignment: MainAxisAlignment.end,
+                      spacing: 12,
+                      children: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(strings.cancel)),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(context, _draft),
+                            child: Text(strings.done)),
+                      ])),
             ])));
   }
 }

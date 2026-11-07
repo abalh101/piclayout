@@ -15,11 +15,17 @@ import '../projects/models/collage_project.dart';
 import '../projects/state/project_providers.dart';
 import '../settings/settings_page.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  bool _picking = false;
+  @override
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final projects = ref.watch(projectsProvider);
     final archiveBusy = ref.watch(projectArchiveControllerProvider).busy;
@@ -47,10 +53,12 @@ class HomePage extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () => ref.read(projectsProvider.notifier).reload(),
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(18),
             children: [
               FilledButton.icon(
-                onPressed: () => _pickPhotos(context),
+                onPressed:
+                    _picking || archiveBusy ? null : () => _pickPhotos(context),
                 icon: const Icon(Icons.add_photo_alternate_outlined),
                 label: Text(strings.newCollage),
               ),
@@ -90,7 +98,13 @@ class HomePage extends ConsumerWidget {
                 error: (error, _) => Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text(strings.tr('operationFailed')),
+                    child: Column(children: [
+                      Text(strings.tr('operationFailed')),
+                      TextButton(
+                          onPressed: () =>
+                              ref.read(projectsProvider.notifier).reload(),
+                          child: Text(strings.tr('retry')))
+                    ]),
                   ),
                 ),
                 data: (items) {
@@ -130,28 +144,24 @@ class HomePage extends ConsumerWidget {
   }
 
   Future<void> _pickPhotos(BuildContext context) async {
-    final strings = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final picker = ImagePicker();
-    final picked = await picker.pickMultiImage(
-      limit: AppConfig.maxPhotos,
-      requestFullMetadata: false,
-    );
-    if (picked.isEmpty) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(strings.permissionOrPickerCancelled)),
-      );
-      return;
+    if (_picking) return;
+    setState(() => _picking = true);
+    try {
+      final picked = await ImagePicker().pickMultiImage(
+          limit: AppConfig.maxPhotos, requestFullMetadata: false);
+      if (!context.mounted || picked.isEmpty) return;
+      await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => SelectionReviewPage(files: picked)));
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).tr('photoPickFailed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _picking = false);
     }
-    if (!context.mounted) {
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SelectionReviewPage(files: picked),
-      ),
-    );
   }
 }
 
@@ -215,6 +225,7 @@ class _ProjectCard extends ConsumerWidget {
               Image.file(
                 File(firstPhoto.localPath),
                 fit: BoxFit.cover,
+                cacheWidth: 640,
                 errorBuilder: (context, error, stackTrace) =>
                     const ColoredBox(color: Colors.black12),
               )
@@ -288,23 +299,47 @@ class _ProjectCard extends ConsumerWidget {
     CollageProject project,
   ) async {
     final notifier = ref.read(projectsProvider.notifier);
-    if (value == 'archive') {
-      await exportProjectArchive(context, ref, project);
-    } else if (value == 'rename') {
-      final name = await _askName(context, project.name);
-      if (name != null) {
-        await notifier.rename(project, name);
+    try {
+      if (value == 'archive') {
+        await exportProjectArchive(context, ref, project);
+      } else if (value == 'rename') {
+        final name = await _askName(context, project.name);
+        if (name != null) {
+          await notifier.rename(project, name);
+        }
+      } else if (value == 'duplicate') {
+        final copy = await notifier.duplicate(project);
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => EditorPage(project: copy)),
+          );
+        }
+      } else if (value == 'delete') {
+        final strings = AppLocalizations.of(context);
+        final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: Text(strings.delete),
+                  content: Text(strings
+                      .tr('deleteProjectConfirm')
+                      .replaceAll('{name}', project.name)),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(strings.cancel)),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(strings.delete)),
+                  ],
+                ));
+        if (confirmed == true) await notifier.delete(project);
       }
-    } else if (value == 'duplicate') {
-      final copy = await notifier.duplicate(project);
+    } catch (_) {
       if (context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => EditorPage(project: copy)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).tr('operationFailed'))));
       }
-    } else if (value == 'delete') {
-      await notifier.delete(project);
     }
   }
 

@@ -6,6 +6,7 @@ import '../../custom_layouts/models/custom_layout.dart';
 import '../../custom_layouts/services/layout_builder_seed.dart';
 import '../models/photo_adjustments.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 
@@ -57,6 +58,10 @@ class CollageEditorController extends ChangeNotifier {
   final List<CollageProject> _redo = [];
   bool _disposed = false;
   bool metadataLoading = false;
+  bool saveFailed = false;
+  bool _replacing = false;
+  CollageProject? _interactiveStart;
+  int _saveRequest = 0;
   Timer? _autosave;
   Offset? _textDragGlobalPosition;
   CollageProject? _dividerStart;
@@ -424,9 +429,8 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void beginInteractiveTransform() {
-    _undo.add(_project);
-    _redo.clear();
-    notifyListeners();
+    _autosave?.cancel();
+    _interactiveStart ??= _project;
   }
 
   void updateTransformLive(String photoId, PhotoTransform transform) {
@@ -435,6 +439,15 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void endInteractiveTransform() {
+    final start = _interactiveStart;
+    _interactiveStart = null;
+    if (start != null &&
+        jsonEncode(start.toJson()) != jsonEncode(_project.toJson())) {
+      _undo.add(start);
+      if (_undo.length > 80) _undo.removeAt(0);
+      _redo.clear();
+      notifyListeners();
+    }
     _scheduleAutosave();
   }
 
@@ -478,20 +491,28 @@ class CollageEditorController extends ChangeNotifier {
 
   Future<void> replaceSelected(XFile picked) async {
     final photo = selectedPhoto;
-    if (photo == null) {
+    if (photo == null || _replacing || _disposed) {
       return;
     }
-    final replacement =
-        await _repository.importReplacement(picked, _project.id);
-    final photos = [
-      for (final item in _project.photos)
-        if (item.id == photo.id)
-          replacement.copyWith(transform: photo.transform)
-        else
-          item,
-    ];
-    selectedPhotoId = replacement.id;
-    _mutate(_project.copyWith(photos: photos));
+    _replacing = true;
+    try {
+      final replacement =
+          await _repository.importReplacement(picked, _project.id);
+      if (_disposed || !_project.photos.any((item) => item.id == photo.id)) {
+        return;
+      }
+      final photos = [
+        for (final item in _project.photos)
+          if (item.id == photo.id)
+            replacement.copyWith(transform: item.transform)
+          else
+            item,
+      ];
+      selectedPhotoId = replacement.id;
+      _mutate(_project.copyWith(photos: photos));
+    } finally {
+      _replacing = false;
+    }
   }
 
   void removeSelected() {
@@ -519,6 +540,7 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void undo() {
+    endInteractiveTransform();
     endDividerDrag();
     if (_undo.isEmpty) {
       return;
@@ -541,6 +563,7 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void redo() {
+    endInteractiveTransform();
     endDividerDrag();
     if (_redo.isEmpty) {
       return;
@@ -551,6 +574,11 @@ class CollageEditorController extends ChangeNotifier {
     if (!_project.textOverlays.any((item) => item.id == selectedTextId)) {
       selectedTextId = null;
     }
+    selectedPhotoId = selectedTextId != null || selectedStickerId != null
+        ? null
+        : (_project.photos.any((photo) => photo.id == selectedPhotoId)
+            ? selectedPhotoId
+            : _project.photos.firstOrNull?.id);
     notifyListeners();
     _scheduleAutosave();
   }
@@ -558,7 +586,25 @@ class CollageEditorController extends ChangeNotifier {
   Future<void> saveNow() async {
     endDividerDrag();
     _autosave?.cancel();
-    await _repository.save(_project);
+    // The repository serializes writes. Only the newest request updates feedback.
+    final request = ++_saveRequest;
+    try {
+      await _repository.save(_project);
+      if (request == _saveRequest) saveFailed = false;
+    } catch (_) {
+      if (request == _saveRequest) saveFailed = true;
+      rethrow;
+    } finally {
+      if (!_disposed && request == _saveRequest) notifyListeners();
+    }
+  }
+
+  Future<void> _saveInBackground() async {
+    try {
+      await saveNow();
+    } catch (_) {
+      // Keep the current project in memory and expose a retry in the editor.
+    }
   }
 
   CollageProject _replaceTransform(String photoId, PhotoTransform transform) {
@@ -607,6 +653,7 @@ class CollageEditorController extends ChangeNotifier {
       );
 
   void _mutate(CollageProject next) {
+    endInteractiveTransform();
     endDividerDrag();
     _undo.add(_project);
     if (_undo.length > 80) {
@@ -622,15 +669,16 @@ class CollageEditorController extends ChangeNotifier {
   void _scheduleAutosave() {
     _autosave?.cancel();
     _autosave = Timer(const Duration(milliseconds: 700), () {
-      _repository.save(_project);
+      unawaited(_saveInBackground());
     });
   }
 
   @override
   void dispose() {
+    endDividerDrag();
     _disposed = true;
     _autosave?.cancel();
-    unawaited(_repository.save(_project));
+    unawaited(_saveInBackground());
     super.dispose();
   }
 }

@@ -1,5 +1,61 @@
 // Order: German, English, Arabic, Turkish, French, Spanish.
 const translations = <String, List<String>>{
+  'projectSaveFailed': [
+    'Projekt nicht gespeichert. Bitte erneut versuchen.',
+    'Project not saved. Please retry.',
+    'لم يُحفظ المشروع. حاول مجددًا.',
+    'Proje kaydedilmedi. Tekrar deneyin.',
+    'Projet non enregistré. Réessayez.',
+    'Proyecto sin guardar. Inténtalo de nuevo.'
+  ],
+  'photoPickFailed': [
+    'Fotos konnten nicht geöffnet werden. Bitte erneut versuchen.',
+    'Could not open photos. Please try again.',
+    'تعذّر فتح الصور. حاول مجددًا.',
+    'Fotoğraflar açılamadı. Tekrar deneyin.',
+    'Impossible d’ouvrir les photos. Réessayez.',
+    'No se pudieron abrir las fotos. Inténtalo de nuevo.'
+  ],
+  'photoLoadFailed': [
+    'Foto konnte nicht geladen werden',
+    'Could not load photo',
+    'تعذّر تحميل الصورة',
+    'Fotoğraf yüklenemedi',
+    'Impossible de charger la photo',
+    'No se pudo cargar la foto'
+  ],
+  'deleteProjectConfirm': [
+    '„{name}“ und die lokalen Projektfotos dauerhaft löschen?',
+    'Permanently delete “{name}” and its local project photos?',
+    'هل تريد حذف «{name}» وصور المشروع المحلية نهائيًا؟',
+    '“{name}” ve yerel proje fotoğrafları kalıcı olarak silinsin mi?',
+    'Supprimer définitivement « {name} » et ses photos locales ?',
+    '¿Eliminar permanentemente «{name}» y sus fotos locales?'
+  ],
+  'exportSaving': [
+    'Wird in Galerie gespeichert …',
+    'Saving to gallery…',
+    'جارٍ الحفظ في المعرض…',
+    'Galeriye kaydediliyor…',
+    'Enregistrement dans la galerie…',
+    'Guardando en la galería…'
+  ],
+  'exportSharing': [
+    'Teilen wird geöffnet …',
+    'Opening sharing…',
+    'جارٍ فتح المشاركة…',
+    'Paylaşım açılıyor…',
+    'Ouverture du partage…',
+    'Abriendo opciones para compartir…'
+  ],
+  'exportPixels': [
+    '{width} × {height} Pixel',
+    '{width} × {height} pixels',
+    '{width} × {height} بكسل',
+    '{width} × {height} piksel',
+    '{width} × {height} pixels',
+    '{width} × {height} píxeles'
+  ],
   'canvasDividersEdit': [
     'Trennlinien bearbeiten',
     'Edit dividers',

@@ -64,12 +64,13 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Expanded(
-                          child: Text(strings.textOverlay,
-                              style: Theme.of(context).textTheme.titleLarge),
-                        ),
+                        Text(strings.textOverlay,
+                            style: Theme.of(context).textTheme.titleLarge),
                         FilledButton.tonalIcon(
                           onPressed: () {
                             final added =
@@ -179,6 +180,10 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
                       const SizedBox(height: 12),
                       _settingLabel(context, strings.textAlignment),
                       SegmentedButton<TextOverlayAlignment>(
+                        direction:
+                            MediaQuery.textScalerOf(context).scale(14) > 20
+                                ? Axis.vertical
+                                : Axis.horizontal,
                         segments: [
                           ButtonSegment(
                             value: TextOverlayAlignment.left,

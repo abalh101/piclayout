@@ -80,10 +80,12 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
               header: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                        '${_files.length} / ${AppConfig.maxPhotos} ${strings.selectedPhotos}',
-                        key: const ValueKey('selection-photo-count'),
-                        style: Theme.of(context).textTheme.titleMedium),
+                    Semantics(
+                        liveRegion: true,
+                        child: Text(
+                            '${_files.length} / ${AppConfig.maxPhotos} ${strings.selectedPhotos}',
+                            key: const ValueKey('selection-photo-count'),
+                            style: Theme.of(context).textTheme.titleMedium)),
                     const SizedBox(height: 12),
                     Text(strings.format,
                         style: Theme.of(context).textTheme.titleMedium),
@@ -126,6 +128,7 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
                       leading: ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: Image.file(File(file.path),
+                              cacheWidth: 162,
                               width: 54,
                               height: 54,
                               fit: BoxFit.cover,

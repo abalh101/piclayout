@@ -18,6 +18,22 @@ void main() {
       expect(image.numChannels, 3, reason: 'iOS icons must be opaque');
     }
     for (final density in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+      final size = {
+        'mdpi': 48,
+        'hdpi': 72,
+        'xhdpi': 96,
+        'xxhdpi': 144,
+        'xxxhdpi': 192
+      }[density]!;
+      final icon = img.decodePng(
+          File('android/app/src/main/res/mipmap-$density/ic_launcher.png')
+              .readAsBytesSync())!;
+      final foreground = img.decodePng(File(
+              'android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png')
+          .readAsBytesSync())!;
+      expect([icon.width, icon.height], [size, size]);
+      expect([foreground.width, foreground.height],
+          [(size * 108 / 48).round(), (size * 108 / 48).round()]);
       expect(
           File('android/app/src/main/res/mipmap-$density/ic_launcher.png')
               .existsSync(),
@@ -33,5 +49,11 @@ void main() {
         contains('adaptive-icon'));
     expect(File('README.md').readAsStringSync(),
         contains('python3 tool/generate_icons.py'));
+    for (final folder in ['drawable', 'drawable-v21']) {
+      expect(
+          File('android/app/src/main/res/$folder/launch_background.xml')
+              .readAsStringSync(),
+          contains('?android:colorBackground'));
+    }
   });
 }

@@ -44,11 +44,15 @@ aktuell ausgewählte Sprache und bleiben anschließend normaler Projektinhalt.
 `assets/demo/demo_1.png` bis `demo_6.png`: sechs originale, abstrakte Grafiken
 mit farbigen Kreisen oder Streifen und den Nummern 1–6. Sie enthalten keine
 Fotografien, privaten Inhalte, heruntergeladenen Bilder oder Netzverweise.
-Jede Grafik hat 480 × 640 Pixel. Zusammen benötigen sie 23.829 Byte (etwa
-23,3 KiB). Die bestehenden Bild- und Exportfunktionen verwenden diese PNGs
-wie reguläre importierte Fotos.
+Die aktuell gebündelten Dateien enthalten trotz der `.png`-Assetnamen
+JPEG-Bilddaten mit jeweils 896 × 1195 Pixeln. Zusammen benötigen sie
+1.829.497 Byte (etwa 1,74 MiB). Die bestehenden Bild- und Exportfunktionen
+erkennen das kodierte Bildformat und verwenden sie wie reguläre importierte
+Fotos. Der Demo-Test prüft unveränderte Kopien, Dekodierbarkeit und identische
+Bildmaße gegenüber den jeweiligen Original-Assets.
 
-Reproduzierbare Erzeugung (Python und Pillow):
+Der vorhandene Generator erstellt alternativ PNG-Grafiken mit 480 × 640
+Pixeln und überschreibt dabei die sechs Assetdateien (Python und Pillow):
 
 ```bash
 python3 tool/generate_demo_assets.py

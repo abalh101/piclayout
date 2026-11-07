@@ -39,6 +39,9 @@ class _CanvasDividerLayerState extends State<CanvasDividerLayer> {
               _inner.top + divider.position * _inner.height);
 
   Widget _target(LayoutDivider divider, {required bool handle}) {
+    final bounds = widget.controller.editableCanvasLayout!.bounds(divider);
+    final increased = (divider.position + .02).clamp(bounds.$1, bounds.$2);
+    final decreased = (divider.position - .02).clamp(bounds.$1, bounds.$2);
     final vertical = divider.axis == DividerAxis.vertical;
     final from = _point(divider, divider.start);
     final to = _point(divider, divider.end);
@@ -46,15 +49,27 @@ class _CanvasDividerLayerState extends State<CanvasDividerLayer> {
     final anchor = _point(divider,
         divider.start + (divider.end - divider.start) * (vertical ? .25 : .75));
     final rect = handle
-        ? Rect.fromCenter(center: anchor, width: 44, height: 44)
+        ? Rect.fromCenter(center: anchor, width: 48, height: 48)
         : vertical
             ? Rect.fromLTRB(from.dx - 12, from.dy, to.dx + 12, to.dy)
             : Rect.fromLTRB(from.dx, from.dy - 12, to.dx, to.dy + 12);
     return Positioned.fromRect(
       rect: rect,
       child: Semantics(
-        label: AppLocalizations.of(context)
-            .tr(vertical ? 'layoutBuilderVertical' : 'layoutBuilderHorizontal'),
+        excludeSemantics: !handle,
+        label: handle
+            ? AppLocalizations.of(context).tr(
+                vertical ? 'layoutBuilderVertical' : 'layoutBuilderHorizontal')
+            : null,
+        value: handle ? '${(divider.position * 100).round()}%' : null,
+        increasedValue: handle ? '${(increased * 100).round()}%' : null,
+        decreasedValue: handle ? '${(decreased * 100).round()}%' : null,
+        onIncrease: handle && increased > divider.position
+            ? () => _adjust(divider, .02)
+            : null,
+        onDecrease: handle && decreased < divider.position
+            ? () => _adjust(divider, -.02)
+            : null,
         child: GestureDetector(
           key: ValueKey('canvas-${handle ? 'divider' : 'seam'}-${divider.id}'),
           behavior: HitTestBehavior.opaque,
@@ -103,6 +118,12 @@ class _CanvasDividerLayerState extends State<CanvasDividerLayer> {
     _origin = null;
     _startDivider = null;
     _startInner = null;
+    widget.controller.endDividerDrag();
+  }
+
+  void _adjust(LayoutDivider divider, double delta) {
+    widget.controller.beginDividerDrag(divider);
+    widget.controller.updateDividerDrag(divider.position + delta);
     widget.controller.endDividerDrag();
   }
 

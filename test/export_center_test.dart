@@ -150,6 +150,8 @@ void main() {
         },
         gallery: GallerySaveService(platform: FakeGallery()));
     final original = project();
+    final phases = <ExportPhase>[];
+    flow.addListener(() => phases.add(flow.phase));
     final json = original.toJson();
     Future<String?> run() => flow.run(
         project: original,
@@ -163,6 +165,8 @@ void main() {
     pending.complete(file);
     expect(await first, 'In Galerie gespeichert');
     expect(flow.busy, isFalse);
+    expect(
+        phases, [ExportPhase.rendering, ExportPhase.saving, ExportPhase.idle]);
     expect(original.toJson(), json);
     flow.dispose();
   });
@@ -178,6 +182,36 @@ void main() {
         throwsA(isA<ExportFailure>()));
     expect(flow.busy, isFalse);
     flow.dispose();
+  });
+  test('share progress and disposal during export are safe', () async {
+    final phases = <ExportPhase>[];
+    final platform = FakeShare();
+    final flow = ExportFlowController(
+        render: (_, settings) async => file,
+        share: SocialShareService(platform: platform));
+    flow.addListener(() => phases.add(flow.phase));
+    await flow.run(
+        project: project(),
+        settings: SocialSharePreset.square.settings(ExportFormat.png),
+        destination: SocialShareDestination.general,
+        origin: Rect.zero);
+    expect(
+        phases, [ExportPhase.rendering, ExportPhase.sharing, ExportPhase.idle]);
+    expect(platform.sheets, 1);
+    flow.dispose();
+
+    final pending = Completer<File>();
+    final disposed = ExportFlowController(
+        render: (_, settings) => pending.future,
+        gallery: GallerySaveService(platform: FakeGallery()));
+    final result = disposed.run(
+        project: project(),
+        settings: SocialSharePreset.square.settings(ExportFormat.png),
+        destination: SocialShareDestination.gallery,
+        origin: Rect.zero);
+    disposed.dispose();
+    pending.complete(file);
+    expect(await result, 'In Galerie gespeichert');
   });
   testWidgets('export choices fit small screens in light and dark mode',
       (tester) async {

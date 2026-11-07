@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../projects/models/collage_project.dart';
 import '../models/canvas_style.dart';
 import '../rendering/layout_geometry.dart';
@@ -86,9 +87,35 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
   }
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-      painter: _ScenePainter(widget.project, Map.of(_images),
-          Map.of(_sourceSizes), Set.of(_failed)));
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, constraints) {
+        final cells =
+            LayoutGeometry.resolve(widget.project, constraints.biggest);
+        return Stack(fit: StackFit.expand, children: [
+          CustomPaint(
+              painter: _ScenePainter(widget.project, Map.of(_images),
+                  Map.of(_sourceSizes), Set.of(_failed))),
+          for (final cell in cells)
+            if (cell.photoIndex < widget.project.photos.length &&
+                !_images.containsKey(
+                    widget.project.photos[cell.photoIndex].localPath))
+              Positioned.fromRect(
+                  rect: cell.rect,
+                  child: Center(
+                      child: FittedBox(
+                          child: Icon(
+                              _failed.contains(widget.project.photos[cell.photoIndex].localPath)
+                                  ? Icons.broken_image_outlined
+                                  : Icons.image_outlined,
+                              color: Colors.black54,
+                              semanticLabel: _failed.contains(widget.project
+                                      .photos[cell.photoIndex].localPath)
+                                  ? AppLocalizations.of(context)
+                                      .tr('photoLoadFailed')
+                                  : AppLocalizations.of(context)
+                                      .tr('recLoading'))))),
+        ]);
+      });
 }
 
 class _ScenePainter extends CustomPainter {

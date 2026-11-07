@@ -29,7 +29,7 @@ import 'widgets/thumbnail_strip.dart';
 import 'widgets/text_overlay_sheet.dart';
 import 'widgets/custom_aspect_ratio_dialog.dart';
 
-class EditorPage extends ConsumerWidget {
+class EditorPage extends ConsumerStatefulWidget {
   const EditorPage({
     required this.project,
     super.key,
@@ -38,27 +38,50 @@ class EditorPage extends ConsumerWidget {
   final CollageProject project;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditorPage> createState() => _EditorPageState();
+}
+
+class _EditorPageState extends ConsumerState<EditorPage> {
+  bool _leaving = false;
+  bool _savedForExit = false;
+
+  Future<void> _leave(CollageEditorController controller) async {
+    if (_leaving) return;
+    setState(() => _leaving = true);
+    try {
+      await controller.saveNow();
+      if (!mounted) return;
+      final projects = ref.read(projectsProvider.notifier);
+      setState(() => _savedForExit = true);
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      unawaited(projects.reload());
+    } catch (_) {
+      // The persistent retry message keeps the unsaved project reachable.
+    } finally {
+      if (mounted) setState(() => _leaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
-    final controller = ref.watch(editorControllerProvider(project));
+    final controller = ref.watch(editorControllerProvider(widget.project));
 
     return PopScope(
+      canPop: _savedForExit,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) {
-          final projects = ref.read(projectsProvider.notifier);
-          unawaited(
-            controller.saveNow().then(
-                  (_) => projects.reload(),
-                ),
-          );
-        }
+        if (!didPop) unawaited(_leave(controller));
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(controller.project.name),
+          title: Text(controller.project.name,
+              maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
             PopupMenuButton<String>(
-              enabled: !ref.watch(projectArchiveControllerProvider).busy,
+              enabled: !_leaving &&
+                  !ref.watch(projectArchiveControllerProvider).busy,
               onSelected: (_) =>
                   exportProjectArchive(context, ref, controller.project),
               itemBuilder: (_) => [
@@ -68,55 +91,84 @@ class EditorPage extends ConsumerWidget {
             ),
             IconButton(
               tooltip: strings.tr('undo'),
-              onPressed: controller.canUndo ? controller.undo : null,
+              onPressed:
+                  !_leaving && controller.canUndo ? controller.undo : null,
               icon: const Icon(Icons.undo),
             ),
             IconButton(
               tooltip: strings.tr('redo'),
-              onPressed: controller.canRedo ? controller.redo : null,
+              onPressed:
+                  !_leaving && controller.canRedo ? controller.redo : null,
               icon: const Icon(Icons.redo),
             ),
             IconButton(
               tooltip: strings.export,
-              onPressed: () => showExportCenter(context, controller.project),
+              onPressed: _leaving
+                  ? null
+                  : () => showExportCenter(context, controller.project),
               icon: const Icon(Icons.ios_share),
             ),
           ],
         ),
-        bottomNavigationBar: ref.watch(projectArchiveControllerProvider).busy
-            ? const LinearProgressIndicator()
-            : null,
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 860;
-              final preview = _PreviewPanel(controller: controller);
-              final tools = _ToolsPanel(controller: controller);
+        bottomNavigationBar:
+            _leaving || ref.watch(projectArchiveControllerProvider).busy
+                ? const LinearProgressIndicator()
+                : controller.saveFailed
+                    ? SafeArea(
+                        child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            child: Wrap(
+                                spacing: 12,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(strings.tr('projectSaveFailed')),
+                                  TextButton(
+                                      onPressed: () async {
+                                        try {
+                                          await controller.saveNow();
+                                        } catch (_) {/* Keep retry visible. */}
+                                      },
+                                      child: Text(strings.tr('retry'))),
+                                ])))
+                    : null,
+        body: AbsorbPointer(
+            absorbing: _leaving,
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= 860 ||
+                      (constraints.maxWidth >= 600 &&
+                          constraints.maxHeight < 500);
+                  final preview = _PreviewPanel(controller: controller);
+                  final tools = _ToolsPanel(controller: controller);
 
-              if (wide) {
-                return Row(
-                  children: [
-                    Expanded(child: preview),
-                    SizedBox(
-                      width: 360,
-                      child: tools,
-                    ),
-                  ],
-                );
-              }
+                  if (wide) {
+                    return Row(
+                      children: [
+                        Expanded(child: preview),
+                        SizedBox(
+                          width: constraints.maxWidth >= 860
+                              ? 360
+                              : constraints.maxWidth * .46,
+                          child: tools,
+                        ),
+                      ],
+                    );
+                  }
 
-              return Column(
-                children: [
-                  Expanded(child: preview),
-                  SizedBox(
-                    height: constraints.maxHeight * 0.45,
-                    child: tools,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
+                  return Column(
+                    children: [
+                      Expanded(child: preview),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.45,
+                        child: tools,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            )),
       ),
     );
   }
@@ -321,33 +373,24 @@ class _ToolsPanel extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
+                OutlinedButton.icon(
                     onPressed: () => showStyleStudio(context, controller),
                     icon: const Icon(Icons.tune),
-                    label: Text(strings.style),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton.icon(
+                    label: Text(strings.style)),
+                FilledButton.icon(
                     onPressed: controller.selectedPhoto == null
                         ? null
                         : () => showPhotoSheet(context, controller),
                     icon: const Icon(Icons.crop),
-                    label: Text(strings.photo),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
+                    label: Text(strings.photo)),
+                OutlinedButton.icon(
                     onPressed: () => showTextOverlaySheet(context, controller),
                     icon: const Icon(Icons.text_fields),
-                    label: Text(strings.textOverlay),
-                  ),
-                ),
+                    label: Text(strings.textOverlay)),
               ],
             ),
             const SizedBox(height: 10),
@@ -383,19 +426,38 @@ class _ToolsPanel extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ChoiceChip(
-          label: Text(AppLocalizations.of(context).tr(layout.title)),
+        Flexible(
+            child: ChoiceChip(
+          avatar: SizedBox.square(
+              dimension: 24,
+              child: CustomPaint(
+                  painter: LayoutPreviewPainter(layout,
+                      color: Theme.of(context).colorScheme.primary,
+                      staggerAmount: controller.project.canvas.staggerAmount))),
+          label:
+              Text(AppLocalizations.of(context).tr(layout.title), maxLines: 2),
           selected: controller.project.customLayout == null &&
               controller.project.layoutTemplateId == layout.id,
           onSelected: (_) => controller.setLayoutTemplate(layout.id),
-        ),
+        )),
         IconButton(
           visualDensity: VisualDensity.compact,
           tooltip: favorite
               ? AppLocalizations.of(context).removeFavorite
               : AppLocalizations.of(context).addFavorite,
-          onPressed: () =>
-              ref.read(designLibraryProvider.notifier).toggleFavorite(layout),
+          onPressed: () async {
+            try {
+              await ref
+                  .read(designLibraryProvider.notifier)
+                  .toggleFavorite(layout);
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(
+                        AppLocalizations.of(context).tr('operationFailed'))));
+              }
+            }
+          },
           icon: Icon(favorite ? Icons.star : Icons.star_border),
         ),
       ],
@@ -409,100 +471,128 @@ Future<void> showPhotoSheet(
 ) async {
   final strings = AppLocalizations.of(context);
   final picker = ImagePicker();
+  bool replacing = false;
 
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     builder: (context) {
-      return AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          final photo = controller.selectedPhoto;
-          if (photo == null) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(strings.noPhotoSelected),
-            );
-          }
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const TutorialTip(id: 'tipZoom'),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.tune),
-                    label: Text(strings.tr('editPhoto')),
-                    onPressed: () => showPhotoEditor(context, controller),
-                  ),
-                  const SizedBox(height: 12),
-                  SegmentedButton<PhotoFitMode>(
-                    segments: [
-                      ButtonSegment(
-                        value: PhotoFitMode.fill,
-                        label: Text(strings.fill),
-                        icon: const Icon(Icons.fullscreen),
-                      ),
-                      ButtonSegment(
-                        value: PhotoFitMode.fit,
-                        label: Text(strings.fit),
-                        icon: const Icon(Icons.fit_screen),
-                      ),
-                    ],
-                    selected: {photo.transform.fitMode},
-                    onSelectionChanged: (value) {
-                      controller.setSelectedFitMode(value.first);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: controller.resetSelectedTransform,
-                        icon: const Icon(Icons.restart_alt),
-                        label: Text(strings.resetCrop),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: controller.rotateSelected,
-                        icon: const Icon(Icons.rotate_90_degrees_ccw),
-                        label: Text(strings.rotate),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: controller.flipSelected,
-                        icon: const Icon(Icons.flip),
-                        label: Text(strings.flip),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await picker.pickImage(
-                            source: ImageSource.gallery,
-                            requestFullMetadata: false,
-                          );
-                          if (picked != null) {
-                            await controller.replaceSelected(picked);
-                          }
-                        },
-                        icon: const Icon(Icons.swap_horiz),
-                        label: Text(strings.replace),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: controller.project.photos.length <= 1
-                            ? null
-                            : controller.removeSelected,
-                        icon: const Icon(Icons.delete_outline),
-                        label: Text(strings.remove),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
+      return StatefulBuilder(
+          builder: (context, setSheetState) => PopScope(
+              canPop: !replacing,
+              child: AnimatedBuilder(
+                animation: controller,
+                builder: (context, _) {
+                  final photo = controller.selectedPhoto;
+                  if (photo == null) {
+                    return Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(strings.noPhotoSelected),
+                    );
+                  }
+                  return AbsorbPointer(
+                      absorbing: replacing,
+                      child: SafeArea(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const TutorialTip(id: 'tipZoom'),
+                              if (replacing) const LinearProgressIndicator(),
+                              FilledButton.icon(
+                                icon: const Icon(Icons.tune),
+                                label: Text(strings.tr('editPhoto')),
+                                onPressed: () =>
+                                    showPhotoEditor(context, controller),
+                              ),
+                              const SizedBox(height: 12),
+                              SegmentedButton<PhotoFitMode>(
+                                segments: [
+                                  ButtonSegment(
+                                    value: PhotoFitMode.fill,
+                                    label: Text(strings.fill),
+                                    icon: const Icon(Icons.fullscreen),
+                                  ),
+                                  ButtonSegment(
+                                    value: PhotoFitMode.fit,
+                                    label: Text(strings.fit),
+                                    icon: const Icon(Icons.fit_screen),
+                                  ),
+                                ],
+                                selected: {photo.transform.fitMode},
+                                onSelectionChanged: (value) {
+                                  controller.setSelectedFitMode(value.first);
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        controller.resetSelectedTransform,
+                                    icon: const Icon(Icons.restart_alt),
+                                    label: Text(strings.resetCrop),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: controller.rotateSelected,
+                                    icon:
+                                        const Icon(Icons.rotate_90_degrees_ccw),
+                                    label: Text(strings.rotate),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: controller.flipSelected,
+                                    icon: const Icon(Icons.flip),
+                                    label: Text(strings.flip),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      if (replacing) return;
+                                      setSheetState(() => replacing = true);
+                                      try {
+                                        final picked = await picker.pickImage(
+                                          source: ImageSource.gallery,
+                                          requestFullMetadata: false,
+                                        );
+                                        if (picked != null) {
+                                          await controller
+                                              .replaceSelected(picked);
+                                        }
+                                      } catch (_) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                                  content: Text(strings
+                                                      .tr('photoPickFailed'))));
+                                        }
+                                      } finally {
+                                        if (context.mounted) {
+                                          setSheetState(
+                                              () => replacing = false);
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.swap_horiz),
+                                    label: Text(strings.replace),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        controller.project.photos.length <= 1
+                                            ? null
+                                            : controller.removeSelected,
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: Text(strings.remove),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ));
+                },
+              )));
     },
   );
 }
