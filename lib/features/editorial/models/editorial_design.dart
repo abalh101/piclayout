@@ -99,6 +99,10 @@ class DesignLayer {
         DesignLayerType.caption,
         DesignLayerType.location
       ].contains(type);
+  bool get referencesPhoto =>
+      isPhoto ||
+      type == DesignLayerType.caption ||
+      type == DesignLayerType.connector;
   Rect rect(Size size) => Rect.fromCenter(
       center: Offset(x * size.width, y * size.height),
       width: width * size.width,
@@ -349,16 +353,17 @@ class EditorialDesign {
                 id: 'layer-$i',
                 clearPhotoId: true,
                 photoSlot: photos
-                    .indexWhere((p) => p.id == layers[i].photoId)
+                    .indexWhere((p) => p.id == layers[i].source(photos)?.id)
                     .clamp(0, 11),
                 text: includeText
                     ? layers[i].text.copyWith(id: 'text-$i')
-                    : const TextOverlay(id: 'style', text: '')),
+                    : layers[i].text.copyWith(id: 'text-$i', text: '')),
       ]);
   EditorialDesign bindPhotos(List<PhotoAsset> photos) => copyWith(layers: [
         for (final l in layers)
           l.copyWith(
-              photoId: photos.isEmpty
+              clearPhotoId: !l.referencesPhoto || photos.isEmpty,
+              photoId: !l.referencesPhoto || photos.isEmpty
                   ? null
                   : photos[l.photoSlot.clamp(0, photos.length - 1)].id),
       ]);

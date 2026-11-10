@@ -4,6 +4,16 @@ Status: Quellcode für Release-Vorbereitung eingerichtet; Store-Freigabe erst na
 den unten dokumentierten manuellen Prüfungen. Häkchen gelten pro Release-Kandidat.
 Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
 
+## Abschließender Bugcheck (10.11.2026)
+
+- **168 Tests erfolgreich**, normal und seriell unter Windows; keine Tests
+  übersprungen, keine Cleanup-Fehler unterdrückt.
+- Analyse ohne Befunde, Formatprüfung und `git diff --check` erfolgreich.
+- Android-Debug-APK mit den Korrekturen neu gebaut.
+- Fehler bei Fotolöschung, Nummerierung/Beschriftung, Zuschnitt, sichtbarem
+  Undo-Text, Vorlagenformatierung, Autosave/Löschen und Verbindungslinien behoben.
+- Details und verbleibende native Geräteprüfungen: [Bugcheck](bug-audit.md).
+
 ## Editorial- und Story-Designs (10.11.2026)
 
 - Vollständige Windows-Suite: **163 Tests erfolgreich**, normal und mit

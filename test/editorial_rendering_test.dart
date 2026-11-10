@@ -213,6 +213,62 @@ void main() {
         height: 200);
     expect(fitted.getPixel(15, 100).r, 255);
   });
+  test('Standalone connectors match preview without saved photo dimensions',
+      () async {
+    original = img.encodePng(
+        img.Image(width: 80, height: 40)..clear(img.ColorRgb8(180, 120, 70)));
+    await source.writeAsBytes(original);
+    final base = project([]);
+    final photo = base.photos.single.copyWith(
+        clearMetadata: true,
+        transform: const PhotoTransform(fitMode: PhotoFitMode.fit));
+    final image = await loadProjectImage(source.path);
+    try {
+      for (final z in [-1, 1]) {
+        final designed = base.copyWith(
+            photos: [photo],
+            design: base.design.copyWith(layers: [
+              const DesignLayer(
+                  id: 'main',
+                  type: DesignLayerType.photo,
+                  x: .3,
+                  y: .3,
+                  width: .4,
+                  height: .4),
+              DesignLayer(
+                  id: 'line',
+                  type: DesignLayerType.connector,
+                  x: .8,
+                  y: .8,
+                  width: .2,
+                  height: .2,
+                  z: z,
+                  crop: const Rect.fromLTWH(.1, .1, .2, .2),
+                  lineWidth: 3,
+                  lineColor: 0xFF00FF00),
+            ]));
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        const size = Size(200, 320);
+        StyleRenderer.background(canvas, size, designed.canvas);
+        for (final layer in designed.design.ordered) {
+          EditorialRenderer.paintLayer(canvas, size, designed, layer,
+              image: layer.isPhoto ? image : null,
+              sourceSize: const Size(80, 40));
+        }
+        final picture = recorder.endRecording();
+        final rendered = await picture.toImage(200, 320);
+        picture.dispose();
+        final bytes = await rendered.toByteData(format: ui.ImageByteFormat.png);
+        rendered.dispose();
+        final preview = img.decodePng(bytes!.buffer.asUint8List())!;
+        expect((await export(designed)).getBytes(), preview.getBytes(),
+            reason: 'z=$z');
+      }
+    } finally {
+      image.dispose();
+    }
+  });
   test(
       'Source mapping follows rotation and flip and geometry scales proportionally',
       () {

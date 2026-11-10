@@ -18,12 +18,14 @@ real-device gallery/social sharing tests remain required before publication.
 Release preparation and remaining manual steps are tracked in
 [docs/release-checklist.md](docs/release-checklist.md).
 
-The Windows test suite passes all 163 tests in normal and serial runs, including
+The Windows test suite passes all 168 tests in normal and serial runs, including
 the editorial designs and corrected demo-image checks. The former temporary-image
 cleanup errors (OS error 32) are resolved;
 no tests are skipped or cleanup errors suppressed. The editor verification and
 remaining device checks are recorded in the
 [editor refinement audit](docs/editor-refinement-audit.md).
+The latest bug fixes and regression checks are recorded in the
+[bug audit](docs/bug-audit.md).
 
 Implemented:
 

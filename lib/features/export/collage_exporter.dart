@@ -1,5 +1,7 @@
 import '../stickers/sticker_renderer.dart';
 import '../editorial/rendering/editorial_renderer.dart';
+import '../editorial/models/editorial_design.dart';
+import '../layout_recommendations/photo_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -47,20 +49,34 @@ class CollageExporter {
         backdrop?.dispose();
       }
       if (project.design.active) {
+        final sourceSizes = <String, Size?>{};
         for (final layer in project.design.ordered) {
           if (!layer.visible || layer.opacity == 0) continue;
-          final photo = layer.isPhoto ? layer.source(project.photos) : null;
+          final photo = layer.isPhoto || layer.type == DesignLayerType.connector
+              ? layer.source(project.photos)
+              : null;
           if (layer.isPhoto && photo == null) {
             throw StateError('Design photo source is missing');
           }
-          final image =
-              photo == null ? null : await loadProjectImage(photo.localPath);
+          if (layer.type == DesignLayerType.connector &&
+              photo != null &&
+              !sourceSizes.containsKey(photo.localPath)) {
+            final metadata =
+                await const PhotoMetadataReader().read(photo.localPath);
+            sourceSizes[photo.localPath] = metadata == null
+                ? null
+                : Size(metadata.width.toDouble(), metadata.height.toDouble());
+          }
+          final image = !layer.isPhoto || photo == null
+              ? null
+              : await loadProjectImage(photo.localPath);
           try {
+            if (image != null) {
+              sourceSizes[photo!.localPath] =
+                  Size(image.width.toDouble(), image.height.toDouble());
+            }
             EditorialRenderer.paintLayer(canvas, size, project, layer,
-                image: image,
-                sourceSize: image == null
-                    ? null
-                    : Size(image.width.toDouble(), image.height.toDouble()));
+                image: image, sourceSize: sourceSizes[photo?.localPath]);
           } finally {
             image?.dispose();
           }

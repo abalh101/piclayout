@@ -20,6 +20,83 @@ import 'support/editorial_fixtures.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('Removing a template photo preserves independent title and decorations',
+      () {
+    final p = editorialProject(count: 2);
+    final source =
+        p.copyWith(design: DesignPreset.all.first.create(p.photos, (k) => k));
+    final template = CollageTemplate.fromProject(
+        id: 't', name: 'Story', project: source, includeTextOverlays: true);
+    final c = CollageEditorController(
+        initialProject: template.applyTo(p),
+        repository: EditorialMemoryRepository());
+    addTearDown(c.dispose);
+    final title = c.project.design.layers
+        .firstWhere((l) => l.type == DesignLayerType.text);
+    c.addDesignLayer(DesignLayer(
+        id: 'label',
+        type: DesignLayerType.location,
+        photoId: p.photos.first.id,
+        text: const TextOverlay(id: 'label-text', text: 'Berlin')));
+    c.addDesignLayer(DesignLayer(
+        id: 'background',
+        type: DesignLayerType.background,
+        photoId: p.photos.first.id));
+    c.selectPhoto(p.photos.first.id);
+    c.removeSelected();
+    expect(c.project.design.layers.map((l) => l.id),
+        containsAll([title.id, 'label', 'background']));
+    expect(c.project.design.layers.where((l) => l.isPhoto).length, 1);
+    c.undo();
+    expect(c.project.photos.length, 2);
+  });
+  test('Changing numbering preserves manually positioned photo layers', () {
+    final p = editorialProject(count: 3);
+    final c = CollageEditorController(
+        initialProject: p.copyWith(
+            design: DesignPreset.all.first.create(p.photos, (k) => k)),
+        repository: EditorialMemoryRepository());
+    addTearDown(c.dispose);
+    final photo = c.project.design.layers.firstWhere((l) => l.isPhoto);
+    c.updateDesignLayer(photo.copyWith(x: .6, y: .7));
+    c.updateDesignSettings(
+        c.project.design.copyWith(numberStyle: NumberStyle.padded));
+    expect(c.project.design.layers.firstWhere((l) => l.id == photo.id).x, .6);
+    expect(c.project.design.layers.firstWhere((l) => l.id == photo.id).y, .7);
+    final before = c.project.design.toJson();
+    final caption = c.project.design.layers
+        .firstWhere((l) => l.type == DesignLayerType.caption);
+    c.updateDesignLayer(
+        caption.copyWith(text: caption.text.copyWith(text: 'My caption')));
+    expect(c.project.design.numberStyle, NumberStyle.custom);
+    expect(c.project.design.layers.firstWhere((l) => l.id == photo.id).x, .6);
+    c.undo();
+    expect(c.project.design.toJson(), before);
+  });
+  test('Cropping a repeated source uses the selected layer dimensions', () {
+    final p = editorialProject(count: 1);
+    final c = CollageEditorController(
+        initialProject: p.copyWith(
+            design: EditorialDesign(mode: DesignMode.blank, layers: [
+          DesignLayer(
+              id: 'square',
+              type: DesignLayerType.photo,
+              photoId: p.photos.first.id,
+              width: .5,
+              height: .5 * 9 / 16),
+          DesignLayer(
+              id: 'narrow',
+              type: DesignLayerType.photo,
+              photoId: p.photos.first.id,
+              width: .2,
+              height: .7),
+        ])),
+        repository: EditorialMemoryRepository());
+    addTearDown(c.dispose);
+    c.selectDesignLayer('narrow');
+    c.setTransform(p.photos.first.id, const PhotoTransform(offsetX: .3));
+    expect(c.selectedPhoto!.transform.offsetX, closeTo(.3, 1e-9));
+  });
   test(
       'Legacy projects keep standard geometry; unknown optional layers are isolated',
       () {
@@ -213,6 +290,10 @@ void main() {
               .every((l) => target.photos.any((p) => p.id == l.photoId)),
           isTrue);
       if (!include) {
+        final caption = applied.design.layers
+            .firstWhere((l) => l.type == DesignLayerType.caption);
+        expect(caption.text.fontFamily, 'serif');
+        expect(caption.text.color, 0xFF202020);
         expect(
             applied.design.layers
                 .where((l) => l.type == DesignLayerType.caption)

@@ -114,7 +114,18 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void updateDesignSettings(EditorialDesign design, {bool live = false}) {
-    final next = _project.copyWith(design: DesignPreset.reflow(design));
+    final previous = _project.design;
+    final geometryChanged = previous.columns != design.columns ||
+        previous.margin != design.margin ||
+        previous.gapX != design.gapX ||
+        previous.gapY != design.gapY ||
+        previous.header != design.header ||
+        previous.variant != design.variant ||
+        previous.mode != design.mode;
+    final next = _project.copyWith(
+        design: design.active && geometryChanged
+            ? DesignPreset.reflow(design)
+            : design);
     if (live) {
       _project = next;
       notifyListeners();
@@ -128,10 +139,15 @@ class CollageEditorController extends ChangeNotifier {
         _project.design.layers.where((l) => l.id == layer.id).firstOrNull;
     if (old == null || (old.locked && layer.locked)) return;
     final next = _project.copyWith(
-        design: _project.design.copyWith(layers: [
-      for (final l in _project.design.layers)
-        if (l.id == layer.id) layer else l
-    ]));
+        design: _project.design.copyWith(
+            numberStyle: layer.type == DesignLayerType.caption &&
+                    layer.text.text != old.text.text
+                ? NumberStyle.custom
+                : _project.design.numberStyle,
+            layers: [
+          for (final l in _project.design.layers)
+            if (l.id == layer.id) layer else l
+        ]));
     if (live) {
       _project = next;
       notifyListeners();
@@ -142,6 +158,7 @@ class CollageEditorController extends ChangeNotifier {
 
   void addDesignLayer(DesignLayer layer) {
     if (_project.design.layers.length >= 200) return;
+    if (!layer.referencesPhoto) layer = layer.copyWith(clearPhotoId: true);
     var design = _project.design;
     if (!design.active && design.layers.isEmpty) {
       final size = Size(390, 390 / _project.aspectRatio.value);
@@ -701,7 +718,10 @@ class CollageEditorController extends ChangeNotifier {
         layoutTemplateId: template.id,
         design: _project.design.copyWith(layers: [
           for (final layer in _project.design.layers)
-            if (layer.photoId != photo.id) layer,
+            if (layer.source(_project.photos)?.id != photo.id)
+              layer
+            else if (!layer.referencesPhoto)
+              layer.copyWith(clearPhotoId: true),
         ]),
       ),
     );
@@ -795,10 +815,12 @@ class CollageEditorController extends ChangeNotifier {
                 photo,
           ],
         ),
-        onlyId: photoId);
+        onlyId: photoId,
+        selectedLayer: selectedDesignLayer);
   }
 
-  static CollageProject _clampPhotos(CollageProject project, {String? onlyId}) {
+  static CollageProject _clampPhotos(CollageProject project,
+      {String? onlyId, DesignLayer? selectedLayer}) {
     final ratio = project.aspectRatio.value;
     final size = ratio >= 1 ? Size(390 * ratio, 390) : Size(390, 390 / ratio);
     final cells = LayoutGeometry.resolve(project, size);
@@ -815,12 +837,19 @@ class CollageEditorController extends ChangeNotifier {
                         project.photos[i].transform,
                         Size(project.photos[i].metadata!.width.toDouble(),
                             project.photos[i].metadata!.height.toDouble()),
-                        cells
-                                .where((cell) => cell.photoIndex == i)
-                                .firstOrNull
-                                ?.rect
-                                .size ??
-                            Size.zero)),
+                        project.design.active &&
+                                selectedLayer?.isPhoto == true &&
+                                selectedLayer!.type !=
+                                    DesignLayerType.callout &&
+                                selectedLayer.source(project.photos)?.id ==
+                                    project.photos[i].id
+                            ? selectedLayer.rect(size).size
+                            : cells
+                                    .where((cell) => cell.photoIndex == i)
+                                    .firstOrNull
+                                    ?.rect
+                                    .size ??
+                                Size.zero)),
     ]);
   }
 

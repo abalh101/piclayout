@@ -22,6 +22,8 @@ class ProjectRepository {
   final Uuid _uuid;
   final Directory? _documentsDirectory;
   final Map<String, Future<void>> _pendingSaves = {};
+  final Map<String, Future<void>> _pendingDeletes = {};
+  final Set<String> _deletedProjects = {};
 
   Future<List<CollageProject>> loadProjects() async {
     final root = await _projectsRoot();
@@ -110,6 +112,9 @@ class ProjectRepository {
   }
 
   Future<void> save(CollageProject project) async {
+    if (_deletedProjects.contains(project.id)) {
+      throw StateError('Cannot save a deleted project');
+    }
     final previous = _pendingSaves[project.id] ?? Future<void>.value();
     final pending = previous.catchError((Object _) {}).then(
           (_) => _writeProject(project),
@@ -215,7 +220,25 @@ class ProjectRepository {
         project.copyWith(name: name.trim().isEmpty ? project.name : name));
   }
 
-  Future<void> delete(CollageProject project) async {
+  Future<void> delete(CollageProject project) {
+    final previous = _pendingDeletes[project.id];
+    if (previous != null) return previous;
+    _deletedProjects.add(project.id);
+    final pending = _deleteProject(project);
+    _pendingDeletes[project.id] = pending;
+    pending.then((_) {
+      _pendingDeletes.remove(project.id);
+    }, onError: (Object _, StackTrace __) {
+      _pendingDeletes.remove(project.id);
+      _deletedProjects.remove(project.id);
+    });
+    return pending;
+  }
+
+  Future<void> _deleteProject(CollageProject project) async {
+    // Existing autosaves finish first. New saves are rejected once deletion
+    // starts, including late saves triggered by an editor's disposal.
+    await _pendingSaves[project.id]?.catchError((Object _) {});
     final dir = await _projectDirectory(project.id);
     if (dir.existsSync()) {
       await dir.delete(recursive: true);

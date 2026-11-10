@@ -61,9 +61,28 @@ void main() {
               .first,
           maxScrolls: 60);
       await tester.pumpAndSettle();
+      final originalText = c.selectedDesignLayer!.text.text;
       await tester.enterText(text, 'أمسيات في\nسانتوريني');
       await tester.pump(const Duration(seconds: 1));
       expect(c.selectedDesignLayer!.text.text, 'أمسيات في\nسانتوريني');
+      c.undo();
+      await tester.pump();
+      expect(
+          tester
+              .widget<EditableText>(find.descendant(
+                  of: text, matching: find.byType(EditableText)))
+              .controller
+              .text,
+          originalText);
+      c.redo();
+      await tester.pump();
+      expect(
+          tester
+              .widget<EditableText>(find.descendant(
+                  of: text, matching: find.byType(EditableText)))
+              .controller
+              .text,
+          'أمسيات في\nسانتوريني');
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
       final labelRadius = find.byKey(const ValueKey('edLabelRadius'));

@@ -8,6 +8,31 @@ import 'package:piclayout/features/projects/services/project_repository.dart';
 import 'package:piclayout/features/collage_editor/models/text_overlay.dart';
 
 void main() {
+  test('Deleting a project waits for queued saves and does not resurrect it',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('piclayout_save_delete_');
+    addTearDown(() => root.delete(recursive: true));
+    final original = File(p.join(root.path, 'original.jpg'));
+    await original.writeAsBytes([1, 2, 3, 4]);
+    final repository = ProjectRepository(documentsDirectory: root);
+    final project =
+        await repository.createFromPickedImages([XFile(original.path)]);
+    final saves = [
+      for (var i = 0; i < 8; i++)
+        repository.save(project.copyWith(name: 'Edit $i'))
+    ];
+    final deleting = repository.delete(project);
+    await expectLater(repository.save(project), throwsStateError);
+    await Future.wait([...saves, deleting, repository.delete(project)]);
+    await expectLater(repository.save(project), throwsStateError);
+    expect(await repository.loadProjects(), isEmpty);
+    expect(
+        await Directory(p.join(root.path, 'piclayout_projects', project.id))
+            .exists(),
+        isFalse);
+    expect(await original.readAsBytes(), [1, 2, 3, 4]);
+  });
   test(
       'Imports and reopens all 12 originals; invalid counts fail before writing',
       () async {

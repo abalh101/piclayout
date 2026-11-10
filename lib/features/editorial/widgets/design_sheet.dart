@@ -384,21 +384,12 @@ class DesignSheet extends StatelessWidget {
               () => showPhotoEditor(context, controller)),
       ],
       if (l.isText) ...[
-        TextFormField(
+        _DesignTextField(
             key: ValueKey('text-${l.id}'),
-            initialValue: l.text.text,
-            maxLines: 3,
-            maxLength: 300,
-            decoration: InputDecoration(labelText: t('textContent')),
-            onChanged: (v) {
-              update(
-                  current().copyWith(text: current().text.copyWith(text: v)));
-              if (l.type == DesignLayerType.caption &&
-                  controller.project.design.numberStyle != NumberStyle.custom) {
-                controller.updateDesignSettings(controller.project.design
-                    .copyWith(numberStyle: NumberStyle.custom));
-              }
-            }),
+            text: l.text.text,
+            label: t('textContent'),
+            onChanged: (v) => update(
+                current().copyWith(text: current().text.copyWith(text: v)))),
         _choice<String>(
             context,
             'edFont',
@@ -601,6 +592,50 @@ class DesignSheet extends StatelessWidget {
           ]),
         ]));
   }
+}
+
+class _DesignTextField extends StatefulWidget {
+  const _DesignTextField(
+      {required this.text,
+      required this.label,
+      required this.onChanged,
+      super.key});
+  final String text, label;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_DesignTextField> createState() => _DesignTextFieldState();
+}
+
+class _DesignTextFieldState extends State<_DesignTextField> {
+  late final _input = TextEditingController(text: widget.text);
+
+  @override
+  void didUpdateWidget(covariant _DesignTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_input.text != widget.text) {
+      final offset = _input.selection.isValid
+          ? _input.selection.extentOffset.clamp(0, widget.text.length)
+          : widget.text.length;
+      _input.value = TextEditingValue(
+          text: widget.text,
+          selection: TextSelection.collapsed(offset: offset));
+    }
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextFormField(
+      controller: _input,
+      maxLines: 3,
+      maxLength: 300,
+      decoration: InputDecoration(labelText: widget.label),
+      onChanged: widget.onChanged);
 }
 
 class _ColorDialog extends StatefulWidget {
