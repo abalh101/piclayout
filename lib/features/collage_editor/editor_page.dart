@@ -1,4 +1,5 @@
 import '../layout_recommendations/recommended_layouts.dart';
+import '../editorial/widgets/design_sheet.dart';
 import '../tutorial_tips/tutorial_tip.dart';
 import '../project_archive/project_archive_actions.dart';
 import '../project_archive/project_archive_controller.dart';
@@ -237,6 +238,22 @@ class _ToolsPanel extends ConsumerWidget {
             ),
             Wrap(spacing: 8, runSpacing: 8, children: [
               OutlinedButton.icon(
+                  key: const ValueKey('editorial-design'),
+                  onPressed: () => showDesignSheet(context, controller),
+                  icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                  label: Text(strings.tr('edDesign'))),
+              OutlinedButton.icon(
+                  key: const ValueKey('editorial-layers'),
+                  onPressed: () =>
+                      showDesignSheet(context, controller, layers: true),
+                  icon: const Icon(Icons.layers_outlined),
+                  label: Text(strings.tr('edLayers'))),
+              if (controller.editingDesignCrop)
+                FilledButton.icon(
+                    onPressed: () => controller.setDesignCropEditing(false),
+                    icon: const Icon(Icons.check),
+                    label: Text(strings.tr('edCropDone'))),
+              OutlinedButton.icon(
                   key: const ValueKey('add-sticker'),
                   onPressed: () => showStickerPicker(context, controller),
                   icon: const Icon(Icons.emoji_emotions_outlined),
@@ -302,7 +319,7 @@ class _ToolsPanel extends ConsumerWidget {
               targetRatio: project.aspectRatio.value,
               staggerAmount: project.canvas.staggerAmount,
               loading: controller.metadataLoading,
-              selectedId: project.customLayout == null
+              selectedId: !project.design.active && project.customLayout == null
                   ? project.layoutTemplateId
                   : null,
               onSelected: controller.setLayoutTemplate,
@@ -436,7 +453,8 @@ class _ToolsPanel extends ConsumerWidget {
                       staggerAmount: controller.project.canvas.staggerAmount))),
           label:
               Text(AppLocalizations.of(context).tr(layout.title), maxLines: 2),
-          selected: controller.project.customLayout == null &&
+          selected: !controller.project.design.active &&
+              controller.project.customLayout == null &&
               controller.project.layoutTemplateId == layout.id,
           onSelected: (_) => controller.setLayoutTemplate(layout.id),
         )),

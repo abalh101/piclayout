@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import '../../editorial/models/editorial_design.dart';
+import '../../editorial/rendering/editorial_renderer.dart';
 
 import '../layouts/layout_library.dart';
 import '../models/layout_template.dart';
@@ -25,6 +27,20 @@ class LayoutGeometry {
     Size canvasSize,
   ) {
     if (project.photos.isEmpty) return [];
+    if (project.design.active) {
+      return [
+        for (final layer in project.design.ordered)
+          if (layer.visible &&
+              layer.isPhoto &&
+              layer.type != DesignLayerType.callout &&
+              layer.source(project.photos) != null)
+            ResolvedLayoutCell(
+                photoIndex:
+                    project.photos.indexOf(layer.source(project.photos)!),
+                rect: EditorialRenderer.bounds(layer, canvasSize),
+                cornerRadius: layer.radius * canvasSize.shortestSide / 390)
+      ];
+    }
     final template = LayoutLibrary.byIdOrDefault(
       project.layoutTemplateId,
       project.photos.length,

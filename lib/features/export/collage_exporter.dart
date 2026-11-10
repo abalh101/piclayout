@@ -1,6 +1,7 @@
 import '../stickers/sticker_renderer.dart';
+import '../editorial/rendering/editorial_renderer.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -45,21 +46,42 @@ class CollageExporter {
       } finally {
         backdrop?.dispose();
       }
-      final resolved = LayoutGeometry.resolve(project, size);
-      StyleRenderer.shadows(canvas, size, project.canvas, resolved);
-      for (final cell in resolved) {
-        if (cell.photoIndex >= project.photos.length) continue;
-        final photo = project.photos[cell.photoIndex];
-        final image = await loadProjectImage(photo.localPath);
-        try {
-          StyleRenderer.photo(
-              canvas, image, cell.rect, cell.cornerRadius, photo.transform,
-              adjustments: photo.adjustments);
-        } finally {
-          image.dispose();
+      if (project.design.active) {
+        for (final layer in project.design.ordered) {
+          if (!layer.visible || layer.opacity == 0) continue;
+          final photo = layer.isPhoto ? layer.source(project.photos) : null;
+          if (layer.isPhoto && photo == null) {
+            throw StateError('Design photo source is missing');
+          }
+          final image =
+              photo == null ? null : await loadProjectImage(photo.localPath);
+          try {
+            EditorialRenderer.paintLayer(canvas, size, project, layer,
+                image: image,
+                sourceSize: image == null
+                    ? null
+                    : Size(image.width.toDouble(), image.height.toDouble()));
+          } finally {
+            image?.dispose();
+          }
         }
+      } else {
+        final resolved = LayoutGeometry.resolve(project, size);
+        StyleRenderer.shadows(canvas, size, project.canvas, resolved);
+        for (final cell in resolved) {
+          if (cell.photoIndex >= project.photos.length) continue;
+          final photo = project.photos[cell.photoIndex];
+          final image = await loadProjectImage(photo.localPath);
+          try {
+            StyleRenderer.photo(
+                canvas, image, cell.rect, cell.cornerRadius, photo.transform,
+                adjustments: photo.adjustments);
+          } finally {
+            image.dispose();
+          }
+        }
+        StyleRenderer.frames(canvas, size, project.canvas, resolved);
       }
-      StyleRenderer.frames(canvas, size, project.canvas, resolved);
     } catch (_) {
       recorder.endRecording().dispose();
       rethrow;
@@ -106,14 +128,13 @@ class CollageExporter {
   Future<Uint8List> _encodeJpeg(ui.Image image, int quality) async {
     final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
     final rgba = data!.buffer.asUint8List();
-    final bitmap = img.Image.fromBytes(
-      width: image.width,
-      height: image.height,
-      bytes: rgba.buffer,
-      numChannels: 4,
-    );
-    return Uint8List.fromList(
-      img.encodeJpg(bitmap, quality: quality.clamp(1, 100).toInt()),
-    );
+    return compute(_jpegBytes, (rgba, image.width, image.height, quality));
   }
+}
+
+Uint8List _jpegBytes((Uint8List, int, int, int) args) {
+  final bitmap = img.Image.fromBytes(
+      width: args.$2, height: args.$3, bytes: args.$1.buffer, numChannels: 4);
+  return Uint8List.fromList(
+      img.encodeJpg(bitmap, quality: args.$4.clamp(1, 100)));
 }

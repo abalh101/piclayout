@@ -11,6 +11,9 @@ class TextOverlay {
     this.backgroundColor,
     this.rotation = 0,
     this.alignment = TextOverlayAlignment.center,
+    this.fontFamily,
+    this.padding = 8,
+    this.cornerRadius = 6,
   });
 
   final String id;
@@ -22,6 +25,8 @@ class TextOverlay {
   final int? backgroundColor;
   final double rotation; // Degrees.
   final TextOverlayAlignment alignment;
+  final String? fontFamily;
+  final double padding, cornerRadius;
 
   TextOverlay copyWith({
     String? id,
@@ -33,6 +38,9 @@ class TextOverlay {
     Object? backgroundColor = _unchanged,
     double? rotation,
     TextOverlayAlignment? alignment,
+    String? fontFamily,
+    double? padding,
+    double? cornerRadius,
   }) {
     return TextOverlay(
       id: id ?? this.id,
@@ -46,6 +54,9 @@ class TextOverlay {
           : backgroundColor as int?,
       rotation: (rotation ?? this.rotation).clamp(-180.0, 180.0).toDouble(),
       alignment: alignment ?? this.alignment,
+      fontFamily: fontFamily ?? this.fontFamily,
+      padding: (padding ?? this.padding).clamp(0, 32).toDouble(),
+      cornerRadius: (cornerRadius ?? this.cornerRadius).clamp(0, 40).toDouble(),
     );
   }
 
@@ -59,6 +70,9 @@ class TextOverlay {
         'backgroundColor': backgroundColor,
         'rotation': rotation,
         'alignment': alignment.name,
+        if (fontFamily != null) 'fontFamily': fontFamily,
+        'padding': padding,
+        'cornerRadius': cornerRadius,
       };
 
   static TextOverlay fromJson(Map<String, Object?> json) {
@@ -71,6 +85,10 @@ class TextOverlay {
       fontSize: 32,
       color: json['color'] as int? ?? 0xFFFFFFFF,
       backgroundColor: json['backgroundColor'] as int?,
+      fontFamily: const ['serif', 'sans-serif', 'monospace']
+              .contains(json['fontFamily'])
+          ? json['fontFamily'] as String
+          : null,
       alignment: TextOverlayAlignment.values.firstWhere(
         (value) => value.name == alignmentName,
         orElse: () => TextOverlayAlignment.center,
@@ -80,6 +98,8 @@ class TextOverlay {
       y: (json['y'] as num?)?.toDouble() ?? 0.5,
       fontSize: (json['fontSize'] as num?)?.toDouble() ?? 32,
       rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+      padding: (json['padding'] as num?)?.toDouble() ?? 8,
+      cornerRadius: (json['cornerRadius'] as num?)?.toDouble() ?? 6,
     );
   }
 }

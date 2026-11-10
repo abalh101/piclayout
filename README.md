@@ -18,8 +18,9 @@ real-device gallery/social sharing tests remain required before publication.
 Release preparation and remaining manual steps are tracked in
 [docs/release-checklist.md](docs/release-checklist.md).
 
-The Windows test suite passes all 134 tests, including the corrected demo-image
-checks. The former temporary-image cleanup errors (OS error 32) are resolved;
+The Windows test suite passes all 163 tests in normal and serial runs, including
+the editorial designs and corrected demo-image checks. The former temporary-image
+cleanup errors (OS error 32) are resolved;
 no tests are skipped or cleanup errors suppressed. The editor verification and
 remaining device checks are recorded in the
 [editor refinement audit](docs/editor-refinement-audit.md).
@@ -52,6 +53,12 @@ Remaining validation and limitations:
 
 Custom format input, persistence, export limits and Fill/Fit crop behavior are
 described in [docs/custom-formats-and-cropping.md](docs/custom-formats-and-cropping.md).
+
+Editorial and Story designs are available through **Design** and **Layers** in
+the editor: numbered grids, masonry pages, torn photo strips, detail callouts
+and editable text/location labels. They support undo/redo, autosave, templates,
+project archives and PNG/JPEG export. Usage, architecture, test coverage and
+remaining device checks: [Editorial & Story Designs](docs/editorial-story-designs.md).
 
 ## Setup
 

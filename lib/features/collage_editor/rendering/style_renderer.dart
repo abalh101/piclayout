@@ -168,9 +168,13 @@ class StyleRenderer {
   static void photo(Canvas canvas, ui.Image image, Rect cell, double radius,
       PhotoTransform transform,
       {PhotoAdjustments adjustments = const PhotoAdjustments(),
-      Size? sourceSize}) {
-    final source =
+      Size? sourceSize,
+      Rect? sourceCrop}) {
+    final crop = sourceCrop ?? const Rect.fromLTWH(0, 0, 1, 1);
+    final fullSource =
         sourceSize ?? Size(image.width.toDouble(), image.height.toDouble());
+    final source =
+        Size(fullSource.width * crop.width, fullSource.height * crop.height);
     transform = PhotoCrop.clamp(transform, source, cell.size);
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(cell, Radius.circular(radius)));
@@ -188,7 +192,8 @@ class StyleRenderer {
     canvas.rotate(rotation * math.pi / 2);
     canvas.drawImageRect(
         image,
-        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        Rect.fromLTWH(crop.left * image.width, crop.top * image.height,
+            crop.width * image.width, crop.height * image.height),
         Rect.fromCenter(
             center: Offset.zero,
             width: source.width * baseScale * userScale,

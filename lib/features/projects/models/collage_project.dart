@@ -1,4 +1,5 @@
 import '../../stickers/sticker_overlay.dart';
+import '../../editorial/models/editorial_design.dart';
 import '../../../app/app_config.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import '../../collage_editor/layouts/layout_library.dart';
@@ -21,9 +22,11 @@ class CollageProject {
     this.textOverlays = const [],
     this.customLayout,
     this.stickers = const [],
+    this.design = const EditorialDesign(),
   });
 
   final List<StickerOverlay> stickers;
+  final EditorialDesign design;
   final String id;
   final String name;
   final DateTime createdAt;
@@ -52,8 +55,10 @@ class CollageProject {
     List<StickerOverlay>? stickers,
     CustomLayout? customLayout,
     bool clearCustomLayout = false,
+    EditorialDesign? design,
   }) {
     return CollageProject(
+      design: design ?? this.design,
       stickers: stickers ?? this.stickers,
       id: id ?? this.id,
       name: name ?? this.name,
@@ -89,6 +94,7 @@ class CollageProject {
   }
 
   Map<String, Object?> toJson() => {
+        'design': design.toJson(),
         'stickers': stickers.map((s) => s.toJson()).toList(),
         'id': id,
         'name': name,
@@ -106,6 +112,7 @@ class CollageProject {
 
   static CollageProject fromJson(Map<String, Object?> json) {
     return CollageProject(
+      design: EditorialDesign.fromJson(json['design']),
       stickers: StickerOverlay.parseList(json['stickers']),
       customLayout: CustomLayout.tryParse(json['customLayout']),
       id: json['id'] as String,

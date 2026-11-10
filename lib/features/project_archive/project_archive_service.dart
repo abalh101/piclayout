@@ -159,6 +159,10 @@ class ProjectArchiveService {
       }
       final now = DateTime.now();
       final project = source.copyWith(
+          design: source.design.remapPhotos({
+            for (var i = 0; i < photos.length; i++)
+              source.photos[i].id: photos[i].id
+          }),
           id: id,
           photos: photos,
           createdAt: now,

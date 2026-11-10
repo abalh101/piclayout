@@ -1,4 +1,6 @@
 import '../../stickers/sticker_layer.dart';
+import '../../editorial/widgets/design_layer_interactions.dart';
+import '../../editorial/widgets/design_sheet.dart';
 import '../../stickers/sticker_sheet.dart';
 import 'styled_collage_scene.dart';
 import 'canvas_divider_layer.dart';
@@ -62,7 +64,8 @@ class _CollageCanvasState extends State<CollageCanvas> {
                         child: IgnorePointer(
                             child: StyledCollageScene(project: project))),
                     for (final cell in cells)
-                      if (!controller.editingDividers &&
+                      if (!project.design.active &&
+                          !controller.editingDividers &&
                           cell.photoIndex < project.photos.length)
                         _PhotoCell(
                           label:
@@ -106,6 +109,14 @@ class _CollageCanvasState extends State<CollageCanvas> {
                           },
                           onScaleEnd: controller.endInteractiveTransform,
                         ),
+                    if (project.design.active)
+                      DesignLayerInteractions(
+                          controller: controller,
+                          size: size,
+                          onEditPhoto: widget.onEditPhoto,
+                          onEditLayer: () => showDesignSheet(
+                              context, controller,
+                              layers: true)),
                     _TextOverlayLayer(
                       controller: controller,
                       interactive: !controller.editingDividers,

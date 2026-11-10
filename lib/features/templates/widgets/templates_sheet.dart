@@ -155,7 +155,39 @@ Future<void> showMyTemplatesSheet(
                                   subtitle: Text(
                                     '${template.photoCount} ${strings.photo} · ${template.aspectRatioId}',
                                   ),
-                                  onTap: () {
+                                  onTap: () async {
+                                    if (controller
+                                        .project.design.layers.isNotEmpty) {
+                                      final confirmed = await showDialog<bool>(
+                                          context: context,
+                                          builder: (dialogContext) =>
+                                              AlertDialog(
+                                                  title: Text(strings
+                                                      .tr('edChangeDesign')),
+                                                  content: Text(strings
+                                                      .tr('edChangeWarning')),
+                                                  actions: [
+                                                    TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                dialogContext,
+                                                                false),
+                                                        child: Text(
+                                                            strings.cancel)),
+                                                    FilledButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                dialogContext,
+                                                                true),
+                                                        child: Text(strings
+                                                            .applyTemplate)),
+                                                  ]));
+                                      if (confirmed != true ||
+                                          !context.mounted ||
+                                          !sheetContext.mounted) {
+                                        return;
+                                      }
+                                    }
                                     final messenger =
                                         ScaffoldMessenger.of(context);
                                     final resolved =

@@ -196,6 +196,10 @@ class ProjectRepository {
     }
 
     final copy = source.copyWith(
+      design: source.design.remapPhotos({
+        for (var i = 0; i < photos.length; i++)
+          source.photos[i].id: photos[i].id
+      }),
       id: projectId,
       name: '${source.name} Kopie',
       createdAt: now,

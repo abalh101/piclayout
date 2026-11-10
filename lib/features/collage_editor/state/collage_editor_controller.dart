@@ -1,4 +1,6 @@
 import '../../layout_recommendations/layout_recommendation_service.dart';
+import '../../editorial/models/editorial_design.dart';
+import '../../editorial/models/design_presets.dart';
 import '../../layout_recommendations/photo_metadata_reader.dart';
 import '../models/photo_metadata.dart';
 import '../../stickers/sticker_overlay.dart';
@@ -73,6 +75,136 @@ class CollageEditorController extends ChangeNotifier {
   String? selectedPhotoId;
   String? selectedTextId;
   String? selectedStickerId;
+  String? selectedDesignLayerId;
+  bool editingDesignCrop = false;
+
+  DesignLayer? get selectedDesignLayer => _project.design.layers
+      .where((l) => l.id == selectedDesignLayerId)
+      .firstOrNull;
+
+  void selectDesignLayer(String id) {
+    if (!_project.design.active ||
+        !_project.design.layers.any((layer) => layer.id == id)) {
+      return;
+    }
+    selectedDesignLayerId = id;
+    selectedPhotoId = selectedDesignLayer?.isPhoto == true
+        ? selectedDesignLayer?.source(_project.photos)?.id
+        : null;
+    selectedTextId = null;
+    selectedStickerId = null;
+    editingDesignCrop = false;
+    notifyListeners();
+  }
+
+  void setDesignCropEditing(bool value) {
+    editingDesignCrop = value &&
+        _project.design.active &&
+        selectedDesignLayer?.isPhoto == true &&
+        selectedDesignLayer?.type != DesignLayerType.callout &&
+        selectedDesignLayer?.locked == false;
+    notifyListeners();
+  }
+
+  void applyDesign(EditorialDesign design, {bool story = false}) {
+    selectedDesignLayerId = null;
+    editingDesignCrop = false;
+    _mutate(_project.copyWith(
+        design: design, aspectRatioId: story ? AspectRatios.story.id : null));
+  }
+
+  void updateDesignSettings(EditorialDesign design, {bool live = false}) {
+    final next = _project.copyWith(design: DesignPreset.reflow(design));
+    if (live) {
+      _project = next;
+      notifyListeners();
+    } else {
+      _mutate(next);
+    }
+  }
+
+  void updateDesignLayer(DesignLayer layer, {bool live = false}) {
+    final old =
+        _project.design.layers.where((l) => l.id == layer.id).firstOrNull;
+    if (old == null || (old.locked && layer.locked)) return;
+    final next = _project.copyWith(
+        design: _project.design.copyWith(layers: [
+      for (final l in _project.design.layers)
+        if (l.id == layer.id) layer else l
+    ]));
+    if (live) {
+      _project = next;
+      notifyListeners();
+    } else {
+      _mutate(next);
+    }
+  }
+
+  void addDesignLayer(DesignLayer layer) {
+    if (_project.design.layers.length >= 200) return;
+    var design = _project.design;
+    if (!design.active && design.layers.isEmpty) {
+      final size = Size(390, 390 / _project.aspectRatio.value);
+      design = design.copyWith(layers: [
+        for (final cell in LayoutGeometry.resolve(_project, size))
+          DesignLayer(
+              id: const Uuid().v4(),
+              type: DesignLayerType.photo,
+              photoId: _project.photos[cell.photoIndex].id,
+              photoSlot: cell.photoIndex,
+              x: cell.rect.center.dx / size.width,
+              y: cell.rect.center.dy / size.height,
+              width: cell.rect.width / size.width,
+              height: cell.rect.height / size.height,
+              radius: cell.cornerRadius / (size.shortestSide / 390),
+              z: cell.photoIndex),
+      ]);
+    }
+    _mutate(_project.copyWith(
+        design: design.copyWith(
+            mode: design.active ? design.mode : DesignMode.blank,
+            layers: [
+          ...design.layers,
+          layer.copyWith(z: (design.ordered.lastOrNull?.z ?? 0) + 1)
+        ])));
+    selectDesignLayer(layer.id);
+  }
+
+  void duplicateDesignLayer() {
+    final layer = selectedDesignLayer;
+    if (layer == null || layer.locked) return;
+    addDesignLayer(layer.copyWith(
+        id: const Uuid().v4(),
+        x: layer.x + .03,
+        y: layer.y + .03,
+        layoutSlot: -1));
+  }
+
+  void deleteDesignLayer() {
+    final layer = selectedDesignLayer;
+    if (layer == null || layer.locked) return;
+    selectedDesignLayerId = null;
+    _mutate(_project.copyWith(
+        design: _project.design.copyWith(layers: [
+      for (final l in _project.design.layers)
+        if (l.id != layer.id) l
+    ])));
+  }
+
+  void reorderDesignLayer({required bool forward}) {
+    final layer = selectedDesignLayer;
+    if (layer == null || layer.locked) return;
+    final layers = _project.design.ordered;
+    final i = layers.indexWhere((l) => l.id == layer.id);
+    final target = i + (forward ? 1 : -1);
+    if (target < 0 || target >= layers.length) return;
+    layers.removeAt(i);
+    layers.insert(target, layer);
+    _mutate(_project.copyWith(
+        design: _project.design.copyWith(layers: [
+      for (var j = 0; j < layers.length; j++) layers[j].copyWith(z: j)
+    ])));
+  }
 
   CollageProject get project => _project;
   bool get canUndo => _undo.isNotEmpty;
@@ -87,7 +219,8 @@ class CollageEditorController extends ChangeNotifier {
                   _project.layoutTemplateId, _project.photos.length),
               _project.canvas.staggerAmount));
   bool get canEditDividers =>
-      editableCanvasLayout?.dividers.isNotEmpty ?? false;
+      !_project.design.active &&
+      (editableCanvasLayout?.dividers.isNotEmpty ?? false);
   bool get editingDividers => _editingDividers && canEditDividers;
 
   void toggleDividerEditing() {
@@ -162,6 +295,8 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void selectPhoto(String photoId) {
+    selectedDesignLayerId = null;
+    editingDesignCrop = false;
     selectedStickerId = null;
     selectedPhotoId = photoId;
     selectedTextId = null;
@@ -169,6 +304,8 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void selectText(String textId) {
+    selectedDesignLayerId = null;
+    editingDesignCrop = false;
     selectedStickerId = null;
     selectedTextId = textId;
     selectedPhotoId = null;
@@ -177,6 +314,8 @@ class CollageEditorController extends ChangeNotifier {
 
   TextOverlay addText(String text) {
     final overlay = TextOverlay(id: const Uuid().v4(), text: text);
+    selectedDesignLayerId = null;
+    editingDesignCrop = false;
     selectedStickerId = null;
     selectedTextId = overlay.id;
     selectedPhotoId = null;
@@ -229,6 +368,8 @@ class CollageEditorController extends ChangeNotifier {
       _project.stickers.where((s) => s.id == selectedStickerId).firstOrNull;
 
   void selectSticker(String id) {
+    selectedDesignLayerId = null;
+    editingDesignCrop = false;
     selectedStickerId = id;
     selectedPhotoId = null;
     selectedTextId = null;
@@ -295,6 +436,23 @@ class CollageEditorController extends ChangeNotifier {
     }
   }
 
+  void _validateDesignSelection() {
+    final layer = selectedDesignLayer;
+    if (!_project.design.active || layer == null) {
+      selectedDesignLayerId = null;
+      editingDesignCrop = false;
+      return;
+    }
+    selectedTextId = null;
+    selectedStickerId = null;
+    selectedPhotoId = layer.isPhoto ? layer.source(_project.photos)?.id : null;
+    if (layer.locked ||
+        !layer.isPhoto ||
+        layer.type == DesignLayerType.callout) {
+      editingDesignCrop = false;
+    }
+  }
+
   void setAspectRatio(AspectRatioPreset preset) {
     if (_project.aspectRatioId == preset.id) return;
     _mutate(_project.copyWith(aspectRatioId: preset.id));
@@ -302,8 +460,12 @@ class CollageEditorController extends ChangeNotifier {
 
   bool applyCustomLayout(CustomLayout layout) {
     if (layout.photoCount != _project.photos.length) return false;
-    if (identical(_project.customLayout, layout)) return true;
-    _mutate(_project.copyWith(customLayout: layout));
+    if (!_project.design.active && identical(_project.customLayout, layout)) {
+      return true;
+    }
+    _mutate(_project.copyWith(
+        customLayout: layout,
+        design: _project.design.copyWith(mode: DesignMode.standard)));
     return true;
   }
 
@@ -313,7 +475,9 @@ class CollageEditorController extends ChangeNotifier {
       _project.photos.length,
     );
     _mutate(_project.copyWith(
-        layoutTemplateId: template.id, clearCustomLayout: true));
+        layoutTemplateId: template.id,
+        clearCustomLayout: true,
+        design: _project.design.copyWith(mode: DesignMode.standard)));
   }
 
   List<LayoutRecommendation> get layoutRecommendations =>
@@ -325,7 +489,9 @@ class CollageEditorController extends ChangeNotifier {
     final recommendations = layoutRecommendations;
     if (metadataLoading || recommendations.isEmpty) return false;
     final id = recommendations.first.layout.id;
-    if (_project.customLayout == null && _project.layoutTemplateId == id) {
+    if (!_project.design.active &&
+        _project.customLayout == null &&
+        _project.layoutTemplateId == id) {
       return false;
     }
     setLayoutTemplate(id);
@@ -377,7 +543,9 @@ class CollageEditorController extends ChangeNotifier {
     if (candidates.isEmpty) return false;
     final choice = candidates[_random.nextInt(candidates.length)];
     _mutate(_project.copyWith(
-        layoutTemplateId: choice.id, clearCustomLayout: true));
+        layoutTemplateId: choice.id,
+        clearCustomLayout: true,
+        design: _project.design.copyWith(mode: DesignMode.standard)));
     return true;
   }
 
@@ -504,12 +672,15 @@ class CollageEditorController extends ChangeNotifier {
       final photos = [
         for (final item in _project.photos)
           if (item.id == photo.id)
-            replacement.copyWith(transform: item.transform)
+            replacement.copyWith(
+                transform: item.transform, adjustments: item.adjustments)
           else
             item,
       ];
       selectedPhotoId = replacement.id;
-      _mutate(_project.copyWith(photos: photos));
+      _mutate(_project.copyWith(
+          photos: photos,
+          design: _project.design.remapPhotos({photo.id: replacement.id})));
     } finally {
       _replacing = false;
     }
@@ -528,6 +699,10 @@ class CollageEditorController extends ChangeNotifier {
       _project.copyWith(
         photos: photos,
         layoutTemplateId: template.id,
+        design: _project.design.copyWith(layers: [
+          for (final layer in _project.design.layers)
+            if (layer.photoId != photo.id) layer,
+        ]),
       ),
     );
   }
@@ -558,6 +733,7 @@ class CollageEditorController extends ChangeNotifier {
     if (selectedTextId != null || selectedStickerId != null) {
       selectedPhotoId = null;
     }
+    _validateDesignSelection();
     notifyListeners();
     _scheduleAutosave();
   }
@@ -579,6 +755,7 @@ class CollageEditorController extends ChangeNotifier {
         : (_project.photos.any((photo) => photo.id == selectedPhotoId)
             ? selectedPhotoId
             : _project.photos.firstOrNull?.id);
+    _validateDesignSelection();
     notifyListeners();
     _scheduleAutosave();
   }
@@ -639,9 +816,11 @@ class CollageEditorController extends ChangeNotifier {
                         Size(project.photos[i].metadata!.width.toDouble(),
                             project.photos[i].metadata!.height.toDouble()),
                         cells
-                            .firstWhere((cell) => cell.photoIndex == i)
-                            .rect
-                            .size)),
+                                .where((cell) => cell.photoIndex == i)
+                                .firstOrNull
+                                ?.rect
+                                .size ??
+                            Size.zero)),
     ]);
   }
 
@@ -661,6 +840,7 @@ class CollageEditorController extends ChangeNotifier {
     }
     _redo.clear();
     _project = next.normalizedForPhotoCount();
+    _validateDesignSelection();
     if (!canEditDividers) _editingDividers = false;
     notifyListeners();
     _scheduleAutosave();

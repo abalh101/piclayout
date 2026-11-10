@@ -4,7 +4,24 @@ Status: Quellcode für Release-Vorbereitung eingerichtet; Store-Freigabe erst na
 den unten dokumentierten manuellen Prüfungen. Häkchen gelten pro Release-Kandidat.
 Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
 
-## Erneute lokale Prüfung (10.11.2026)
+## Editorial- und Story-Designs (10.11.2026)
+
+- Vollständige Windows-Suite: **163 Tests erfolgreich**, normal und mit
+  `--concurrency=1`; darin 29 neue Tests für Designs, Ebenen und Rendering.
+- `flutter analyze --no-pub`: keine Befunde. `dart format lib test`:
+  118 Dateien, zuletzt keine weiteren Änderungen erforderlich.
+- `flutter build apk --debug --no-pub`: erfolgreich;
+  `build/app/outputs/flutter-apk/app-debug.apk`.
+- Alle sieben gerenderten Preset-Layouts und die geladene Canvas-Vorschau
+  visuell geprüft; native Schriftdarstellung bleibt ein Gerätecheck.
+- Build-Warnungen: Java Native Access, KGP in `package_info_plus`/`share_plus`
+  und unterschiedliche Android-SDK-XML-Versionen.
+- Keine mobilen Geräte verbunden; native Galerie-/Sharing-Tests, iOS-Build
+  und signierte Release-Builds bleiben offen.
+- Bedienung, Architektur und Prüfdetails:
+  [Editorial & Story Designs](editorial-story-designs.md).
+
+## Erneute lokale Prüfung vor den Editorial-Designs (10.11.2026)
 
 - `flutter test --no-pub --reporter expanded`: alle 134 Tests erfolgreich,
   einschließlich der korrigierten Demo-Bildtests.

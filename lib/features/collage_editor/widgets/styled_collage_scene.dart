@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import '../../editorial/rendering/editorial_renderer.dart';
 import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../projects/models/collage_project.dart';
@@ -146,6 +147,16 @@ class _ScenePainter extends CustomPainter {
                 StyleRenderer.photoIndex(project.canvas.style, photos.length)]
             .localPath];
     StyleRenderer.background(canvas, size, project.canvas, image: backdrop);
+    if (project.design.active) {
+      for (final layer in project.design.ordered) {
+        final photo = layer.source(project.photos);
+        EditorialRenderer.paintLayer(canvas, size, project, layer,
+            image: images[photo?.localPath],
+            sourceSize: _sizeFor(photo?.localPath));
+      }
+      canvas.restore();
+      return;
+    }
     final cells = LayoutGeometry.resolve(project, size);
     StyleRenderer.shadows(canvas, size, project.canvas, cells);
     for (final cell in cells) {
@@ -173,4 +184,6 @@ class _ScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ScenePainter oldDelegate) => true;
+
+  Size? _sizeFor(String? path) => sourceSizes[path];
 }

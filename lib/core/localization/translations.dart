@@ -1,5 +1,8 @@
+import 'editorial_translations.dart';
+
 // Order: German, English, Arabic, Turkish, French, Spanish.
 const translations = <String, List<String>>{
+  ...editorialTranslations,
   'projectSaveFailed': [
     'Projekt nicht gespeichert. Bitte erneut versuchen.',
     'Project not saved. Please retry.',

@@ -1,4 +1,5 @@
 import '../../stickers/sticker_overlay.dart';
+import '../../editorial/models/editorial_design.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import 'package:uuid/uuid.dart';
 
@@ -21,9 +22,11 @@ class CollageTemplate {
     this.customLayout,
     this.includeStickers = false,
     this.stickers = const [],
+    this.design = const EditorialDesign(),
   });
 
   final bool includeStickers;
+  final EditorialDesign design;
   final List<StickerOverlay> stickers;
   final String id;
   final String name;
@@ -43,6 +46,8 @@ class CollageTemplate {
     bool includeStickers = false,
   }) {
     return CollageTemplate(
+      design: project.design
+          .asTemplate(project.photos, includeText: includeTextOverlays),
       includeStickers: includeStickers,
       stickers: includeStickers ? List.of(project.stickers) : const [],
       id: id,
@@ -64,6 +69,7 @@ class CollageTemplate {
       project.photos.length,
     );
     return project.copyWith(
+      design: design.bindPhotos(project.photos),
       stickers: includeStickers
           ? [for (final s in stickers) s.copyWith(id: const Uuid().v4())]
           : project.stickers,
@@ -84,6 +90,7 @@ class CollageTemplate {
   }
 
   Map<String, Object?> toJson() => {
+        'design': design.toJson(),
         'includeStickers': includeStickers,
         'stickers': includeStickers
             ? stickers.map((s) => s.toJson()).toList()
@@ -104,6 +111,7 @@ class CollageTemplate {
   factory CollageTemplate.fromJson(Map<String, Object?> json) {
     final includeText = json['includeTextOverlays'] as bool? ?? false;
     return CollageTemplate(
+      design: EditorialDesign.fromJson(json['design']),
       includeStickers: json['includeStickers'] == true,
       stickers: json['includeStickers'] == true
           ? StickerOverlay.parseList(json['stickers'])

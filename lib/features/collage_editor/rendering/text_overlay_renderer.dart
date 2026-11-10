@@ -21,11 +21,16 @@ class TextOverlayLayout {
 class TextOverlayRenderer {
   const TextOverlayRenderer._();
 
+  static TextDirection directionFor(String text) =>
+      RegExp(r'[\u0590-\u08ff]').hasMatch(text)
+          ? TextDirection.rtl
+          : TextDirection.ltr;
+
   static double scaleFor(Size size) => size.shortestSide / 390;
 
   static TextOverlayLayout layout(TextOverlay overlay, Size size) {
     final scale = scaleFor(size);
-    final padding = 8 * scale;
+    final padding = overlay.padding * scale;
     final maxTextWidth = math.max(1.0, size.width * 0.84 - padding * 2);
     var fontSize = overlay.fontSize * scale;
     TextPainter makePainter() => TextPainter(
@@ -35,6 +40,7 @@ class TextOverlayRenderer {
               color: Color(overlay.color),
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
+              fontFamily: overlay.fontFamily,
               height: 1.15,
             ),
           ),
@@ -43,7 +49,7 @@ class TextOverlayRenderer {
             TextOverlayAlignment.center => TextAlign.center,
             TextOverlayAlignment.right => TextAlign.right,
           },
-          textDirection: TextDirection.ltr,
+          textDirection: directionFor(overlay.text),
           textWidthBasis: TextWidthBasis.longestLine,
           maxLines: 6,
           ellipsis: '…',
@@ -116,15 +122,15 @@ class TextOverlayRenderer {
       );
       if (overlay.backgroundColor != null) {
         canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              localRect, Radius.circular(6 * scaleFor(size))),
+          RRect.fromRectAndRadius(localRect,
+              Radius.circular(overlay.cornerRadius * scaleFor(size))),
           Paint()..color = Color(overlay.backgroundColor!),
         );
       }
       item.painter.paint(
         canvas,
-        Offset(localRect.left + 8 * scaleFor(size),
-            localRect.top + 8 * scaleFor(size)),
+        Offset(localRect.left + overlay.padding * scaleFor(size),
+            localRect.top + overlay.padding * scaleFor(size)),
       );
       canvas.restore();
       item.dispose();
