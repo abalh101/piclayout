@@ -4,6 +4,18 @@ Status: Quellcode für Release-Vorbereitung eingerichtet; Store-Freigabe erst na
 den unten dokumentierten manuellen Prüfungen. Häkchen gelten pro Release-Kandidat.
 Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
 
+## Erneute lokale Prüfung (10.11.2026)
+
+- `flutter test --no-pub --reporter expanded`: alle 134 Tests erfolgreich,
+  einschließlich der korrigierten Demo-Bildtests.
+- `flutter analyze --no-pub`: keine Befunde.
+- `dart format --output=none --set-exit-if-changed lib test`: 108 Dateien,
+  keine Änderungen erforderlich.
+- Veralteten Hinweis auf vier offene Windows-Cleanup-Fehler in der README
+  durch den bestätigten Teststatus ersetzt.
+- Keine neuen Plattform-Builds oder Geräteprüfungen in diesem Durchlauf;
+  der letzte APK-Build und die visuellen Prüfungen sind unten dokumentiert.
+
 ## Aktueller Prüfstand: Editor-Überarbeitung (07.11.2026)
 
 - Formatprüfung: 108 Dart-Dateien, keine Änderungen erforderlich.

@@ -38,10 +38,23 @@ void main() {
       final restored = (await repository.loadProjects())
           .singleWhere((value) => value.id == project.id);
       expect(restored.textOverlays.single.text, design.key);
-      for (final photo in restored.photos) {
+      for (var index = 0; index < restored.photos.length; index++) {
+        final photo = restored.photos[index];
         expect(await File(photo.localPath).exists(), isTrue);
-        expect(img.decodePng(await File(photo.localPath).readAsBytes())!.width,
-            480);
+        final source = await rootBundle
+            .load('assets/demo/demo_${design.images[index]}.png');
+        final sourceBytes = source.buffer
+            .asUint8List(source.offsetInBytes, source.lengthInBytes);
+        final copiedBytes = await File(photo.localPath).readAsBytes();
+        expect(copiedBytes, sourceBytes);
+        // Detect the encoded format: bundled artwork can change independently
+        // of its asset key, dimensions, or filename extension.
+        final original = img.decodeImage(sourceBytes);
+        final copied = img.decodeImage(copiedBytes);
+        expect(original, isNotNull);
+        expect(copied, isNotNull);
+        expect(copied!.width, original!.width);
+        expect(copied.height, original.height);
       }
     }
     final design = DemoProjectFactory.designs.first;

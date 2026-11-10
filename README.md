@@ -18,10 +18,11 @@ real-device gallery/social sharing tests remain required before publication.
 Release preparation and remaining manual steps are tracked in
 [docs/release-checklist.md](docs/release-checklist.md).
 
-The latest local pass completed formatting and analysis without issues. The full
-Windows test run still has four temporary-image cleanup errors (OS error 32);
-the suite is not yet fully green. Details and affected tests are recorded in the
-release checklist. No tests are skipped or cleanup errors suppressed.
+The Windows test suite passes all 134 tests, including the corrected demo-image
+checks. The former temporary-image cleanup errors (OS error 32) are resolved;
+no tests are skipped or cleanup errors suppressed. The editor verification and
+remaining device checks are recorded in the
+[editor refinement audit](docs/editor-refinement-audit.md).
 
 Implemented:
 
