@@ -1,10 +1,12 @@
 import 'editorial_translations.dart';
 import 'adjustment_translations.dart';
+import 'freeform_translations.dart';
 
 // Order: German, English, Arabic, Turkish, French, Spanish.
 const translations = <String, List<String>>{
   ...editorialTranslations,
   ...adjustmentTranslations,
+  ...freeformTranslations,
   'projectSaveFailed': [
     'Projekt nicht gespeichert. Bitte erneut versuchen.',
     'Project not saved. Please retry.',

@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import '../../collage_editor/models/photo_asset.dart';
+import '../../collage_editor/models/photo_transform.dart';
+import '../../collage_editor/models/photo_adjustments.dart';
 import '../../collage_editor/models/text_overlay.dart';
 
-enum DesignMode { standard, editorial, masonry, torn, detail, blank }
+enum DesignMode { standard, editorial, masonry, torn, detail, blank, freeform }
 
 enum DesignLayerType {
   photo,
@@ -70,6 +72,11 @@ class DesignLayer {
     this.lineWidth = 1,
     this.endpoint = const Offset(.5, 1),
     this.showLocationIcon = true,
+    this.imageTransform,
+    this.adjustments,
+    this.aspectLocked = false,
+    this.empty = false,
+    this.name = '',
   });
   final String id;
   final DesignLayerType type;
@@ -87,6 +94,16 @@ class DesignLayer {
   final Rect crop;
   final CalloutShape shape;
   final Offset endpoint;
+  // Optional frame-local overrides. Legacy editorial layers retain photo edits.
+  final PhotoTransform? imageTransform;
+  final PhotoAdjustments? adjustments;
+  final bool aspectLocked, empty;
+  final String name;
+
+  PhotoTransform transformFor(PhotoAsset? photo) =>
+      imageTransform ?? photo?.transform ?? PhotoTransform.identity;
+  PhotoAdjustments adjustmentsFor(PhotoAsset? photo) =>
+      adjustments ?? photo?.adjustments ?? const PhotoAdjustments();
 
   bool get isPhoto => const [
         DesignLayerType.photo,
@@ -107,9 +124,13 @@ class DesignLayer {
       center: Offset(x * size.width, y * size.height),
       width: width * size.width,
       height: height * size.height);
-  PhotoAsset? source(List<PhotoAsset> photos) => photoId == null
-      ? (photoSlot >= 0 && photoSlot < photos.length ? photos[photoSlot] : null)
-      : photos.where((p) => p.id == photoId).firstOrNull;
+  PhotoAsset? source(List<PhotoAsset> photos) => empty
+      ? null
+      : photoId == null
+          ? (photoSlot >= 0 && photoSlot < photos.length
+              ? photos[photoSlot]
+              : null)
+          : photos.where((p) => p.id == photoId).firstOrNull;
 
   DesignLayer copyWith(
       {String? id,
@@ -144,11 +165,21 @@ class DesignLayer {
       int? lineColor,
       double? lineWidth,
       Offset? endpoint,
-      bool? showLocationIcon}) {
+      bool? showLocationIcon,
+      PhotoTransform? imageTransform,
+      PhotoAdjustments? adjustments,
+      bool? aspectLocked,
+      bool? empty,
+      String? name}) {
     final c = crop ?? this.crop;
     final cw = bounded(c.width, .5, .01, 1);
     final ch = bounded(c.height, .5, .01, 1);
     return DesignLayer(
+        imageTransform: imageTransform ?? this.imageTransform,
+        adjustments: adjustments ?? this.adjustments,
+        aspectLocked: aspectLocked ?? this.aspectLocked,
+        empty: empty ?? this.empty,
+        name: name ?? this.name,
         id: id ?? this.id,
         type: type ?? this.type,
         x: bounded(x ?? this.x, .5, 0, 1),
@@ -186,6 +217,11 @@ class DesignLayer {
   }
 
   Map<String, Object?> toJson() => {
+        if (imageTransform != null) 'imageTransform': imageTransform!.toJson(),
+        if (adjustments != null) 'adjustments': adjustments!.toJson(),
+        if (aspectLocked) 'aspectLocked': true,
+        if (empty) 'empty': true,
+        if (name.isNotEmpty) 'name': name,
         'id': id,
         'type': type.name,
         'x': x,
@@ -234,10 +270,24 @@ class DesignLayer {
       final crop = j['crop'];
       final end = j['endpoint'];
       return DesignLayer(
+        imageTransform: j['imageTransform'] is Map
+            ? PhotoTransform.fromJson(
+                Map<String, Object?>.from(j['imageTransform'] as Map))
+            : null,
+        adjustments: j['adjustments'] is Map
+            ? PhotoAdjustments.fromJson(
+                Map<String, Object?>.from(j['adjustments'] as Map))
+            : null,
+        aspectLocked: j['aspectLocked'] == true,
+        empty: j['empty'] == true,
+        name: j['name'] is String
+            ? (j['name'] as String)
+                .substring(0, (j['name'] as String).length.clamp(0, 80))
+            : '',
         id: j['id'] as String,
         type: type,
         photoId: j['photoId'] as String?,
-        photoSlot: bounded(j['photoSlot'], 0, 0, 11).round(),
+        photoSlot: bounded(j['photoSlot'], 0, 0, 19).round(),
         layoutSlot: bounded(j['layoutSlot'], -1, -1, 199).round(),
         z: bounded(j['z'], 0, -10000, 10000).round(),
         visible: j['visible'] != false,
@@ -306,6 +356,7 @@ class EditorialDesign {
   final double margin, gapX, gapY, header;
   final NumberStyle numberStyle;
   bool get active => mode != DesignMode.standard;
+  bool get freeform => mode == DesignMode.freeform;
   List<DesignLayer> get ordered {
     final indexed = layers.indexed.toList()
       ..sort((a, b) {
@@ -342,28 +393,40 @@ class EditorialDesign {
       layers: [for (final l in layers) l.copyWith(photoId: ids[l.photoId])]);
 
   EditorialDesign asTemplate(List<PhotoAsset> photos,
-          {required bool includeText}) =>
-      copyWith(layers: [
-        for (var i = 0; i < layers.length; i++)
-          if (includeText ||
-              !layers[i].isText ||
-              (layers[i].type == DesignLayerType.caption &&
-                  numberStyle != NumberStyle.custom))
-            layers[i].copyWith(
-                id: 'layer-$i',
-                clearPhotoId: true,
-                photoSlot: photos
-                    .indexWhere((p) => p.id == layers[i].source(photos)?.id)
-                    .clamp(0, 11),
-                text: includeText
-                    ? layers[i].text.copyWith(id: 'text-$i')
-                    : layers[i].text.copyWith(id: 'text-$i', text: '')),
-      ]);
+      {required bool includeText}) {
+    var slot = 0;
+    return copyWith(layers: [
+      for (var i = 0; i < layers.length; i++)
+        if (includeText ||
+            !layers[i].isText ||
+            (layers[i].type == DesignLayerType.caption &&
+                numberStyle != NumberStyle.custom))
+          layers[i].copyWith(
+              id: 'layer-$i',
+              clearPhotoId: true,
+              empty: false,
+              name: '',
+              photoSlot: freeform && layers[i].isPhoto
+                  ? slot++
+                  : photos
+                      .indexWhere((p) => p.id == layers[i].source(photos)?.id)
+                      .clamp(0, 19),
+              text: includeText
+                  ? layers[i].text.copyWith(id: 'text-$i')
+                  : layers[i].text.copyWith(id: 'text-$i', text: '')),
+    ]);
+  }
+
   EditorialDesign bindPhotos(List<PhotoAsset> photos) => copyWith(layers: [
         for (final l in layers)
           l.copyWith(
-              clearPhotoId: !l.referencesPhoto || photos.isEmpty,
-              photoId: !l.referencesPhoto || photos.isEmpty
+              empty: freeform && l.isPhoto && l.photoSlot >= photos.length,
+              clearPhotoId: !l.referencesPhoto ||
+                  photos.isEmpty ||
+                  (freeform && l.photoSlot >= photos.length),
+              photoId: !l.referencesPhoto ||
+                      photos.isEmpty ||
+                      (freeform && l.photoSlot >= photos.length)
                   ? null
                   : photos[l.photoSlot.clamp(0, photos.length - 1)].id),
       ]);

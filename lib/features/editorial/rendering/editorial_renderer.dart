@@ -110,7 +110,7 @@ class EditorialRenderer {
   static Offset sourcePoint(
       DesignLayer main, PhotoAsset photo, Size source, Size size, Offset uv) {
     final rect = bounds(main, size);
-    final t = PhotoCrop.clamp(photo.transform, source, rect.size);
+    final t = PhotoCrop.clamp(main.transformFor(photo), source, rect.size);
     final q = t.rotationQuarterTurns % 4;
     final rw = q.isOdd ? source.height : source.width;
     final rh = q.isOdd ? source.width : source.height;
@@ -187,7 +187,8 @@ class EditorialRenderer {
       canvas.drawPath(path, Paint()..color = Color(layer.color));
     }
     if (layer.isPhoto) {
-      if (layer.type == DesignLayerType.torn && layer.shadow) {
+      if ((layer.type == DesignLayerType.torn || project.isFreeform) &&
+          layer.shadow) {
         canvas.save();
         canvas.translate(0, 2 * scale);
         canvas.drawPath(
@@ -208,8 +209,8 @@ class EditorialRenderer {
             0,
             layer.type == DesignLayerType.callout
                 ? PhotoTransform.identity
-                : photo.transform,
-            adjustments: photo.adjustments,
+                : layer.transformFor(photo),
+            adjustments: layer.adjustmentsFor(photo),
             sourceSize: sourceSize,
             sourceCrop:
                 layer.type == DesignLayerType.callout ? layer.crop : null);

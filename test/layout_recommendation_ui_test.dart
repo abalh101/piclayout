@@ -54,7 +54,7 @@ class _Projects extends LayoutMemoryProjects {
   Future<List<CollageProject>> loadProjects() async => [];
   @override
   Future<CollageProject> createFromPickedImages(List<XFile> picked,
-      {String aspectRatioId = '9_16'}) async {
+      {String aspectRatioId = '9_16', bool freeform = false}) async {
     this.picked = picked;
     ratio = aspectRatioId;
     return layoutProject(count: picked.length)

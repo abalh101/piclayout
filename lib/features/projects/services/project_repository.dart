@@ -12,6 +12,8 @@ import '../../../app/app_config.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
 import '../../collage_editor/models/photo_asset.dart';
+import '../../editorial/models/freeform_presets.dart';
+import '../../editorial/models/editorial_design.dart';
 import '../models/collage_project.dart';
 
 class ProjectRepository {
@@ -66,8 +68,10 @@ class ProjectRepository {
   }
 
   Future<CollageProject> createFromPickedImages(List<XFile> picked,
-      {String aspectRatioId = '9_16'}) async {
-    if (picked.isEmpty || picked.length > AppConfig.maxPhotos) {
+      {String aspectRatioId = '9_16', bool freeform = false}) async {
+    if ((!freeform && picked.isEmpty) ||
+        picked.length >
+            (freeform ? AppConfig.maxFreeformFrames : AppConfig.maxPhotos)) {
       throw ArgumentError.value(picked.length, 'picked.length',
           'Select 1 to ${AppConfig.maxPhotos} photos');
     }
@@ -96,12 +100,17 @@ class ProjectRepository {
       );
     }
 
-    final recommendations = const LayoutRecommendationService()
-        .recommend(photos, targetRatio: AspectRatios.byId(aspectRatioId).value);
+    final recommendations = freeform
+        ? <LayoutRecommendation>[]
+        : const LayoutRecommendationService().recommend(photos,
+            targetRatio: AspectRatios.byId(aspectRatioId).value);
     final template = recommendations.isEmpty
-        ? LayoutLibrary.defaultFor(photos.length)
+        ? LayoutLibrary.defaultFor(photos.length.clamp(1, AppConfig.maxPhotos))
         : recommendations.first.layout;
     final project = CollageProject(
+      design: freeform
+          ? FreeformPresets.create('ffCanvas', photos)
+          : const EditorialDesign(),
       id: projectId,
       name: 'Collage ${now.day}.${now.month}.${now.year}',
       createdAt: now,

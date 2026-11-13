@@ -1,5 +1,6 @@
 import '../layout_recommendations/recommended_layouts.dart';
 import '../editorial/widgets/design_sheet.dart';
+import '../editorial/widgets/freeform_tools.dart';
 import '../tutorial_tips/tutorial_tip.dart';
 import '../project_archive/project_archive_actions.dart';
 import '../project_archive/project_archive_controller.dart';
@@ -227,6 +228,29 @@ class _ToolsPanel extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (project.isFreeform) ...[
+              Text(strings.tr(controller.editingDesignCrop
+                  ? 'ffCropHint'
+                  : 'ffGestureHint')),
+              Wrap(spacing: 8, children: [
+                FilledButton.icon(
+                    onPressed: controller.importingPhotos
+                        ? null
+                        : () => pickFreeformPhotos(context, controller),
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    label: Text(strings.tr('ffAddPhotos'))),
+                OutlinedButton.icon(
+                    onPressed: () => showFreeformCanvas(context, controller),
+                    icon: const Icon(Icons.open_in_full),
+                    label: Text(strings.tr('ffExpand'))),
+                if (controller.editingDesignCrop)
+                  FilledButton.icon(
+                      onPressed: () => controller.setDesignCropEditing(false),
+                      icon: const Icon(Icons.check),
+                      label: Text(strings.tr('edCropDone'))),
+              ]),
+              if (controller.importingPhotos) const LinearProgressIndicator(),
+            ],
             TutorialTip(
               key: ValueKey(controller.selectedText != null ||
                       controller.selectedSticker != null
@@ -243,8 +267,15 @@ class _ToolsPanel extends ConsumerWidget {
                     data: const IconThemeData(size: 20),
                     child: Row(spacing: 8, children: [
                       OutlinedButton.icon(
+                          key: const ValueKey('freeform-design'),
+                          onPressed: () =>
+                              showFreeformPresets(context, controller),
+                          icon: const Icon(Icons.dashboard_customize_outlined),
+                          label: Text(strings.tr('ffTitle'))),
+                      OutlinedButton.icon(
                           key: const ValueKey('photo-adjustments'),
-                          onPressed: controller.selectedPhoto == null
+                          onPressed: controller.selectedPhoto == null ||
+                                  controller.selectedDesignLayer?.locked == true
                               ? null
                               : () => showPhotoAdjustmentsStudio(
                                   context, controller),
@@ -282,7 +313,7 @@ class _ToolsPanel extends ConsumerWidget {
                             label: Text(strings.tr('stEdit'))),
                     ]))),
             const SizedBox(height: 12),
-            ThumbnailStrip(controller: controller),
+            if (!project.isFreeform) ThumbnailStrip(controller: controller),
             const SizedBox(height: 12),
             Text(strings.format, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
@@ -330,81 +361,86 @@ class _ToolsPanel extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            RecommendedLayouts(
-              recommendations: controller.layoutRecommendations,
-              targetRatio: project.aspectRatio.value,
-              staggerAmount: project.canvas.staggerAmount,
-              loading: controller.metadataLoading,
-              selectedId: !project.design.active && project.customLayout == null
-                  ? project.layoutTemplateId
-                  : null,
-              onSelected: controller.setLayoutTemplate,
-              onAuto: controller.autoLayout,
-            ),
-            Text(strings.layout, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            if (favorites.isNotEmpty) ...[
-              Text(strings.favorites,
-                  style: Theme.of(context).textTheme.labelMedium),
-              const SizedBox(height: 4),
+            if (!project.isFreeform) ...[
+              RecommendedLayouts(
+                recommendations: controller.layoutRecommendations,
+                targetRatio: project.aspectRatio.value,
+                staggerAmount: project.canvas.staggerAmount,
+                loading: controller.metadataLoading,
+                selectedId:
+                    !project.design.active && project.customLayout == null
+                        ? project.layoutTemplateId
+                        : null,
+                onSelected: controller.setLayoutTemplate,
+                onAuto: controller.autoLayout,
+              ),
+              Text(strings.layout,
+                  style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 8),
+              if (favorites.isNotEmpty) ...[
+                Text(strings.favorites,
+                    style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final layout in favorites)
+                      _layoutChoice(context, ref, layout, true),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(strings.otherLayouts,
+                    style: Theme.of(context).textTheme.labelMedium),
+              ],
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final layout in favorites)
-                    _layoutChoice(context, ref, layout, true),
+                  for (final layout in others)
+                    _layoutChoice(context, ref, layout, false),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(strings.otherLayouts,
-                  style: Theme.of(context).textTheme.labelMedium),
-            ],
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final layout in others)
-                  _layoutChoice(context, ref, layout, false),
-              ],
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed:
-                  controller.canVaryLayout ? controller.varyLayout : null,
-              icon: const Icon(Icons.shuffle),
-              label: Text(strings.variation),
-            ),
-            CustomLayoutSection(controller: controller),
-            OutlinedButton.icon(
-              key: const ValueKey('toggle-canvas-dividers'),
-              onPressed: controller.canEditDividers
-                  ? controller.toggleDividerEditing
-                  : null,
-              icon: Icon(
-                  controller.editingDividers ? Icons.check : Icons.drag_handle),
-              label: Text(strings.tr(controller.editingDividers
-                  ? 'canvasDividersDone'
-                  : 'canvasDividersEdit')),
-            ),
-            Text(
-                strings.tr(controller.canEditDividers
-                    ? 'canvasDividersHint'
-                    : 'canvasDividersUnavailable'),
-                style: Theme.of(context).textTheme.bodySmall),
-            if (project.customLayout == null &&
-                LayoutLibrary.byIdOrDefault(
-                  project.layoutTemplateId,
-                  project.photos.length,
-                ).supportsStagger)
-              _SliderTile(
-                label: strings.stagger,
-                value: project.canvas.staggerAmount,
-                min: 0,
-                max: 0.18,
-                onChanged: (value) => controller.updateCanvas(
-                  project.canvas.copyWith(staggerAmount: value),
-                ),
+              OutlinedButton.icon(
+                onPressed:
+                    controller.canVaryLayout ? controller.varyLayout : null,
+                icon: const Icon(Icons.shuffle),
+                label: Text(strings.variation),
               ),
+              CustomLayoutSection(controller: controller),
+              OutlinedButton.icon(
+                key: const ValueKey('toggle-canvas-dividers'),
+                onPressed: controller.canEditDividers
+                    ? controller.toggleDividerEditing
+                    : null,
+                icon: Icon(controller.editingDividers
+                    ? Icons.check
+                    : Icons.drag_handle),
+                label: Text(strings.tr(controller.editingDividers
+                    ? 'canvasDividersDone'
+                    : 'canvasDividersEdit')),
+              ),
+              Text(
+                  strings.tr(controller.canEditDividers
+                      ? 'canvasDividersHint'
+                      : 'canvasDividersUnavailable'),
+                  style: Theme.of(context).textTheme.bodySmall),
+              if (project.customLayout == null &&
+                  LayoutLibrary.byIdOrDefault(
+                    project.layoutTemplateId,
+                    project.photos.length,
+                  ).supportsStagger)
+                _SliderTile(
+                  label: strings.stagger,
+                  value: project.canvas.staggerAmount,
+                  min: 0,
+                  max: 0.18,
+                  onChanged: (value) => controller.updateCanvas(
+                    project.canvas.copyWith(staggerAmount: value),
+                  ),
+                ),
+            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -415,7 +451,8 @@ class _ToolsPanel extends ConsumerWidget {
                     icon: const Icon(Icons.tune),
                     label: Text(strings.style)),
                 FilledButton.icon(
-                    onPressed: controller.selectedPhoto == null
+                    onPressed: controller.selectedPhoto == null ||
+                            controller.selectedDesignLayer?.locked == true
                         ? null
                         : () => showPhotoSheet(context, controller),
                     icon: const Icon(Icons.crop),

@@ -67,7 +67,9 @@ class CollageTemplate {
       stickers: includeStickers ? List.of(project.stickers) : const [],
       id: id,
       name: name.trim(),
-      photoCount: project.photos.length,
+      photoCount: project.isFreeform
+          ? project.design.layers.where((l) => l.isPhoto).length
+          : project.photos.length,
       aspectRatioId: project.aspectRatioId,
       layoutTemplateId: project.layoutTemplateId,
       customLayout: project.customLayout,
@@ -81,7 +83,7 @@ class CollageTemplate {
   CollageProject applyTo(CollageProject project) {
     final layout = LayoutLibrary.byIdOrDefault(
       layoutTemplateId,
-      project.photos.length,
+      project.photos.length.clamp(1, 12),
     );
     return project.copyWith(
       photos: [

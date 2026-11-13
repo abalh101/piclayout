@@ -32,13 +32,7 @@ class _PhotoEditorState extends State<_PhotoEditor> {
     final strings = AppLocalizations.of(context);
     final t = strings.tr;
     final project = widget.controller.project;
-    final preview = project.copyWith(photos: [
-      for (final photo in project.photos)
-        if (photo.id == widget.photo.id)
-          photo.copyWith(adjustments: _draft)
-        else
-          photo
-    ]);
+    final preview = widget.controller.adjustmentPreview(_draft);
     Widget slider(String key, double value, double min, double max,
             ValueChanged<double> change,
             {bool enabled = true}) =>

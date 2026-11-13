@@ -39,8 +39,8 @@ class ProjectArchiveService {
       if (project.formatVersion != AppConfig.projectFormatVersion) {
         throw const ProjectArchiveException('archiveVersionError');
       }
-      if (project.photos.isEmpty ||
-          project.photos.length > AppConfig.maxPhotos) {
+      if ((!project.isFreeform && project.photos.isEmpty) ||
+          project.photos.length > project.photoLimit) {
         throw const ProjectArchiveException('archiveInvalid');
       }
       final root =
@@ -240,7 +240,7 @@ _Decoded _decode(Uint8List bytes) {
     final directory = ZipDirectory()..read(InputMemoryStream(bytes));
     final headers = directory.fileHeaders;
     if (headers.length < 2 ||
-        headers.length > AppConfig.maxPhotos + 2 ||
+        headers.length > AppConfig.maxFreeformFrames + 2 ||
         directory.numberOfThisDisk != 0 ||
         directory.diskWithTheStartOfTheCentralDirectory != 0) {
       throw const ProjectArchiveException('archiveInvalid');
@@ -314,12 +314,13 @@ _Decoded _decode(Uint8List bytes) {
       throw const ProjectArchiveException('archiveVersionError');
     }
     final project = CollageProject.fromJson(json);
-    if (project.photos.isEmpty ||
-        project.photos.length > AppConfig.maxPhotos ||
+    if ((!project.isFreeform && project.photos.isEmpty) ||
+        project.photos.length > project.photoLimit ||
         project.photos.map((p) => p.id).toSet().length !=
             project.photos.length) {
       throw const ProjectArchiveException('archiveInvalid');
     }
+    project.normalizedForPhotoCount();
     if (json['customLayout'] != null && project.customLayout == null ||
         json['stickers'] is List &&
             (json['stickers'] as List).length != project.stickers.length) {

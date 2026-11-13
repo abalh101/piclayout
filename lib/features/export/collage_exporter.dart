@@ -54,12 +54,17 @@ class CollageExporter {
       try {
         if (project.canvas.style.backgroundType == BackgroundType.blur &&
             project.photos.isNotEmpty) {
-          backdrop = await loadProjectImage(
-              project
-                  .photos[StyleRenderer.photoIndex(
-                      project.canvas.style, project.photos.length)]
-                  .localPath,
-              maxEdge: 2048);
+          try {
+            backdrop = await loadProjectImage(
+                project
+                    .photos[StyleRenderer.photoIndex(
+                        project.canvas.style, project.photos.length)]
+                    .localPath,
+                maxEdge: 2048);
+          } catch (_) {
+            if (!project.isFreeform) rethrow;
+            // Match the preview's background fallback for missing sources.
+          }
         }
         StyleRenderer.background(canvas, size, project.canvas,
             image: backdrop, opaque: settings.format == ExportFormat.jpeg);
@@ -73,7 +78,7 @@ class CollageExporter {
           final photo = layer.isPhoto || layer.type == DesignLayerType.connector
               ? layer.source(project.photos)
               : null;
-          if (layer.isPhoto && photo == null) {
+          if (layer.isPhoto && photo == null && !project.isFreeform) {
             throw StateError('Design photo source is missing');
           }
           if (layer.type == DesignLayerType.connector &&
@@ -85,9 +90,15 @@ class CollageExporter {
                 ? null
                 : Size(metadata.width.toDouble(), metadata.height.toDouble());
           }
-          final image = !layer.isPhoto || photo == null
-              ? null
-              : await loadProjectImage(photo.localPath);
+          ui.Image? image;
+          if (layer.isPhoto && photo != null) {
+            try {
+              image = await loadProjectImage(photo.localPath);
+            } catch (_) {
+              if (!project.isFreeform) rethrow;
+              // Missing/unreadable freeform sources retain their empty frame.
+            }
+          }
           try {
             if (image != null) {
               sourceSizes[photo!.localPath] =

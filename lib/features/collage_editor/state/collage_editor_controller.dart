@@ -1,6 +1,8 @@
 import '../../layout_recommendations/layout_recommendation_service.dart';
 import '../../editorial/models/editorial_design.dart';
 import '../../editorial/models/design_presets.dart';
+import '../../editorial/models/freeform_presets.dart';
+import '../../../app/app_config.dart';
 import '../../layout_recommendations/photo_metadata_reader.dart';
 import '../models/photo_metadata.dart';
 import '../rendering/preview_image_cache.dart';
@@ -32,6 +34,8 @@ import '../rendering/text_overlay_renderer.dart';
 import '../rendering/photo_crop.dart';
 import '../rendering/layout_geometry.dart';
 
+part 'freeform_controller.dart';
+
 final editorControllerProvider = ChangeNotifierProvider.autoDispose
     .family<CollageEditorController, CollageProject>((ref, project) {
   final controller = CollageEditorController(
@@ -52,8 +56,9 @@ class CollageEditorController extends ChangeNotifier {
   })  : _project = initialProject.normalizedForPhotoCount(),
         _repository = repository,
         _random = random ?? Random() {
-    selectedPhotoId =
-        _project.photos.isNotEmpty ? _project.photos.first.id : null;
+    selectedPhotoId = !_project.isFreeform && _project.photos.isNotEmpty
+        ? _project.photos.first.id
+        : null;
   }
 
   final ProjectRepository _repository;
@@ -64,6 +69,8 @@ class CollageEditorController extends ChangeNotifier {
   bool metadataLoading = false;
   bool saveFailed = false;
   bool _replacing = false;
+  bool importingPhotos = false;
+  void _notifyFreeform() => notifyListeners();
   CollageProject? _interactiveStart;
   int _saveRequest = 0;
   Timer? _autosave;
@@ -89,6 +96,7 @@ class CollageEditorController extends ChangeNotifier {
         !_project.design.layers.any((layer) => layer.id == id)) {
       return;
     }
+    endInteractiveTransform();
     selectedDesignLayerId = id;
     selectedPhotoId = selectedDesignLayer?.isPhoto == true
         ? selectedDesignLayer?.source(_project.photos)?.id
@@ -100,15 +108,22 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void setDesignCropEditing(bool value) {
+    endInteractiveTransform();
     editingDesignCrop = value &&
         _project.design.active &&
         selectedDesignLayer?.isPhoto == true &&
+        selectedDesignLayer?.source(_project.photos) != null &&
         selectedDesignLayer?.type != DesignLayerType.callout &&
         selectedDesignLayer?.locked == false;
     notifyListeners();
   }
 
   void applyDesign(EditorialDesign design, {bool story = false}) {
+    if (!design.freeform &&
+        (_project.photos.isEmpty ||
+            _project.photos.length > AppConfig.maxPhotos)) {
+      return;
+    }
     selectedDesignLayerId = null;
     editingDesignCrop = false;
     _mutate(_project.copyWith(
@@ -140,6 +155,21 @@ class CollageEditorController extends ChangeNotifier {
     final old =
         _project.design.layers.where((l) => l.id == layer.id).firstOrNull;
     if (old == null || (old.locked && layer.locked)) return;
+    if (_project.isFreeform && old.aspectLocked && layer.aspectLocked) {
+      if (layer.width != old.width && layer.height == old.height) {
+        final factor = (layer.width / old.width).clamp(
+            max(.02 / old.width, .02 / old.height),
+            min(1.5 / old.width, 1.5 / old.height));
+        layer = layer.copyWith(
+            width: old.width * factor, height: old.height * factor);
+      } else if (layer.height != old.height && layer.width == old.width) {
+        final factor = (layer.height / old.height).clamp(
+            max(.02 / old.width, .02 / old.height),
+            min(1.5 / old.width, 1.5 / old.height));
+        layer = layer.copyWith(
+            width: old.width * factor, height: old.height * factor);
+      }
+    }
     final next = _project.copyWith(
         design: _project.design.copyWith(
             numberStyle: layer.type == DesignLayerType.caption &&
@@ -160,6 +190,11 @@ class CollageEditorController extends ChangeNotifier {
 
   void addDesignLayer(DesignLayer layer) {
     if (_project.design.layers.length >= 200) return;
+    if (_project.isFreeform &&
+        layer.isPhoto &&
+        freeformFrameCount >= AppConfig.maxFreeformFrames) {
+      return;
+    }
     if (!layer.referencesPhoto) layer = layer.copyWith(clearPhotoId: true);
     var design = _project.design;
     if (!design.active && design.layers.isEmpty) {
@@ -203,11 +238,20 @@ class CollageEditorController extends ChangeNotifier {
     final layer = selectedDesignLayer;
     if (layer == null || layer.locked) return;
     selectedDesignLayerId = null;
+    final remaining =
+        _project.design.layers.where((l) => l.id != layer.id).toList();
     _mutate(_project.copyWith(
+        photos: _project.isFreeform
+            ? _project.photos
+                .where((p) =>
+                    p.id != layer.photoId ||
+                    remaining.any((l) => l.photoId == p.id))
+                .toList()
+            : _project.photos,
         design: _project.design.copyWith(layers: [
-      for (final l in _project.design.layers)
-        if (l.id != layer.id) l
-    ])));
+          for (final l in _project.design.layers)
+            if (l.id != layer.id) l
+        ])));
   }
 
   void reorderDesignLayer({required bool forward}) {
@@ -304,7 +348,13 @@ class CollageEditorController extends ChangeNotifier {
     if (id == null) {
       return null;
     }
-    return _project.photos.where((photo) => photo.id == id).firstOrNull;
+    final photo = _project.photos.where((photo) => photo.id == id).firstOrNull;
+    final layer = selectedDesignLayer;
+    return photo != null && _project.isFreeform && layer?.isPhoto == true
+        ? photo.copyWith(
+            transform: layer!.transformFor(photo),
+            adjustments: layer.adjustmentsFor(photo))
+        : photo;
   }
 
   TextOverlay? get selectedText {
@@ -314,6 +364,15 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void selectPhoto(String photoId) {
+    if (_project.isFreeform) {
+      final layer = _project.design.ordered
+          .where((l) => l.isPhoto && l.source(_project.photos)?.id == photoId)
+          .firstOrNull;
+      if (layer != null) {
+        selectDesignLayer(layer.id);
+        return;
+      }
+    }
     selectedDesignLayerId = null;
     editingDesignCrop = false;
     selectedStickerId = null;
@@ -460,6 +519,7 @@ class CollageEditorController extends ChangeNotifier {
     if (!_project.design.active || layer == null) {
       selectedDesignLayerId = null;
       editingDesignCrop = false;
+      if (_project.isFreeform) selectedPhotoId = null;
       return;
     }
     selectedTextId = null;
@@ -467,6 +527,7 @@ class CollageEditorController extends ChangeNotifier {
     selectedPhotoId = layer.isPhoto ? layer.source(_project.photos)?.id : null;
     if (layer.locked ||
         !layer.isPhoto ||
+        layer.source(_project.photos) == null ||
         layer.type == DesignLayerType.callout) {
       editingDesignCrop = false;
     }
@@ -478,6 +539,10 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   bool applyCustomLayout(CustomLayout layout) {
+    if (_project.photos.isEmpty ||
+        _project.photos.length > AppConfig.maxPhotos) {
+      return false;
+    }
     if (layout.photoCount != _project.photos.length) return false;
     if (!_project.design.active && identical(_project.customLayout, layout)) {
       return true;
@@ -489,6 +554,10 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void setLayoutTemplate(String layoutTemplateId) {
+    if (_project.photos.isEmpty ||
+        _project.photos.length > AppConfig.maxPhotos) {
+      return;
+    }
     final template = LayoutLibrary.byIdOrDefault(
       layoutTemplateId,
       _project.photos.length,
@@ -568,8 +637,16 @@ class CollageEditorController extends ChangeNotifier {
     return true;
   }
 
-  void applyTemplate(CollageTemplate template) {
-    _mutate(template.applyTo(_project));
+  void applyTemplate(CollageTemplate template,
+      {List<PhotoAsset>? orderedPhotos}) {
+    if (!template.design.freeform &&
+        (_project.photos.isEmpty ||
+            _project.photos.length > AppConfig.maxPhotos)) {
+      return;
+    }
+    _mutate(template.applyTo(orderedPhotos == null
+        ? _project
+        : _project.copyWith(photos: orderedPhotos)));
     _validateStickerSelection();
     if (selectedTextId != null &&
         !_project.textOverlays.any((item) => item.id == selectedTextId)) {
@@ -623,6 +700,14 @@ class CollageEditorController extends ChangeNotifier {
   void applyAdjustmentsToAll({bool reset = false}) {
     final value = reset ? const PhotoAdjustments() : selectedPhoto?.adjustments;
     if (value == null || _disposed) return;
+    if (_project.isFreeform) {
+      _mutate(_project.copyWith(
+          design: _project.design.copyWith(layers: [
+        for (final l in _project.design.layers)
+          l.isPhoto && !l.locked ? l.copyWith(adjustments: value) : l
+      ])));
+      return;
+    }
     final next = _project.copyWith(photos: [
       for (final photo in _project.photos) photo.copyWith(adjustments: value),
     ]);
@@ -633,6 +718,12 @@ class CollageEditorController extends ChangeNotifier {
   void setAdjustments(String photoId, PhotoAdjustments adjustments,
       {bool live = false}) {
     if (_disposed) return;
+    if (_project.isFreeform && selectedDesignLayer?.isPhoto == true) {
+      final layer = selectedDesignLayer!;
+      if (layer.source(_project.photos)?.id != photoId || layer.locked) return;
+      updateDesignLayer(layer.copyWith(adjustments: adjustments), live: live);
+      return;
+    }
     final current = _project.photos.where((p) => p.id == photoId).firstOrNull;
     if (current == null ||
         jsonEncode(current.adjustments.toJson()) ==
@@ -655,6 +746,12 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void setTransform(String photoId, PhotoTransform transform) {
+    if (_project.isFreeform && selectedDesignLayer?.isPhoto == true) {
+      if (selectedDesignLayer!.source(_project.photos)?.id == photoId) {
+        setFrameCrop(transform);
+      }
+      return;
+    }
     _mutate(_replaceTransform(photoId, transform));
   }
 
@@ -664,6 +761,12 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void updateTransformLive(String photoId, PhotoTransform transform) {
+    if (_project.isFreeform && selectedDesignLayer?.isPhoto == true) {
+      if (selectedDesignLayer!.source(_project.photos)?.id == photoId) {
+        setFrameCrop(transform, live: true);
+      }
+      return;
+    }
     _project = _replaceTransform(photoId, transform);
     notifyListeners();
   }
@@ -722,6 +825,10 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   Future<void> replaceSelected(XFile picked) async {
+    if (_project.isFreeform) {
+      await fillFreeformFrame(picked);
+      return;
+    }
     final photo = selectedPhoto;
     if (photo == null || _replacing || _disposed) {
       return;
@@ -751,6 +858,10 @@ class CollageEditorController extends ChangeNotifier {
   }
 
   void removeSelected() {
+    if (_project.isFreeform) {
+      clearFramePhoto();
+      return;
+    }
     final photo = selectedPhoto;
     if (photo == null || _project.photos.length <= 1) {
       return;
@@ -910,6 +1021,7 @@ class CollageEditorController extends ChangeNotifier {
   void _mutate(CollageProject next) {
     endInteractiveTransform();
     endDividerDrag();
+    if (jsonEncode(next.toJson()) == jsonEncode(_project.toJson())) return;
     _undo.add(_project);
     if (_undo.length > 80) {
       _undo.removeAt(0);
@@ -924,6 +1036,7 @@ class CollageEditorController extends ChangeNotifier {
 
   void _scheduleAutosave() {
     _autosave?.cancel();
+    if (_interactiveStart != null) return;
     _autosave = Timer(const Duration(milliseconds: 700), () {
       unawaited(_saveInBackground());
     });

@@ -43,7 +43,7 @@ class _PreviewPainter extends CustomPainter {
           aspectRatioId: template.aspectRatioId,
           layoutTemplateId: template.layoutTemplateId,
           photos: [
-            for (var i = 0; i < template.photoCount.clamp(1, 12); i++)
+            for (var i = 0; i < template.photoCount.clamp(1, 20); i++)
               PhotoAsset(
                   id: 'placeholder-$i', originalFileName: '', localPath: ''),
           ]);

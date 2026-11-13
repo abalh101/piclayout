@@ -6,6 +6,8 @@ import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/state/collage_editor_controller.dart';
 import '../state/design_library_providers.dart';
 import 'template_preview.dart';
+import '../../editorial/widgets/freeform_tools.dart';
+import '../../collage_editor/models/photo_asset.dart';
 
 Future<void> showSaveTemplateDialog(
   BuildContext context,
@@ -158,8 +160,29 @@ Future<void> showMyTemplatesSheet(
                                     '${template.photoCount} ${strings.photo} · ${template.aspectRatioId}',
                                   ),
                                   onTap: () async {
+                                    if (!template.design.freeform &&
+                                        (controller.project.photos.isEmpty ||
+                                            controller.project.photos.length >
+                                                12)) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              content: Text(
+                                                  strings.tr('ffGridLimit'))));
+                                      return;
+                                    }
+                                    List<PhotoAsset>? orderedPhotos;
+                                    if (template.design.freeform) {
+                                      orderedPhotos = await orderFreeformPhotos(
+                                          context, controller);
+                                      if (orderedPhotos == null ||
+                                          !context.mounted ||
+                                          !sheetContext.mounted) {
+                                        return;
+                                      }
+                                    }
                                     if (controller
-                                        .project.design.layers.isNotEmpty) {
+                                            .project.design.layers.isNotEmpty &&
+                                        !template.design.freeform) {
                                       final confirmed = await showDialog<bool>(
                                           context: context,
                                           builder: (dialogContext) =>
@@ -195,7 +218,8 @@ Future<void> showMyTemplatesSheet(
                                     final resolved =
                                         LayoutLibrary.byIdOrDefault(
                                       template.layoutTemplateId,
-                                      controller.project.photos.length,
+                                      controller.project.photos.length
+                                          .clamp(1, 12),
                                     );
                                     final adjusted = template.customLayout !=
                                             null
@@ -203,9 +227,10 @@ Future<void> showMyTemplatesSheet(
                                             controller.project.photos.length
                                         : resolved.id !=
                                             template.layoutTemplateId;
-                                    controller.applyTemplate(template);
+                                    controller.applyTemplate(template,
+                                        orderedPhotos: orderedPhotos);
                                     Navigator.pop(sheetContext);
-                                    if (adjusted) {
+                                    if (adjusted && !template.design.freeform) {
                                       messenger.showSnackBar(
                                         SnackBar(
                                             content:

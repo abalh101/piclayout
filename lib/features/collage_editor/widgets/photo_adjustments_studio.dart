@@ -32,6 +32,24 @@ class _StudioState extends State<PhotoAdjustmentsStudio> {
 
   void _navigate(int direction) {
     controller.endInteractiveTransform();
+    if (controller.project.isFreeform) {
+      final frames = controller.project.design.ordered
+          .where((l) =>
+              l.isPhoto &&
+              !l.locked &&
+              l.source(controller.project.photos) != null)
+          .toList();
+      if (frames.isEmpty) return;
+      final index =
+          frames.indexWhere((l) => l.id == controller.selectedDesignLayerId);
+      setState(() {
+        _holding = false;
+        _compare = false;
+      });
+      controller
+          .selectDesignLayer(frames[(index + direction) % frames.length].id);
+      return;
+    }
     final photos = controller.project.photos;
     final index = photos.indexWhere((p) => p.id == controller.selectedPhotoId);
     setState(() {
@@ -79,12 +97,7 @@ class _StudioState extends State<PhotoAdjustmentsStudio> {
         // Comparison is a view-only copy, never supplied to history/save/export.
         final preview = !_holding && !_compare
             ? project
-            : project.copyWith(photos: [
-                for (final p in project.photos)
-                  p.id == photo.id
-                      ? p.copyWith(adjustments: const PhotoAdjustments())
-                      : p,
-              ]);
+            : controller.adjustmentPreview(const PhotoAdjustments());
         Widget slider(String key, double value, double min, double max,
                 double neutral, PhotoAdjustments Function(double) change,
                 {bool enabled = true}) =>
@@ -151,7 +164,7 @@ class _StudioState extends State<PhotoAdjustmentsStudio> {
                               icon: const Icon(Icons.navigate_before)),
                           Expanded(
                               child: Text(
-                                  '${t('photo')} ${project.photos.indexOf(photo) + 1} / ${project.photos.length}',
+                                  '${t('photo')} ${project.photos.indexWhere((p) => p.id == photo.id) + 1} / ${project.photos.length}',
                                   textAlign: TextAlign.center)),
                           IconButton(
                               tooltip: t('adjustNext'),

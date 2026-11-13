@@ -40,6 +40,9 @@ class CollageProject {
   final List<TextOverlay> textOverlays;
 
   AspectRatioPreset get aspectRatio => AspectRatios.byId(aspectRatioId);
+  bool get isFreeform => design.freeform;
+  int get photoLimit =>
+      isFreeform ? AppConfig.maxFreeformFrames : AppConfig.maxPhotos;
 
   CollageProject copyWith({
     String? id,
@@ -76,10 +79,14 @@ class CollageProject {
   }
 
   CollageProject normalizedForPhotoCount() {
-    if (photos.length > AppConfig.maxPhotos) {
+    if (photos.length > photoLimit ||
+        (isFreeform &&
+            design.layers.where((l) => l.isPhoto).length >
+                AppConfig.maxFreeformFrames)) {
       throw ArgumentError.value(photos.length, 'photos.length',
           'Projects support at most ${AppConfig.maxPhotos} photos');
     }
+    if (isFreeform) return this;
     if (photos.isEmpty) {
       return this;
     }

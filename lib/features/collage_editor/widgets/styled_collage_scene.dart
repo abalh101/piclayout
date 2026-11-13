@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import '../../editorial/rendering/editorial_renderer.dart';
+import '../../editorial/models/editorial_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -38,7 +39,21 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
   }
 
   void _sync() {
-    final paths = widget.project.photos.map((p) => p.localPath).toSet();
+    final project = widget.project;
+    final paths = project.isFreeform
+        ? project.design.layers
+            .where((l) => l.visible && l.opacity > 0 && l.isPhoto)
+            .map((l) => l.source(project.photos)?.localPath)
+            .whereType<String>()
+            .toSet()
+        : project.photos.map((p) => p.localPath).toSet();
+    if (project.canvas.style.backgroundType == BackgroundType.blur &&
+        project.photos.isNotEmpty) {
+      paths.add(project
+          .photos[StyleRenderer.photoIndex(
+              project.canvas.style, project.photos.length)]
+          .localPath);
+    }
     for (final path in _leases.keys.toList()) {
       if (!paths.contains(path)) {
         _leases.remove(path)!.release();
@@ -101,8 +116,46 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
           CustomPaint(
               painter: _ScenePainter(widget.project, Map.of(_images),
                   Map.of(_sourceSizes), Set.of(_failed))),
+          if (widget.project.isFreeform)
+            for (final layer in widget.project.design.ordered)
+              if (layer.visible && layer.opacity > 0)
+                Positioned.fill(
+                    child: RepaintBoundary(
+                  key: ValueKey('frame-paint-${layer.id}'),
+                  child: CustomPaint(
+                      painter: FreeformLayerPainter(
+                          widget.project,
+                          layer,
+                          _images[
+                              layer.source(widget.project.photos)?.localPath],
+                          _sourceSizes[
+                              layer.source(widget.project.photos)?.localPath])),
+                )),
+          if (widget.project.isFreeform)
+            for (final layer in widget.project.design.ordered)
+              if (layer.isPhoto &&
+                  layer.visible &&
+                  layer.opacity > 0 &&
+                  !_images.containsKey(
+                      layer.source(widget.project.photos)?.localPath))
+                Positioned.fromRect(
+                    rect: layer.rect(constraints.biggest),
+                    child: IgnorePointer(
+                        child: Center(
+                            child: FittedBox(
+                                child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_photo_alternate_outlined,
+                            semanticLabel:
+                                AppLocalizations.of(context).tr('ffFill')),
+                        Text('${layer.photoSlot + 1}',
+                            style: const TextStyle(color: Colors.black87))
+                      ],
+                    ))))),
           for (final cell in cells)
-            if (cell.photoIndex < widget.project.photos.length &&
+            if (!widget.project.isFreeform &&
+                cell.photoIndex < widget.project.photos.length &&
                 !_images.containsKey(
                     widget.project.photos[cell.photoIndex].localPath))
               Positioned.fromRect(
@@ -164,6 +217,10 @@ class _ScenePainter extends CustomPainter {
                 StyleRenderer.photoIndex(project.canvas.style, photos.length)]
             .localPath];
     StyleRenderer.background(canvas, size, project.canvas, image: backdrop);
+    if (project.isFreeform) {
+      canvas.restore();
+      return;
+    }
     if (project.design.active) {
       for (final layer in project.design.ordered) {
         final photo = layer.source(project.photos);
@@ -201,10 +258,35 @@ class _ScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ScenePainter oldDelegate) =>
-      !identical(project, oldDelegate.project) ||
+      (project.isFreeform && oldDelegate.project.isFreeform
+          ? project.canvas != oldDelegate.project.canvas ||
+              project.photos != oldDelegate.project.photos
+          : !identical(project, oldDelegate.project)) ||
       !mapEquals(images, oldDelegate.images) ||
       !mapEquals(sourceSizes, oldDelegate.sourceSizes) ||
       !setEquals(failed, oldDelegate.failed);
 
   Size? _sizeFor(String? path) => sourceSizes[path];
+}
+
+/// Each frame retains its own repaint boundary. Moving another frame changes
+/// neither this painter's geometry nor its source/adjustment configuration.
+class FreeformLayerPainter extends CustomPainter {
+  const FreeformLayerPainter(
+      this.project, this.layer, this.image, this.sourceSize);
+  final CollageProject project;
+  final DesignLayer layer;
+  final ui.Image? image;
+  final Size? sourceSize;
+  @override
+  void paint(Canvas canvas, Size size) =>
+      EditorialRenderer.paintLayer(canvas, size, project, layer,
+          image: image, sourceSize: sourceSize);
+  @override
+  bool shouldRepaint(covariant FreeformLayerPainter old) =>
+      layer != old.layer ||
+      image != old.image ||
+      sourceSize != old.sourceSize ||
+      layer.source(project.photos) != old.layer.source(old.project.photos) ||
+      (!layer.isPhoto && project != old.project);
 }

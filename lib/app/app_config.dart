@@ -7,4 +7,5 @@ class AppConfig {
   static const appName = 'PicLayout';
   static const projectFormatVersion = 1;
   static const maxPhotos = 12;
+  static const maxFreeformFrames = 20;
 }

@@ -11,7 +11,11 @@ import '../../collage_editor/widgets/style_studio_sheet.dart';
 import '../../collage_editor/widgets/photo_edit_sheet.dart';
 import '../models/editorial_design.dart';
 import '../models/design_presets.dart';
+import '../models/freeform_presets.dart';
 import '../rendering/editorial_renderer.dart';
+import 'freeform_tools.dart';
+import '../../collage_editor/models/photo_transform.dart';
+import '../../collage_editor/widgets/photo_adjustments_studio.dart';
 
 Future<void> showDesignSheet(
         BuildContext context, CollageEditorController controller,
@@ -119,8 +123,11 @@ class DesignSheet extends StatelessWidget {
         ChoiceChip(
             label: Text(t('edStandard')),
             selected: !design.active,
-            onSelected: (_) => controller
-                .applyDesign(design.copyWith(mode: DesignMode.standard))),
+            onSelected: controller.project.photos.isEmpty ||
+                    controller.project.photos.length > 12
+                ? null
+                : (_) => controller
+                    .applyDesign(design.copyWith(mode: DesignMode.standard))),
         ActionChip(
             label: Text(t('edBlank')),
             avatar: const Icon(Icons.add),
@@ -134,13 +141,22 @@ class DesignSheet extends StatelessWidget {
           ActionChip(
               label: Text(t('edResume')),
               onPressed: () => controller.applyDesign(design.copyWith(
-                  mode: DesignPreset.all
-                          .where((preset) => preset.key == design.preset)
-                          .firstOrNull
-                          ?.mode ??
-                      DesignMode.blank))),
+                  mode: FreeformPresets.keys.contains(design.preset)
+                      ? DesignMode.freeform
+                      : DesignPreset.all
+                              .where((preset) => preset.key == design.preset)
+                              .firstOrNull
+                              ?.mode ??
+                          DesignMode.blank))),
       ]),
       const SizedBox(height: 12),
+      OutlinedButton.icon(
+          onPressed: () => showFreeformPresets(context, controller),
+          icon: const Icon(Icons.dashboard_customize_outlined),
+          label: Text(t('ffTitle'))),
+      if (controller.project.photos.isEmpty ||
+          controller.project.photos.length > 12)
+        Text(t('ffGridLimit')),
       for (final preset in DesignPreset.all)
         Card(
             child: ListTile(
@@ -156,11 +172,15 @@ class DesignSheet extends StatelessWidget {
           trailing: design.active && design.preset == preset.key
               ? const Icon(Icons.check_circle)
               : null,
-          onTap: () async {
-            if (!await _confirm(context)) return;
-            controller.applyDesign(preset.create(controller.project.photos, t),
-                story: true);
-          },
+          onTap: controller.project.photos.isEmpty ||
+                  controller.project.photos.length > 12
+              ? null
+              : () async {
+                  if (!await _confirm(context)) return;
+                  controller.applyDesign(
+                      preset.create(controller.project.photos, t),
+                      story: true);
+                },
         )),
     ]);
   }
@@ -171,49 +191,51 @@ class DesignSheet extends StatelessWidget {
     void settings(EditorialDesign value, {bool live = false}) =>
         controller.updateDesignSettings(value, live: live);
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Text(t('edSpacingHint')),
-      _slider(
-          context,
-          'outerMargin',
-          d.margin,
-          0,
-          .18,
-          (v) => settings(controller.project.design.copyWith(margin: v),
-              live: true)),
-      _slider(
-          context,
-          'edGapX',
-          d.gapX,
-          0,
-          .1,
-          (v) => settings(controller.project.design.copyWith(gapX: v),
-              live: true)),
-      _slider(
-          context,
-          'edGapY',
-          d.gapY,
-          0,
-          .12,
-          (v) => settings(controller.project.design.copyWith(gapY: v),
-              live: true)),
-      _slider(
-          context,
-          'edTitleArea',
-          d.header,
-          0,
-          .3,
-          (v) => settings(controller.project.design.copyWith(header: v),
-              live: true)),
-      if (d.mode == DesignMode.editorial) ...[
-        _choice<int>(context, 'edColumns', d.columns, [1, 2, 3, 4], (v) => '$v',
-            (v) => settings(d.copyWith(columns: v))),
-        _choice<NumberStyle>(
+      if (!d.freeform) ...[
+        Text(t('edSpacingHint')),
+        _slider(
             context,
-            'edNumbering',
-            d.numberStyle,
-            NumberStyle.values,
-            (v) => t('edNumber_${v.name}'),
-            (v) => settings(d.copyWith(numberStyle: v))),
+            'outerMargin',
+            d.margin,
+            0,
+            .18,
+            (v) => settings(controller.project.design.copyWith(margin: v),
+                live: true)),
+        _slider(
+            context,
+            'edGapX',
+            d.gapX,
+            0,
+            .1,
+            (v) => settings(controller.project.design.copyWith(gapX: v),
+                live: true)),
+        _slider(
+            context,
+            'edGapY',
+            d.gapY,
+            0,
+            .12,
+            (v) => settings(controller.project.design.copyWith(gapY: v),
+                live: true)),
+        _slider(
+            context,
+            'edTitleArea',
+            d.header,
+            0,
+            .3,
+            (v) => settings(controller.project.design.copyWith(header: v),
+                live: true)),
+        if (d.mode == DesignMode.editorial) ...[
+          _choice<int>(context, 'edColumns', d.columns, [1, 2, 3, 4],
+              (v) => '$v', (v) => settings(d.copyWith(columns: v))),
+          _choice<NumberStyle>(
+              context,
+              'edNumbering',
+              d.numberStyle,
+              NumberStyle.values,
+              (v) => t('edNumber_${v.name}'),
+              (v) => settings(d.copyWith(numberStyle: v))),
+        ],
       ],
       _color(
           context,
@@ -243,7 +265,17 @@ class DesignSheet extends StatelessWidget {
     final selected = controller.selectedDesignLayer;
     final d = controller.project.design;
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Text(t('edGestureHint')),
+      Text(t(d.freeform ? 'ffGestureHint' : 'edGestureHint')),
+      if (d.freeform) ...[
+        Text('${controller.freeformFrameCount} / 20 ${t('ffFrames')}'),
+        FilledButton.icon(
+            onPressed: controller.importingPhotos
+                ? null
+                : () => pickFreeformPhotos(context, controller),
+            icon: const Icon(Icons.add_photo_alternate_outlined),
+            label: Text(t('ffAddPhotos'))),
+        if (controller.importingPhotos) const LinearProgressIndicator(),
+      ],
       Wrap(spacing: 8, runSpacing: 4, children: [
         for (final type in [
           DesignLayerType.photo,
@@ -259,41 +291,55 @@ class DesignSheet extends StatelessWidget {
               label: Text(t('edType_${type.name}')),
               onPressed: () => _add(context, type)),
       ]),
-      for (final layer in d.ordered.reversed)
-        ListTile(
-            dense: true,
-            key: ValueKey('design-layer-${layer.id}'),
-            selected: selected?.id == layer.id,
-            leading: Badge(
-                isLabelVisible: selected?.id == layer.id,
-                label: const Icon(Icons.check, size: 10),
-                child: Icon(layer.locked
-                    ? Icons.lock
-                    : layer.isPhoto
-                        ? Icons.photo_outlined
-                        : layer.isText
-                            ? Icons.text_fields
-                            : Icons.layers_outlined)),
-            title: Text(
-                layer.isText && layer.text.text.isNotEmpty
-                    ? layer.text.text
-                    : t('edType_${layer.type.name}'),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
-            trailing: IconButton(
-                tooltip: t(layer.visible ? 'edHide' : 'edShow'),
-                icon: Icon(
-                    layer.visible ? Icons.visibility : Icons.visibility_off),
-                onPressed: layer.locked
-                    ? null
-                    : () => controller.updateDesignLayer(
-                        layer.copyWith(visible: !layer.visible))),
-            onTap: () => controller.selectDesignLayer(layer.id)),
+      if (d.freeform)
+        _freeformLayers(context)
+      else
+        for (final layer in d.ordered.reversed)
+          ListTile(
+              dense: true,
+              key: ValueKey('design-layer-${layer.id}'),
+              selected: selected?.id == layer.id,
+              leading: Badge(
+                  isLabelVisible: selected?.id == layer.id,
+                  label: const Icon(Icons.check, size: 10),
+                  child: Icon(layer.locked
+                      ? Icons.lock
+                      : layer.isPhoto
+                          ? Icons.photo_outlined
+                          : layer.isText
+                              ? Icons.text_fields
+                              : Icons.layers_outlined)),
+              title: Text(
+                  layer.isText && layer.text.text.isNotEmpty
+                      ? layer.text.text
+                      : t('edType_${layer.type.name}'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+              trailing: IconButton(
+                  tooltip: t(layer.visible ? 'edHide' : 'edShow'),
+                  icon: Icon(
+                      layer.visible ? Icons.visibility : Icons.visibility_off),
+                  onPressed: layer.locked
+                      ? null
+                      : () => controller.updateDesignLayer(
+                          layer.copyWith(visible: !layer.visible))),
+              onTap: () => controller.selectDesignLayer(layer.id)),
       if (selected != null) ...[
         const Divider(),
         Text(t('edType_${selected.type.name}'),
             style: Theme.of(context).textTheme.titleMedium),
         Wrap(spacing: 8, runSpacing: 4, children: [
+          if (d.freeform) ...[
+            _action(
+                context,
+                'ffFront',
+                Icons.vertical_align_top,
+                selected.locked
+                    ? null
+                    : () => controller.moveLayerTo(d.layers.length - 1)),
+            _action(context, 'ffBack', Icons.vertical_align_bottom,
+                selected.locked ? null : () => controller.moveLayerTo(0)),
+          ],
           _action(
               context,
               'edForward',
@@ -325,6 +371,10 @@ class DesignSheet extends StatelessWidget {
   }
 
   void _add(BuildContext context, DesignLayerType type) {
+    if (controller.project.isFreeform && type == DesignLayerType.photo) {
+      controller.addEmptyFrame();
+      return;
+    }
     final t = AppLocalizations.of(context).tr;
     final photo =
         controller.selectedPhoto ?? controller.project.photos.firstOrNull;
@@ -355,6 +405,54 @@ class DesignSheet extends StatelessWidget {
         controller.updateDesignLayer(next, live: true);
     DesignLayer current() => controller.selectedDesignLayer ?? l;
     return [
+      if (controller.project.isFreeform && l.isPhoto) ...[
+        _DesignTextField(
+            key: ValueKey('frame-name-${l.id}'),
+            text: l.name,
+            label: t('ffName'),
+            onChanged: (v) => update(current().copyWith(name: v))),
+        SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(t('ffAspectLock')),
+            value: l.aspectLocked,
+            onChanged: (value) => update(l.copyWith(aspectLocked: value))),
+        SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(t('ffShadow')),
+            value: l.shadow,
+            onChanged: (value) => update(l.copyWith(shadow: value))),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          _action(
+              context,
+              'ffFill',
+              Icons.add_photo_alternate_outlined,
+              controller.importingPhotos
+                  ? null
+                  : () =>
+                      pickFreeformPhotos(context, controller, replace: true)),
+          _action(context, 'ffRemovePhoto', Icons.image_not_supported_outlined,
+              controller.clearFramePhoto),
+          _action(context, 'ffSwap', Icons.swap_horiz, () => _swap(context)),
+          _action(context, 'ffResetFrame', Icons.restart_alt,
+              controller.resetFrame),
+          _action(context, 'ffCenter', Icons.center_focus_strong,
+              () => controller.resetFrame(centerOnly: true)),
+          _action(context, 'ffFitCanvas', Icons.fit_screen,
+              () => controller.resetFrame(fitCanvas: true)),
+          _action(context, 'resetCrop', Icons.crop_rotate,
+              controller.resetSelectedTransform),
+          _action(context, 'rotate', Icons.rotate_90_degrees_ccw,
+              controller.rotateSelected),
+          _action(context, 'flip', Icons.flip, controller.flipSelected),
+        ]),
+        _choice<PhotoFitMode>(
+            context,
+            'photo',
+            l.transformFor(l.source(controller.project.photos)).fitMode,
+            PhotoFitMode.values,
+            (v) => t(v.name),
+            controller.setSelectedFitMode),
+      ],
       _slider(context, 'edPositionX', l.x, 0, 1,
           (v) => live(current().copyWith(x: v))),
       _slider(context, 'edPositionY', l.y, 0, 1,
@@ -377,7 +475,9 @@ class DesignSheet extends StatelessWidget {
             controller.project.photos.map((p) => p.id).toList(),
             (id) =>
                 '${t('Bild')} ${controller.project.photos.indexWhere((p) => p.id == id) + 1}',
-            (id) => update(l.copyWith(photoId: id))),
+            (id) => controller.project.isFreeform
+                ? controller.bindFramePhoto(id)
+                : update(l.copyWith(photoId: id))),
         if (l.type != DesignLayerType.callout &&
             l.type != DesignLayerType.connector)
           _action(context, 'edEditCrop', Icons.crop, () {
@@ -385,8 +485,13 @@ class DesignSheet extends StatelessWidget {
             Navigator.pop(context);
           }),
         if (l.isPhoto)
-          _action(context, 'editPhoto', Icons.tune,
-              () => showPhotoEditor(context, controller)),
+          _action(
+              context,
+              'editPhoto',
+              Icons.tune,
+              () => controller.project.isFreeform
+                  ? showPhotoAdjustmentsStudio(context, controller)
+                  : showPhotoEditor(context, controller)),
       ],
       if (l.isText) ...[
         _DesignTextField(
@@ -527,6 +632,90 @@ class DesignSheet extends StatelessWidget {
     if (result != null) {
       controller.updateDesignLayer(layer.copyWith(crop: result));
     }
+  }
+
+  Widget _freeformLayers(BuildContext context) {
+    final t = AppLocalizations.of(context).tr;
+    final layers = controller.project.design.ordered.reversed.toList();
+    return ReorderableListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        itemCount: layers.length,
+        onReorderItem: (from, to) {
+          if (layers[from].locked) return;
+          controller.selectDesignLayer(layers[from].id);
+          controller.moveLayerTo(layers.length - 1 - to);
+        },
+        itemBuilder: (context, index) {
+          final layer = layers[index];
+          return ListTile(
+              key: ValueKey('design-layer-${layer.id}'),
+              selected: controller.selectedDesignLayerId == layer.id,
+              leading: Badge(
+                  isLabelVisible: controller.selectedDesignLayerId == layer.id,
+                  label: const Icon(Icons.check, size: 10),
+                  child: FrameSourceThumbnail(
+                      photo: layer.source(controller.project.photos),
+                      cache: controller.previewImages)),
+              title: Text(
+                  layer.name.isNotEmpty
+                      ? layer.name
+                      : '${t(layer.isPhoto ? 'ffFrame' : 'edType_${layer.type.name}')} ${index + 1}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+              subtitle: Text(t(layer.locked
+                  ? 'edLock'
+                  : layer.visible
+                      ? 'edShow'
+                      : 'edHide')),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                IconButton(
+                    tooltip: t(layer.visible ? 'edHide' : 'edShow'),
+                    onPressed: layer.locked
+                        ? null
+                        : () => controller.updateDesignLayer(
+                            layer.copyWith(visible: !layer.visible)),
+                    icon: Icon(layer.visible
+                        ? Icons.visibility
+                        : Icons.visibility_off)),
+                ReorderableDragStartListener(
+                    index: index,
+                    enabled: !layer.locked,
+                    child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Icon(
+                            layer.locked ? Icons.lock : Icons.drag_handle,
+                            semanticLabel: t('ffReorder')))),
+              ]),
+              onTap: () => controller.selectDesignLayer(layer.id));
+        });
+  }
+
+  Future<void> _swap(BuildContext context) async {
+    final t = AppLocalizations.of(context).tr;
+    final frames = controller.project.design.ordered
+        .where((l) =>
+            l.isPhoto && !l.locked && l.id != controller.selectedDesignLayerId)
+        .toList();
+    final id = await showDialog<String>(
+        context: context,
+        builder: (context) => SimpleDialog(title: Text(t('ffSwap')), children: [
+              for (var i = 0; i < frames.length; i++)
+                SimpleDialogOption(
+                    onPressed: () => Navigator.pop(context, frames[i].id),
+                    child: Row(children: [
+                      FrameSourceThumbnail(
+                          photo: frames[i].source(controller.project.photos),
+                          cache: controller.previewImages),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text(
+                              '${t('ffFrame')} ${frames[i].photoSlot + 1}'))
+                    ])),
+            ]));
+    if (id != null) controller.swapFramePhotos(id);
   }
 
   Widget _action(BuildContext context, String key, IconData icon,

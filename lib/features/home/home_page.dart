@@ -64,6 +64,14 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
+                key: const ValueKey('new-freeform'),
+                onPressed: _picking || archiveBusy
+                    ? null
+                    : () => _newFreeform(context),
+                icon: const Icon(Icons.dashboard_customize_outlined),
+                label: Text(strings.tr('ffTitle')),
+              ),
+              OutlinedButton.icon(
                 key: const ValueKey('import-project'),
                 onPressed: archiveBusy
                     ? null
@@ -158,6 +166,28 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(AppLocalizations.of(context).tr('photoPickFailed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
+  Future<void> _newFreeform(BuildContext context) async {
+    if (_picking) return;
+    setState(() => _picking = true);
+    try {
+      final project = await ref
+          .read(projectRepositoryProvider)
+          .createFromPickedImages([], freeform: true);
+      await ref.read(projectsProvider.notifier).add(project);
+      if (context.mounted) {
+        await Navigator.push(context,
+            MaterialPageRoute(builder: (_) => EditorPage(project: project)));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).tr('operationFailed'))));
       }
     } finally {
       if (mounted) setState(() => _picking = false);
