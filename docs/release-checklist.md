@@ -250,6 +250,15 @@ this Windows source-only feature pass.
 
 ## Testgeräte und Regressionen
 
+- [ ] Freie Collage: 20 unterschiedliche hochauflösende JPEG/HEIC-Fotos auf
+  echten Android-/iOS-Geräten in Profile/Release prüfen: Speicher, Bildrate,
+  wiederholter PNG/JPEG-Export, Hintergrund/Resume und Ressourcenfreigabe.
+  Emulator-Messung und automatisierte Prüfungen stehen in
+  [freeform-collage.md](freeform-collage.md).
+- [ ] Rahmen-/Crop-Gesten, Rotation, Sperren, Platzhalter, spätere Fotoauswahl,
+  Vorlagenzuordnung, Archive und fehlende Dateien prüfen. TalkBack/VoiceOver,
+  kleine Displays, große Schrift und RTL auch mit nativer Tastatur testen.
+
 - [ ] Mindestens echtes Android auf aktuellem und niedrigstem unterstützten OS,
   Android 9/API 28 (falls unterstützt), Android 10+/API 29+, iPhone und iPad testen.
   Modell/OS/Buildnummer/Ergebnis protokollieren. Emulatoren ergänzen diese Tests.

@@ -4,7 +4,7 @@ PicLayout is a local-first Flutter photo collage editor for iOS and Android.
 
 The app focuses on the core workflow:
 
-1. Pick 1 to 12 photos.
+1. Pick 1 to 12 photos for a grid, or start a freeform collage with up to 20 frames.
 2. Confirm or reorder the selection.
 3. Choose an aspect ratio and layout.
 4. Adjust image crop, zoom, spacing, margin, corners, background, and staggered layouts.
@@ -12,21 +12,29 @@ The app focuses on the core workflow:
 
 ## Current Status
 
+**Freeform Collage:** Create an editable 9:16 mosaic with up to 20 independent
+photo frames. Move/resize/rotate frames, edit each crop separately, use Story
+Mosaic presets and empty placeholders, and reuse the existing Layers, Adjust,
+templates, autosave, archives and PNG/JPEG export workflows. Standard grids keep
+their 12-photo limit. See [Freeform Collage](docs/freeform-collage.md) for usage,
+architecture, validation, memory measurements and remaining device checks.
+
 **Photo Adjustments Studio:** **Adjust** provides non-destructive controls,
 copy/paste, apply-to-all, grouped undo/autosave and before/after comparison.
 Preview/export share GPU calculations, bounded preview decoding and recoverable
 project saves. See [Photo Adjustments Studio](docs/photo-adjustments-and-editor-polish.md)
 for the model, processing order, caching, compatibility and device checks.
 
-The Android emulator smoke suite now passes two integration tests for native
-shader/export agreement and twelve-photo editing, undo/redo, comparison and
-save/reopen. Run the suite with:
+The Android emulator smoke suite passes three integration tests for native
+shader/export agreement, twelve-photo editing and twenty-photo freeform editing,
+cache release, undo/redo, save/reopen and PNG/JPEG export. Run the suites with:
 
 ```sh
 flutter test integration_test/photo_adjustments_device_test.dart -d <device-id>
+flutter test integration_test/freeform_device_test.dart -d <device-id>
 ```
 
-This supplements the 192 host tests; physical-device profiling and iOS validation
+This supplements the host tests; physical-device profiling and iOS validation
 remain open.
 
 The Android and iOS platform projects are included. Development and CI use Flutter
@@ -35,7 +43,7 @@ real-device gallery/social sharing tests remain required before publication.
 Release preparation and remaining manual steps are tracked in
 [docs/release-checklist.md](docs/release-checklist.md).
 
-The Windows test suite passes all 192 tests in normal and serial runs, including
+The Windows test suite passes all 219 tests in normal and serial runs, including
 the editorial designs and corrected demo-image checks. The former temporary-image
 cleanup errors (OS error 32) are resolved;
 no tests are skipped or cleanup errors suppressed. The editor verification and
