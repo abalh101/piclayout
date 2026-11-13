@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'photo_filter_renderer.dart';
 
 /// Decodes only up to the requested long edge; callers own and dispose the image.
 Future<ui.Image> loadProjectImage(String path,
@@ -9,6 +10,7 @@ Future<ui.Image> loadProjectImage(String path,
       await ui.ImmutableBuffer.fromUint8List(await File(path).readAsBytes());
   ui.ImageDescriptor? descriptor;
   try {
+    await PhotoFilterRenderer.initialize();
     descriptor = await ui.ImageDescriptor.encoded(buffer);
     onSourceSize?.call(
         ui.Size(descriptor.width.toDouble(), descriptor.height.toDouble()));

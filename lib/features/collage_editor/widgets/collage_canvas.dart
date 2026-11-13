@@ -62,7 +62,9 @@ class _CollageCanvasState extends State<CollageCanvas> {
                   children: [
                     Positioned.fill(
                         child: IgnorePointer(
-                            child: StyledCollageScene(project: project))),
+                            child: StyledCollageScene(
+                                project: project,
+                                imageCache: controller.previewImages))),
                     for (final cell in cells)
                       if (!project.design.active &&
                           !controller.editingDividers &&

@@ -72,6 +72,8 @@ class DesignSheet extends StatelessWidget {
                                         aspectRatio: controller
                                             .project.aspectRatio.value,
                                         child: StyledCollageScene(
+                                            imageCache:
+                                                controller.previewImages,
                                             project: controller.project)))),
                           TabBar(
                               isScrollable: true,
@@ -262,13 +264,16 @@ class DesignSheet extends StatelessWidget {
             dense: true,
             key: ValueKey('design-layer-${layer.id}'),
             selected: selected?.id == layer.id,
-            leading: Icon(layer.locked
-                ? Icons.lock
-                : layer.isPhoto
-                    ? Icons.photo_outlined
-                    : layer.isText
-                        ? Icons.text_fields
-                        : Icons.layers_outlined),
+            leading: Badge(
+                isLabelVisible: selected?.id == layer.id,
+                label: const Icon(Icons.check, size: 10),
+                child: Icon(layer.locked
+                    ? Icons.lock
+                    : layer.isPhoto
+                        ? Icons.photo_outlined
+                        : layer.isText
+                            ? Icons.text_fields
+                            : Icons.layers_outlined)),
             title: Text(
                 layer.isText && layer.text.text.isNotEmpty
                     ? layer.text.text

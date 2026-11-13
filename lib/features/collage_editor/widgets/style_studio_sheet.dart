@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/canvas_style.dart';
 import '../models/style_presets.dart';
 import '../state/collage_editor_controller.dart';
+import 'adjustment_slider.dart';
 
 Future<void> showStyleStudio(
         BuildContext context, CollageEditorController controller) =>
@@ -30,16 +31,34 @@ class _StyleStudio extends StatelessWidget {
             controller.updateCanvas(settings.copyWith(style: value));
         Widget slider(String label, double value, double min, double max,
                 ValueChanged<double> update) =>
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${t(label)} · ${value.toStringAsFixed(1)}'),
-              Slider(
-                  value: value.clamp(min, max),
-                  min: min,
-                  max: max,
-                  onChangeStart: (_) => controller.beginCanvasEdit(),
-                  onChanged: update,
-                  onChangeEnd: (_) => controller.endCanvasEdit())
-            ]);
+            AdjustmentSlider(
+                label: t(label),
+                value: value,
+                min: min,
+                max: max,
+                neutral: switch (label) {
+                  'Verlaufsrichtung' => 45,
+                  'Blur-Stärke' => 16,
+                  'Bildabstand' => 2,
+                  'Rahmenstärke' => 3,
+                  'Schattenstärke' => .25,
+                  'Weichheit' => 8,
+                  _ => 0,
+                },
+                formatValue: (v) => v.toStringAsFixed(1),
+                resetLabel: t('reset'),
+                onStart: controller.beginCanvasEdit,
+                onEnd: controller.endCanvasEdit,
+                onChanged: update,
+                onReset: () => update(switch (label) {
+                      'Verlaufsrichtung' => 45,
+                      'Blur-Stärke' => 16,
+                      'Bildabstand' => 2,
+                      'Rahmenstärke' => 3,
+                      'Schattenstärke' => .25,
+                      'Weichheit' => 8,
+                      _ => 0,
+                    }));
         Widget colors(int value, ValueChanged<int> update) =>
             Wrap(spacing: 6, runSpacing: 6, children: [
               for (final entry in const <String, int>{

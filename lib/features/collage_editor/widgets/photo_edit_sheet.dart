@@ -69,7 +69,9 @@ class _PhotoEditorState extends State<_PhotoEditor> {
                   child: Center(
                       child: AspectRatio(
                           aspectRatio: project.aspectRatio.value,
-                          child: StyledCollageScene(project: preview)))),
+                          child: StyledCollageScene(
+                              project: preview,
+                              imageCache: widget.controller.previewImages)))),
               Expanded(
                   child: ListView(padding: const EdgeInsets.all(16), children: [
                 Wrap(spacing: 8, runSpacing: 8, children: [

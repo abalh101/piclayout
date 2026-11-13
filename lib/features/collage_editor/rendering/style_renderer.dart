@@ -190,18 +190,30 @@ class StyleRenderer {
     canvas.translate(center.dx, center.dy);
     if (transform.flipX) canvas.scale(-1, 1);
     canvas.rotate(rotation * math.pi / 2);
-    canvas.drawImageRect(
-        image,
-        Rect.fromLTWH(crop.left * image.width, crop.top * image.height,
-            crop.width * image.width, crop.height * image.height),
-        Rect.fromCenter(
-            center: Offset.zero,
-            width: source.width * baseScale * userScale,
-            height: source.height * baseScale * userScale),
-        Paint()
-          ..colorFilter = PhotoFilterRenderer.filter(adjustments)
-          ..isAntiAlias = true
-          ..filterQuality = FilterQuality.high);
+    final target = Rect.fromCenter(
+        center: Offset.zero,
+        width: source.width * baseScale * userScale,
+        height: source.height * baseScale * userScale);
+    if (adjustments.hasStudioEffects) {
+      canvas.drawRect(
+          target,
+          Paint()
+            ..shader = PhotoFilterRenderer.studioShader(
+                image, adjustments, target.size, crop));
+    } else {
+      canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(crop.left * image.width, crop.top * image.height,
+              crop.width * image.width, crop.height * image.height),
+          Rect.fromCenter(
+              center: Offset.zero,
+              width: source.width * baseScale * userScale,
+              height: source.height * baseScale * userScale),
+          Paint()
+            ..colorFilter = PhotoFilterRenderer.filter(adjustments)
+            ..isAntiAlias = true
+            ..filterQuality = FilterQuality.high);
+    }
     canvas.restore();
   }
 }

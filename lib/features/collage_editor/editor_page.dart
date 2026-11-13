@@ -6,6 +6,7 @@ import '../project_archive/project_archive_controller.dart';
 import '../stickers/sticker_sheet.dart';
 import '../custom_layouts/widgets/custom_layout_section.dart';
 import 'widgets/photo_edit_sheet.dart';
+import 'widgets/photo_adjustments_studio.dart';
 import 'widgets/style_studio_sheet.dart';
 import 'dart:async';
 
@@ -236,35 +237,50 @@ class _ToolsPanel extends ConsumerWidget {
                   ? 'tipDrag'
                   : 'tipPhoto',
             ),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              OutlinedButton.icon(
-                  key: const ValueKey('editorial-design'),
-                  onPressed: () => showDesignSheet(context, controller),
-                  icon: const Icon(Icons.auto_awesome_mosaic_outlined),
-                  label: Text(strings.tr('edDesign'))),
-              OutlinedButton.icon(
-                  key: const ValueKey('editorial-layers'),
-                  onPressed: () =>
-                      showDesignSheet(context, controller, layers: true),
-                  icon: const Icon(Icons.layers_outlined),
-                  label: Text(strings.tr('edLayers'))),
-              if (controller.editingDesignCrop)
-                FilledButton.icon(
-                    onPressed: () => controller.setDesignCropEditing(false),
-                    icon: const Icon(Icons.check),
-                    label: Text(strings.tr('edCropDone'))),
-              OutlinedButton.icon(
-                  key: const ValueKey('add-sticker'),
-                  onPressed: () => showStickerPicker(context, controller),
-                  icon: const Icon(Icons.emoji_emotions_outlined),
-                  label: Text(strings.tr('stickers'))),
-              if (controller.selectedSticker != null)
-                FilledButton.icon(
-                    key: const ValueKey('edit-sticker'),
-                    onPressed: () => showStickerEditor(context, controller),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: Text(strings.tr('stEdit'))),
-            ]),
+            SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: IconTheme(
+                    data: const IconThemeData(size: 20),
+                    child: Row(spacing: 8, children: [
+                      OutlinedButton.icon(
+                          key: const ValueKey('photo-adjustments'),
+                          onPressed: controller.selectedPhoto == null
+                              ? null
+                              : () => showPhotoAdjustmentsStudio(
+                                  context, controller),
+                          icon: const Icon(Icons.tune),
+                          label: Text(strings.tr('adjust'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('editorial-design'),
+                          onPressed: () => showDesignSheet(context, controller),
+                          icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                          label: Text(strings.tr('edDesign'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('editorial-layers'),
+                          onPressed: () => showDesignSheet(context, controller,
+                              layers: true),
+                          icon: const Icon(Icons.layers_outlined),
+                          label: Text(strings.tr('edLayers'))),
+                      if (controller.editingDesignCrop)
+                        FilledButton.icon(
+                            onPressed: () =>
+                                controller.setDesignCropEditing(false),
+                            icon: const Icon(Icons.check),
+                            label: Text(strings.tr('edCropDone'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('add-sticker'),
+                          onPressed: () =>
+                              showStickerPicker(context, controller),
+                          icon: const Icon(Icons.emoji_emotions_outlined),
+                          label: Text(strings.tr('stickers'))),
+                      if (controller.selectedSticker != null)
+                        FilledButton.icon(
+                            key: const ValueKey('edit-sticker'),
+                            onPressed: () =>
+                                showStickerEditor(context, controller),
+                            icon: const Icon(Icons.edit_outlined),
+                            label: Text(strings.tr('stEdit'))),
+                    ]))),
             const SizedBox(height: 12),
             ThumbnailStrip(controller: controller),
             const SizedBox(height: 12),

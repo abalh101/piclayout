@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import '../collage_editor/models/canvas_style.dart';
 import '../collage_editor/rendering/style_renderer.dart';
 import '../collage_editor/rendering/project_image_loader.dart';
+import '../collage_editor/rendering/photo_filter_renderer.dart';
 import '../collage_editor/rendering/layout_geometry.dart';
 import '../collage_editor/rendering/text_overlay_renderer.dart';
 import '../projects/models/collage_project.dart';
@@ -29,8 +30,25 @@ class CollageExporter {
     ExportSettings settings,
   ) async {
     final size = Size(settings.width.toDouble(), settings.height.toDouble());
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
+    var recorder = ui.PictureRecorder();
+    var canvas = Canvas(recorder);
+    // A recording retains native image references after Image.dispose().
+    // Flatten each source into the output-sized surface before decoding the
+    // next original, bounding retained source memory to one original.
+    Future<void> flatten() async {
+      final picture = recorder.endRecording();
+      ui.Image? flattened;
+      try {
+        flattened = await picture.toImage(settings.width, settings.height);
+      } finally {
+        picture.dispose();
+        recorder = ui.PictureRecorder();
+        canvas = Canvas(recorder);
+      }
+      canvas.drawImage(flattened, Offset.zero, Paint());
+      flattened.dispose();
+    }
+
     try {
       ui.Image? backdrop;
       try {
@@ -77,8 +95,12 @@ class CollageExporter {
             }
             EditorialRenderer.paintLayer(canvas, size, project, layer,
                 image: image, sourceSize: sourceSizes[photo?.localPath]);
+            if (image != null) await flatten();
           } finally {
-            image?.dispose();
+            if (image != null) {
+              PhotoFilterRenderer.releaseImage(image);
+              image.dispose();
+            }
           }
         }
       } else {
@@ -92,7 +114,9 @@ class CollageExporter {
             StyleRenderer.photo(
                 canvas, image, cell.rect, cell.cornerRadius, photo.transform,
                 adjustments: photo.adjustments);
+            await flatten();
           } finally {
+            PhotoFilterRenderer.releaseImage(image);
             image.dispose();
           }
         }

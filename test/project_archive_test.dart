@@ -76,8 +76,15 @@ void main() {
         photos: [
           for (final p in created.photos)
             p.copyWith(
-                adjustments:
-                    const PhotoAdjustments(preset: PhotoFilterPreset.warm),
+                adjustments: const PhotoAdjustments(
+                    preset: PhotoFilterPreset.warm,
+                    filterIntensity: .42,
+                    tint: -.2,
+                    highlights: -.3,
+                    shadows: .4,
+                    fade: .1,
+                    blackPoint: .2,
+                    vignette: .7),
                 transform:
                     const PhotoTransform(scale: 1.4, offsetX: .2, flipX: true))
         ]);

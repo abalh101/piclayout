@@ -3,6 +3,7 @@ import '../../editorial/models/editorial_design.dart';
 import '../../editorial/models/design_presets.dart';
 import '../../layout_recommendations/photo_metadata_reader.dart';
 import '../models/photo_metadata.dart';
+import '../rendering/preview_image_cache.dart';
 import '../../stickers/sticker_overlay.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import '../../custom_layouts/services/layout_builder_seed.dart';
@@ -43,6 +44,7 @@ final editorControllerProvider = ChangeNotifierProvider.autoDispose
 });
 
 class CollageEditorController extends ChangeNotifier {
+  final previewImages = PreviewImageCache();
   CollageEditorController({
     required CollageProject initialProject,
     required ProjectRepository repository,
@@ -599,14 +601,57 @@ class CollageEditorController extends ChangeNotifier {
     }
   }
 
-  void setAdjustments(String photoId, PhotoAdjustments adjustments) {
-    _mutate(_project.copyWith(photos: [
+  PhotoAdjustments? copiedAdjustments;
+
+  void copyAdjustments() {
+    copiedAdjustments = selectedPhoto?.adjustments;
+    notifyListeners();
+  }
+
+  void pasteAdjustments() {
+    if (selectedPhoto != null && copiedAdjustments != null) {
+      setAdjustments(selectedPhoto!.id, copiedAdjustments!);
+    }
+  }
+
+  void resetPhotoAdjustments() {
+    if (selectedPhoto != null) {
+      setAdjustments(selectedPhoto!.id, const PhotoAdjustments());
+    }
+  }
+
+  void applyAdjustmentsToAll({bool reset = false}) {
+    final value = reset ? const PhotoAdjustments() : selectedPhoto?.adjustments;
+    if (value == null || _disposed) return;
+    final next = _project.copyWith(photos: [
+      for (final photo in _project.photos) photo.copyWith(adjustments: value),
+    ]);
+    if (jsonEncode(next.toJson()) == jsonEncode(_project.toJson())) return;
+    _mutate(next);
+  }
+
+  void setAdjustments(String photoId, PhotoAdjustments adjustments,
+      {bool live = false}) {
+    if (_disposed) return;
+    final current = _project.photos.where((p) => p.id == photoId).firstOrNull;
+    if (current == null ||
+        jsonEncode(current.adjustments.toJson()) ==
+            jsonEncode(adjustments.toJson())) {
+      return;
+    }
+    final next = _project.copyWith(photos: [
       for (final photo in _project.photos)
         if (photo.id == photoId)
           photo.copyWith(adjustments: adjustments)
         else
           photo,
-    ]));
+    ]);
+    if (live) {
+      _project = next;
+      notifyListeners();
+    } else {
+      _mutate(next);
+    }
   }
 
   void setTransform(String photoId, PhotoTransform transform) {
@@ -633,7 +678,9 @@ class CollageEditorController extends ChangeNotifier {
       _redo.clear();
       notifyListeners();
     }
-    _scheduleAutosave();
+    if (start != null) {
+      _scheduleAutosave();
+    }
   }
 
   void resetSelectedTransform() {

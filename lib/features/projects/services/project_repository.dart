@@ -37,13 +37,19 @@ class ProjectRepository {
         continue;
       }
       final file = File(p.join(entity.path, 'project.json'));
-      if (!file.existsSync()) {
-        continue;
+      // A valid previous generation survives interruption or a corrupt primary.
+      CollageProject? project;
+      for (final candidate in [file, File('${file.path}.bak')]) {
+        try {
+          project = CollageProject.fromJson(
+              jsonDecode(await candidate.readAsString())
+                  as Map<String, dynamic>);
+          break;
+        } catch (_) {
+          // Try the retained generation. Never remove unreadable projects.
+        }
       }
-      try {
-        final json =
-            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-        final project = CollageProject.fromJson(json);
+      if (project != null) {
         projects.add(project.copyWith(
           photos: [
             for (final photo in project.photos)
@@ -53,8 +59,6 @@ class ProjectRepository {
               ),
           ],
         ));
-      } catch (_) {
-        // Corrupt projects are ignored here and can be handled by a repair flow later.
       }
     }
     projects.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -155,9 +159,22 @@ class ProjectRepository {
       const JsonEncoder.withIndent('  ').convert(json),
       flush: true,
     );
+    // Keep the last valid generation before atomic replacement. Copy to a
+    // separate staging file so an interrupted backup never destroys the backup.
     if (file.existsSync()) {
-      await file.delete();
+      var valid = false;
+      try {
+        CollageProject.fromJson(
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+        valid = true;
+      } catch (_) {/* Keep an existing recovery copy. */}
+      if (valid) {
+        final backupStage = File('${file.path}.bak.tmp');
+        await backupStage.writeAsBytes(await file.readAsBytes(), flush: true);
+        await backupStage.rename('${file.path}.bak');
+      }
     }
+    // File.rename replaces an existing file; never delete the destination first.
     await tmp.rename(file.path);
   }
 

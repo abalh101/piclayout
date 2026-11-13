@@ -12,13 +12,30 @@ The app focuses on the core workflow:
 
 ## Current Status
 
+**Photo Adjustments Studio:** **Adjust** provides non-destructive controls,
+copy/paste, apply-to-all, grouped undo/autosave and before/after comparison.
+Preview/export share GPU calculations, bounded preview decoding and recoverable
+project saves. See [Photo Adjustments Studio](docs/photo-adjustments-and-editor-polish.md)
+for the model, processing order, caching, compatibility and device checks.
+
+The Android emulator smoke suite now passes two integration tests for native
+shader/export agreement and twelve-photo editing, undo/redo, comparison and
+save/reopen. Run the suite with:
+
+```sh
+flutter test integration_test/photo_adjustments_device_test.dart -d <device-id>
+```
+
+This supplements the 192 host tests; physical-device profiling and iOS validation
+remain open.
+
 The Android and iOS platform projects are included. Development and CI use Flutter
 3.47.4 / Dart 3.13.3. Android debug builds are verified on Windows; iOS builds and
 real-device gallery/social sharing tests remain required before publication.
 Release preparation and remaining manual steps are tracked in
 [docs/release-checklist.md](docs/release-checklist.md).
 
-The Windows test suite passes all 168 tests in normal and serial runs, including
+The Windows test suite passes all 192 tests in normal and serial runs, including
 the editorial designs and corrected demo-image checks. The former temporary-image
 cleanup errors (OS error 32) are resolved;
 no tests are skipped or cleanup errors suppressed. The editor verification and

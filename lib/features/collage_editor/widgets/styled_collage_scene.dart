@@ -1,26 +1,30 @@
 import 'dart:ui' as ui;
 import '../../editorial/rendering/editorial_renderer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../projects/models/collage_project.dart';
 import '../models/canvas_style.dart';
 import '../rendering/layout_geometry.dart';
-import '../rendering/project_image_loader.dart';
+import '../rendering/preview_image_cache.dart';
 import '../rendering/style_renderer.dart';
 
 /// Decodes only when file paths change, never when style sliders move.
 class StyledCollageScene extends StatefulWidget {
-  const StyledCollageScene({required this.project, super.key});
+  const StyledCollageScene({required this.project, this.imageCache, super.key});
   final CollageProject project;
+  final PreviewImageCache? imageCache;
   @override
   State<StyledCollageScene> createState() => _StyledCollageSceneState();
 }
 
 class _StyledCollageSceneState extends State<StyledCollageScene> {
+  late final _cache = widget.imageCache ?? PreviewImageCache();
   final _images = <String, ui.Image>{};
   final _sourceSizes = <String, Size>{};
   final _requests = <String, Object>{};
   final _failed = <String>{};
+  final _leases = <String, PreviewImageLease>{};
   @override
   void initState() {
     super.initState();
@@ -35,9 +39,10 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
 
   void _sync() {
     final paths = widget.project.photos.map((p) => p.localPath).toSet();
-    for (final path in _images.keys.toList()) {
+    for (final path in _leases.keys.toList()) {
       if (!paths.contains(path)) {
-        _images.remove(path)?.dispose();
+        _leases.remove(path)!.release();
+        _images.remove(path);
         _sourceSizes.remove(path);
       }
     }
@@ -51,23 +56,23 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
       }
       final token = Object();
       _requests[path] = token;
+      _leases[path] = _cache.acquire(path);
       _load(path, token);
     }
   }
 
   Future<void> _load(String path, Object token) async {
     try {
-      Size? sourceSize;
-      final image = await loadProjectImage(path,
-          maxEdge: 1024, onSourceSize: (size) => sourceSize = size);
+      final lease = _leases[path]!;
+      final image = await lease.image;
       if (!mounted || _requests[path] != token) {
-        image.dispose();
         return;
       }
+      if (image == null) throw StateError('Photo unavailable');
       setState(() {
         _requests.remove(path);
         _images[path] = image;
-        _sourceSizes[path] = sourceSize!;
+        _sourceSizes[path] = lease.sourceSize!;
       });
     } catch (_) {
       if (mounted && _requests[path] == token) {
@@ -81,8 +86,8 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
 
   @override
   void dispose() {
-    for (final image in _images.values) {
-      image.dispose();
+    for (final lease in _leases.values) {
+      lease.release();
     }
     super.dispose();
   }
@@ -104,17 +109,29 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
                   rect: cell.rect,
                   child: Center(
                       child: FittedBox(
-                          child: Icon(
-                              _failed.contains(widget.project.photos[cell.photoIndex].localPath)
-                                  ? Icons.broken_image_outlined
-                                  : Icons.image_outlined,
-                              color: Colors.black54,
-                              semanticLabel: _failed.contains(widget.project
-                                      .photos[cell.photoIndex].localPath)
-                                  ? AppLocalizations.of(context)
-                                      .tr('photoLoadFailed')
-                                  : AppLocalizations.of(context)
-                                      .tr('recLoading'))))),
+                          child:
+                              Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                        _failed.contains(widget
+                                .project.photos[cell.photoIndex].localPath)
+                            ? Icons.broken_image_outlined
+                            : Icons.image_outlined,
+                        color: Colors.black54,
+                        semanticLabel: _failed.contains(widget
+                                .project.photos[cell.photoIndex].localPath)
+                            ? AppLocalizations.of(context).tr('photoLoadFailed')
+                            : AppLocalizations.of(context).tr('recLoading')),
+                    if (_failed.contains(
+                        widget.project.photos[cell.photoIndex].localPath))
+                      SizedBox(
+                          width: 120,
+                          child: Text(
+                              AppLocalizations.of(context)
+                                  .tr('photoLoadFailed'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.black87, fontSize: 12))),
+                  ])))),
         ]);
       });
 }
@@ -183,7 +200,11 @@ class _ScenePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ScenePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _ScenePainter oldDelegate) =>
+      !identical(project, oldDelegate.project) ||
+      !mapEquals(images, oldDelegate.images) ||
+      !mapEquals(sourceSizes, oldDelegate.sourceSizes) ||
+      !setEquals(failed, oldDelegate.failed);
 
   Size? _sizeFor(String? path) => sourceSizes[path];
 }

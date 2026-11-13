@@ -1,5 +1,35 @@
 # PicLayout Release-Checkliste
 
+## Photo Adjustments Studio (2026-11-13)
+
+Implementation, processing order, compatibility and limitations:
+[Photo Adjustments Studio](photo-adjustments-and-editor-polish.md).
+
+- [x] Android emulator smoke tests: native shader/PNG/JPEG agreement with
+  crop/rotation/flip; twelve 1600×1200 photos, live tint gesture, undo/redo,
+  comparison, save/reopen, exports and cache release. Android 17 / API 37,
+  x86_64, Impeller OpenGLES; two integration tests passed on 2026-11-13.
+- [ ] Profile 12 high-resolution photos on Android and iPhone/iPad, including
+  shader sliders, repeated exports, memory and background/resume.
+- [ ] Compare all controls with PNG/JPEG, crop/rotation/flip, transparent photos
+  and editorial callouts on platform GPU backends.
+- [ ] Verify hold/toggle comparison with TalkBack/VoiceOver, RTL, large type,
+  landscape/tablets, reset confirmation and one undo per gesture.
+- [ ] Exercise process interruption, recovered saves, low storage, missing photos,
+  gallery permission denial and rapid repeated export taps.
+
+Vignette is now implemented in Adjust. Sharpness remains unavailable.
+
+Validation on Windows: `dart format .` completed (125 Dart files),
+`flutter analyze` reported no issues, `flutter test` passed 192 tests, and
+`flutter test --concurrency=1` passed 192 tests without cleanup errors.
+`flutter build apk --debug` produced `build/app/outputs/flutter-apk/app-debug.apk`.
+Existing KGP/native-access/SDK-tooling warnings remain. Follow-up verification
+passed both Android emulator integration tests and all 192 host tests. The Flutter
+SDK's `integration_test` development dependency and its transitive test packages
+were added. Physical-device profiling and iOS verification remain open. No signing
+files or credentials were added; older sections retain their historical counts.
+
 Status: Quellcode für Release-Vorbereitung eingerichtet; Store-Freigabe erst nach
 den unten dokumentierten manuellen Prüfungen. Häkchen gelten pro Release-Kandidat.
 Keine Produktionsschlüssel oder Store-Zugangsdaten gehören ins Repository.
@@ -248,8 +278,8 @@ this Windows source-only feature pass.
 Produktions-Signing, echte Support-Mailbox, Store-Konten/ID-Registrierung,
 öffentliche Privacy-/Support-URLs, Store Assets, lokalisierte iOS-Purpose-Strings,
 Privacy-Manifest-Prüfung, finale App-Version sowie signierte Release- und echte
-Gerätetests müssen vom Betreiber abgeschlossen werden. Die optionale Vignette
-ist nicht implementiert und darf nicht als verfügbar beworben werden. Demo-Bilder,
+Gerätetests müssen vom Betreiber abgeschlossen werden. Schärfen ist nicht
+implementiert und darf nicht als verfügbar beworben werden. Demo-Bilder,
 Preset-Namen und Beispiel-Archivmanifest sind absichtliche Produkt-/Dokubeispiele.
 Storyboard-First-Responder-Platzhalter und CFBundleSignature `????` sind Xcode-
 Standardwerte, keine fehlenden App-Konfigurationswerte.

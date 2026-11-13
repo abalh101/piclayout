@@ -4,6 +4,82 @@ import '../models/photo_adjustments.dart';
 /// The same affine RGB transform is used in preview and file-based export.
 /// Bounded cache avoids recalculating matrices for unchanged photos.
 class PhotoFilterRenderer {
+  static FragmentProgram? _program;
+  static Future<void>? _loading;
+  static final _shaders = <Image, Map<String, FragmentShader>>{};
+  static int get cachedSourceCount => _shaders.length;
+
+  /// One compiled program, with four cached view configurations per source.
+  /// Canvas and sheet sizes can coexist without evicting each other every frame.
+  /// The image owner must call releaseImage before disposing that image.
+  static Future<void> initialize() => _loading ??= _initialize();
+  static Future<void> _initialize() async {
+    try {
+      _program =
+          await FragmentProgram.fromAsset('shaders/photo_adjustments.frag');
+    } catch (_) {
+      _loading = null;
+      rethrow;
+    }
+  }
+
+  static void releaseImage(Image image) {
+    for (final shader in _shaders.remove(image)?.values ?? <FragmentShader>[]) {
+      shader.dispose();
+    }
+  }
+
+  static FragmentShader studioShader(
+      Image image, PhotoAdjustments a, Size target, Rect crop) {
+    // Size/Rect.toString round coordinates and can collide for nearby crops.
+    final key = [
+      ...a.toJson().values,
+      target.width,
+      target.height,
+      crop.left,
+      crop.top,
+      crop.width,
+      crop.height
+    ].join(':');
+    final configurations = _shaders.putIfAbsent(image, () => {});
+    final cached = configurations.remove(key);
+    if (cached != null) {
+      configurations[key] = cached;
+      return cached;
+    }
+    final shader = _program!.fragmentShader();
+    final m = matrix(a);
+    final values = <double>[
+      target.width,
+      target.height,
+      crop.left,
+      crop.top,
+      crop.width,
+      crop.height,
+      ...m.sublist(0, 4),
+      ...m.sublist(5, 9),
+      ...m.sublist(10, 14),
+      m[4] / 255,
+      m[9] / 255,
+      m[14] / 255,
+      a.tint,
+      a.highlights,
+      a.shadows,
+      a.fade,
+      a.blackPoint,
+      a.vignette,
+    ];
+    for (var i = 0; i < values.length; i++) {
+      shader.setFloat(i, values[i]);
+    }
+    shader.setImageSampler(0, image);
+    configurations[key] = shader;
+    if (configurations.length > 4) {
+      configurations.remove(configurations.keys.first)!.dispose();
+    }
+    return shader;
+  }
+
   static final _cache = <String, ColorFilter>{};
   static const identity = <double>[
     1,

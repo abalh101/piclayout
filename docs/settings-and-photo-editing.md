@@ -34,7 +34,8 @@ Filter: Original, Warm, Cool, Black & White, High Contrast, Soft Fade, Vivid,
 Vintage, Sepia, Matte (Namen werden lokalisiert). Regler: Filterintensität,
 Helligkeit, Kontrast, Sättigung und Wärme. „Original“ entfernt den Preset-Effekt;
 manuelle Regler bleiben erhalten. „Zurücksetzen“ neutralisiert alle Foto-Effekte.
-Die optionale Vignette ist nicht implementiert.
+Vignette und weitere Regler sind jetzt im separaten Werkzeug **Anpassen** verfügbar;
+siehe [Photo Adjustments Studio](photo-adjustments-and-editor-polish.md).
 
 Ausschnitt, Zoom, Drehen, Spiegeln, Ersetzen, Entfernen und Fit/Fill bleiben
 verfügbar. Filteränderungen verändern keine Transformationsdaten. Beim Ersetzen

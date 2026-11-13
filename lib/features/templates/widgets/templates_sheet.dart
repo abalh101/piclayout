@@ -5,6 +5,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/state/collage_editor_controller.dart';
 import '../state/design_library_providers.dart';
+import 'template_preview.dart';
 
 Future<void> showSaveTemplateDialog(
   BuildContext context,
@@ -151,6 +152,7 @@ Future<void> showMyTemplatesSheet(
                               itemBuilder: (context, index) {
                                 final template = data.templates[index];
                                 return ListTile(
+                                  leading: TemplatePreview(template: template),
                                   title: Text(template.name),
                                   subtitle: Text(
                                     '${template.photoCount} ${strings.photo} · ${template.aspectRatioId}',
