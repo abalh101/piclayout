@@ -205,6 +205,27 @@ class ProjectRepository {
     );
   }
 
+  /// Only for fresh imports that have never entered a project/history snapshot.
+  /// Validate every target before deleting anything; original picker files are
+  /// never valid cleanup targets.
+  Future<void> discardImportedPhotos(
+      String projectId, Iterable<PhotoAsset> photos) async {
+    final dir = await _projectDirectory(projectId, create: false);
+    final images = p.normalize(p.absolute(p.join(dir.path, 'images')));
+    final targets = <File>[];
+    for (final photo in photos) {
+      final path = p.normalize(p.absolute(photo.localPath));
+      if (p.dirname(path) != images ||
+          p.basenameWithoutExtension(path) != photo.id) {
+        throw ArgumentError('Cleanup target is not an imported project photo');
+      }
+      targets.add(File(path));
+    }
+    for (final file in targets) {
+      if (await file.exists()) await file.delete();
+    }
+  }
+
   Future<CollageProject> duplicate(CollageProject source) async {
     final now = DateTime.now();
     final projectId = _uuid.v4();

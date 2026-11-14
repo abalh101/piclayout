@@ -207,6 +207,7 @@ class _FrameSourceThumbnailState extends State<FrameSourceThumbnail> {
       width: 40,
       height: 48,
       child: FutureBuilder<ui.Image?>(
+          key: ObjectKey(lease),
           future: lease?.image,
           builder: (context, snapshot) => snapshot.data == null
               ? const Icon(Icons.photo_outlined)

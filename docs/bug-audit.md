@@ -1,3 +1,40 @@
+# Bugcheck vom 14.11.2026: Freie Collage
+
+Der unterbrochene Korrekturdurchlauf ist abgeschlossen. Die Änderungen betreffen
+Rahmenbearbeitung, asynchrone Fotoimporte und die Darstellung leerer Rahmen.
+
+| Auslöser | Korrektur |
+| --- | --- |
+| Ungültiges Design mit mehr als 20 Rahmen anwenden | Validierung erfolgt vor Änderungen an Auswahl und Undo/Redo. Ein abgewiesenes Design lässt den bisherigen Zustand erhalten. |
+| Größenänderung eines seitenverhältnisgesperrten Rahmens an den Modellgrenzen | Beide Dimensionen verwenden einen gemeinsam begrenzten Skalierungsfaktor. Das Seitenverhältnis bleibt erhalten. |
+| Während eines Fotoaustauschs den Modus oder die Fotozuordnung ändern | Der Import prüft den aktuellen Rahmen erneut und überschreibt keine inzwischen geänderte Zuordnung. |
+| Fotoimport schlägt teilweise fehl, wird verworfen oder endet nach dem Schließen des Editors | Frische, noch nicht übernommene Projektkopien werden aufgeräumt; Originaldateien und Bilder aus Projekt-/Undo-Zuständen bleiben erhalten. Die Bereinigung prüft alle Zielpfade vor dem Löschen. |
+| Leerer Rahmen liegt hinter einer anderen Ebene | Platzhaltersymbol und Nummer werden innerhalb ihrer Ebene gezeichnet und berücksichtigen Rotation und Deckkraft. |
+| Quelle einer Rahmenminiatur wird ersetzt oder entfernt | Der Vorschaustatus wird mit der Bildreferenz erneuert; freigegebene Bilder werden nicht weiter angezeigt. |
+| Weitere Fotos zu einer bestehenden Collage hinzufügen | Die Auswahlprüfung zeigt keine wirkungslose Formatwahl mehr. |
+
+`test/freeform_bug_regression_test.dart` enthält zehn Regressionstests für
+Zustandserhalt, Seitenverhältnisse, konkurrierende Änderungen, Importfehler,
+Editor-Schließen, Ebenenüberdeckung und Bildfreigabe.
+
+Abschließende Prüfung unter Windows:
+
+- `flutter test --no-pub --reporter expanded --timeout 45s`: **229 bestanden**.
+  Lokales Protokoll: `build/freeform-bug-tests.log`.
+- `flutter analyze --no-pub`: keine Befunde.
+- `dart format --output=none --set-exit-if-changed lib test`: 132 Dateien,
+  keine Formatänderungen erforderlich.
+- `git diff --check`: keine Whitespace-Fehler.
+- `flutter build apk --debug --no-pub`: erfolgreich; aktualisierte APK unter
+  `build/app/outputs/flutter-apk/app-debug.apk`. Bestehende Hinweise zu Java
+  Native Access, Kotlin-Plugins und SDK-XML bleiben bestehen.
+
+In diesem Durchlauf ist kein Android-/iOS-Gerät verbunden; die drei erfolgreichen
+Emulatortests im Freeform-Bericht stammen aus dem vorherigen Funktionsdurchlauf.
+Native Galerie-/Sharing-Abläufe und echte Geräteleistung bleiben offen.
+
+---
+
 # Bugcheck vom 10.11.2026
 
 Geprüft wurden Editorzustände, Fotos und Ebenen, Vorlagen, Undo/Redo,

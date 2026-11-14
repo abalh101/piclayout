@@ -93,23 +93,25 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
                             key: const ValueKey('selection-photo-count'),
                             style: Theme.of(context).textTheme.titleMedium)),
                     const SizedBox(height: 12),
-                    Text(strings.format,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    Wrap(spacing: 8, children: [
-                      for (final ratio in AspectRatios.all)
-                        ChoiceChip(
-                          label: Text(ratio.label),
-                          selected: _ratioId == ratio.id,
-                          onSelected: _creating
-                              ? null
-                              : (_) => setState(() {
-                                    _ratioId = ratio.id;
-                                    _formatChosen = true;
-                                    _selectedLayout = null;
-                                  }),
-                        )
-                    ]),
-                    const SizedBox(height: 12),
+                    if (widget.onConfirm == null) ...[
+                      Text(strings.format,
+                          style: Theme.of(context).textTheme.titleMedium),
+                      Wrap(spacing: 8, children: [
+                        for (final ratio in AspectRatios.all)
+                          ChoiceChip(
+                            label: Text(ratio.label),
+                            selected: _ratioId == ratio.id,
+                            onSelected: _creating
+                                ? null
+                                : (_) => setState(() {
+                                      _ratioId = ratio.id;
+                                      _formatChosen = true;
+                                      _selectedLayout = null;
+                                    }),
+                          )
+                      ]),
+                      const SizedBox(height: 12),
+                    ],
                     if (!widget.freeform)
                       RecommendedLayouts(
                           recommendations: recommendations,

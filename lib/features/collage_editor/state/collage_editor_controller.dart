@@ -124,10 +124,13 @@ class CollageEditorController extends ChangeNotifier {
             _project.photos.length > AppConfig.maxPhotos)) {
       return;
     }
+    final next = _project
+        .copyWith(
+            design: design, aspectRatioId: story ? AspectRatios.story.id : null)
+        .normalizedForPhotoCount();
     selectedDesignLayerId = null;
     editingDesignCrop = false;
-    _mutate(_project.copyWith(
-        design: design, aspectRatioId: story ? AspectRatios.story.id : null));
+    _mutate(next);
   }
 
   void updateDesignSettings(EditorialDesign design, {bool live = false}) {
@@ -156,15 +159,15 @@ class CollageEditorController extends ChangeNotifier {
         _project.design.layers.where((l) => l.id == layer.id).firstOrNull;
     if (old == null || (old.locked && layer.locked)) return;
     if (_project.isFreeform && old.aspectLocked && layer.aspectLocked) {
-      if (layer.width != old.width && layer.height == old.height) {
-        final factor = (layer.width / old.width).clamp(
-            max(.02 / old.width, .02 / old.height),
-            min(1.5 / old.width, 1.5 / old.height));
-        layer = layer.copyWith(
-            width: old.width * factor, height: old.height * factor);
-      } else if (layer.height != old.height && layer.width == old.width) {
-        final factor = (layer.height / old.height).clamp(
-            max(.02 / old.width, .02 / old.height),
+      if (layer.width != old.width || layer.height != old.height) {
+        final widthFactor = layer.width / old.width;
+        final heightFactor = layer.height / old.height;
+        // Both dimensions may already have hit different model bounds during a
+        // pinch. Clamp one shared factor so the aspect lock survives the limits.
+        final requested = (widthFactor - 1).abs() > (heightFactor - 1).abs()
+            ? widthFactor
+            : heightFactor;
+        final factor = requested.clamp(max(.02 / old.width, .02 / old.height),
             min(1.5 / old.width, 1.5 / old.height));
         layer = layer.copyWith(
             width: old.width * factor, height: old.height * factor);
@@ -1019,6 +1022,7 @@ class CollageEditorController extends ChangeNotifier {
       );
 
   void _mutate(CollageProject next) {
+    next = next.normalizedForPhotoCount();
     endInteractiveTransform();
     endDividerDrag();
     if (jsonEncode(next.toJson()) == jsonEncode(_project.toJson())) return;
@@ -1027,7 +1031,7 @@ class CollageEditorController extends ChangeNotifier {
       _undo.removeAt(0);
     }
     _redo.clear();
-    _project = next.normalizedForPhotoCount();
+    _project = next;
     _validateDesignSelection();
     if (!canEditDividers) _editingDividers = false;
     notifyListeners();

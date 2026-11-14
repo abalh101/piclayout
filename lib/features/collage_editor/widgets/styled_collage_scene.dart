@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import '../../editorial/rendering/editorial_renderer.dart';
 import '../../editorial/models/editorial_design.dart';
 import 'package:flutter/material.dart';
@@ -120,39 +121,48 @@ class _StyledCollageSceneState extends State<StyledCollageScene> {
             for (final layer in widget.project.design.ordered)
               if (layer.visible && layer.opacity > 0)
                 Positioned.fill(
+                    key: ValueKey('frame-paint-${layer.id}'),
                     child: RepaintBoundary(
-                  key: ValueKey('frame-paint-${layer.id}'),
-                  child: CustomPaint(
-                      painter: FreeformLayerPainter(
-                          widget.project,
-                          layer,
-                          _images[
-                              layer.source(widget.project.photos)?.localPath],
-                          _sourceSizes[
-                              layer.source(widget.project.photos)?.localPath])),
-                )),
-          if (widget.project.isFreeform)
-            for (final layer in widget.project.design.ordered)
-              if (layer.isPhoto &&
-                  layer.visible &&
-                  layer.opacity > 0 &&
-                  !_images.containsKey(
-                      layer.source(widget.project.photos)?.localPath))
-                Positioned.fromRect(
-                    rect: layer.rect(constraints.biggest),
-                    child: IgnorePointer(
-                        child: Center(
-                            child: FittedBox(
-                                child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add_photo_alternate_outlined,
-                            semanticLabel:
-                                AppLocalizations.of(context).tr('ffFill')),
-                        Text('${layer.photoSlot + 1}',
-                            style: const TextStyle(color: Colors.black87))
-                      ],
-                    ))))),
+                      child: Stack(fit: StackFit.expand, children: [
+                        CustomPaint(
+                            painter: FreeformLayerPainter(
+                                widget.project,
+                                layer,
+                                _images[layer
+                                    .source(widget.project.photos)
+                                    ?.localPath],
+                                _sourceSizes[layer
+                                    .source(widget.project.photos)
+                                    ?.localPath])),
+                        if (layer.isPhoto &&
+                            !_images.containsKey(
+                                layer.source(widget.project.photos)?.localPath))
+                          Positioned.fromRect(
+                              rect: layer.rect(constraints.biggest),
+                              child: IgnorePointer(
+                                  child: Transform.rotate(
+                                      angle: layer.rotation * math.pi / 180,
+                                      child: Opacity(
+                                          opacity: layer.opacity,
+                                          child: Center(
+                                              child: FittedBox(
+                                                  child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                  Icons
+                                                      .add_photo_alternate_outlined,
+                                                  semanticLabel:
+                                                      AppLocalizations.of(
+                                                              context)
+                                                          .tr('ffFill')),
+                                              Text('${layer.photoSlot + 1}',
+                                                  style: const TextStyle(
+                                                      color: Colors.black87))
+                                            ],
+                                          ))))))),
+                      ]),
+                    )),
           for (final cell in cells)
             if (!widget.project.isFreeform &&
                 cell.photoIndex < widget.project.photos.length &&

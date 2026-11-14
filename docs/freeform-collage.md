@@ -143,6 +143,18 @@ toolchain migration. No tests were skipped or cleanup failures suppressed.
 
 ## Remaining device checks and limitations
 
+### Follow-up bug verification, 14 November 2026
+
+Ten additional regression tests cover rejected-design history, locked aspect
+ratios at size limits, stale photo replacements, failed/cancelled import cleanup,
+editor disposal, placeholder stacking and thumbnail image release. The full
+Windows suite now passes **229 tests** in the normal run; analysis and formatting
+also pass. The serial and emulator results above refer to the preceding feature
+pass. No mobile device is connected for this follow-up. Details and affected
+behaviors are recorded in [the bug audit](bug-audit.md).
+
+### Outstanding manual checks
+
 - Profile real Android and iOS devices with 20 distinct 12–48 MP JPEG/HEIC photos,
   repeated exports and background/resume; measure frame times, peak memory and
   thermal behavior in profile/release mode. The emulator fixture uses synthetic

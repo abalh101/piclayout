@@ -161,19 +161,31 @@ extension FreeformEditing on CollageEditorController {
   Future<void> fillFreeformFrame(XFile file) async {
     final frame = selectedDesignLayer;
     if (!project.isFreeform ||
+        _disposed ||
         frame == null ||
+        !frame.isPhoto ||
         frame.locked ||
         importingPhotos) {
       return;
     }
     importingPhotos = true;
     _notifyFreeform();
+    final sourceId = frame.source(project.photos)?.id;
+    PhotoAsset? imported;
+    var committed = false;
     try {
       final replacement = await _repository.importReplacement(file, project.id);
-      if (_disposed) return;
+      imported = replacement;
+      if (_disposed || !project.isFreeform) return;
       final current =
           project.design.layers.where((l) => l.id == frame.id).firstOrNull;
-      if (current == null || current.locked) return;
+      if (current == null ||
+          !current.isPhoto ||
+          current.locked ||
+          current.empty != frame.empty ||
+          current.source(project.photos)?.id != sourceId) {
+        return;
+      }
       final layers = [
         for (final l in project.design.layers)
           l.id == frame.id
@@ -193,14 +205,23 @@ extension FreeformEditing on CollageEditorController {
       _mutate(project.copyWith(
           photos: [...photos, replacement],
           design: project.design.copyWith(layers: layers)));
+      committed = true;
     } finally {
-      importingPhotos = false;
-      if (!_disposed) _notifyFreeform();
+      try {
+        if (!committed && imported != null) {
+          await _repository.discardImportedPhotos(project.id, [imported]);
+        }
+      } finally {
+        importingPhotos = false;
+        if (!_disposed) _notifyFreeform();
+      }
     }
   }
 
   Future<void> addFreeformPhotos(List<XFile> files) async {
-    if (!project.isFreeform || files.isEmpty || importingPhotos) return;
+    if (_disposed || !project.isFreeform || files.isEmpty || importingPhotos) {
+      return;
+    }
     final empty = project.design.ordered
         .where(
             (l) => l.isPhoto && !l.locked && l.source(project.photos) == null)
@@ -213,9 +234,11 @@ extension FreeformEditing on CollageEditorController {
     importingPhotos = true;
     _notifyFreeform();
     final imported = <PhotoAsset>[];
+    var committed = false;
     try {
       for (final file in files) {
         imported.add(await _repository.importReplacement(file, project.id));
+        if (_disposed || !project.isFreeform) return;
       }
       if (_disposed || !project.isFreeform) return;
       final layers = [...project.design.ordered];
@@ -245,9 +268,16 @@ extension FreeformEditing on CollageEditorController {
       _mutate(project.copyWith(
           photos: [...project.photos, ...imported],
           design: project.design.copyWith(layers: layers)));
+      committed = true;
     } finally {
-      importingPhotos = false;
-      if (!_disposed) _notifyFreeform();
+      try {
+        if (!committed && imported.isNotEmpty) {
+          await _repository.discardImportedPhotos(project.id, imported);
+        }
+      } finally {
+        importingPhotos = false;
+        if (!_disposed) _notifyFreeform();
+      }
     }
   }
 }
