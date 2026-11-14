@@ -837,9 +837,12 @@ class CollageEditorController extends ChangeNotifier {
       return;
     }
     _replacing = true;
+    PhotoAsset? imported;
+    var committed = false;
     try {
       final replacement =
           await _repository.importReplacement(picked, _project.id);
+      imported = replacement;
       if (_disposed || !_project.photos.any((item) => item.id == photo.id)) {
         return;
       }
@@ -855,8 +858,15 @@ class CollageEditorController extends ChangeNotifier {
       _mutate(_project.copyWith(
           photos: photos,
           design: _project.design.remapPhotos({photo.id: replacement.id})));
+      committed = true;
     } finally {
-      _replacing = false;
+      try {
+        if (!committed && imported != null) {
+          await _repository.discardImportedPhotos(_project.id, [imported]);
+        }
+      } finally {
+        _replacing = false;
+      }
     }
   }
 

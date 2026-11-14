@@ -149,8 +149,10 @@ class _DesignLayerInteractionsState extends State<DesignLayerInteractions> {
                               start.isPhoto &&
                               start.type != DesignLayerType.callout &&
                               _photoStart != null) {
+                            final photo = start.source(c.project.photos);
+                            if (photo == null) return;
                             c.updateTransformLive(
-                                start.source(c.project.photos)!.id,
+                                photo.id,
                                 _photoStart!.copyWith(
                                     scale: _photoStart!.scale * d.scale));
                           } else {

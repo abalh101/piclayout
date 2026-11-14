@@ -14,6 +14,7 @@ import 'package:piclayout/features/collage_editor/widgets/styled_collage_scene.d
 import 'package:piclayout/features/editorial/models/editorial_design.dart';
 import 'package:piclayout/features/editorial/models/freeform_presets.dart';
 import 'package:piclayout/features/editorial/widgets/freeform_tools.dart';
+import 'package:piclayout/features/editorial/widgets/design_layer_interactions.dart';
 import 'package:piclayout/features/projects/models/collage_project.dart';
 import 'package:piclayout/features/projects/services/project_repository.dart';
 import 'support/editorial_fixtures.dart';
@@ -37,6 +38,81 @@ class _DelayedRepository extends EditorialMemoryRepository {
 }
 
 void main() {
+  for (final action in ['close', 'remove', 'commit']) {
+    test('Standard replacement cleans up only discarded imports: $action',
+        () async {
+      final repository = _DelayedRepository();
+      final controller = CollageEditorController(
+          initialProject: editorialProject(count: 2), repository: repository);
+      if (action != 'close') addTearDown(controller.dispose);
+      final replacement = controller.project.photos.first.copyWith(id: 'fresh');
+      final pending = controller.replaceSelected(XFile('unused.png'));
+      if (action == 'close') controller.dispose();
+      if (action == 'remove') controller.removeSelected();
+      final before = controller.project.toJson();
+      repository.result.complete(replacement);
+      await pending;
+      if (action == 'commit') {
+        expect(repository.discarded, isEmpty);
+        expect(controller.project.photos.first.id, 'fresh');
+        controller.undo();
+        expect(controller.project.toJson(), before);
+        controller.redo();
+        expect(controller.project.photos.first.id, 'fresh');
+      } else {
+        expect(controller.project.toJson(), before);
+        expect(repository.discarded.map((photo) => photo.id), ['fresh']);
+      }
+    });
+  }
+
+  testWidgets('Pinching an editorial frame with a missing source is safe',
+      (tester) async {
+    const layer = DesignLayer(
+        id: 'missing',
+        type: DesignLayerType.photo,
+        photoId: 'removed',
+        width: .8,
+        height: .8);
+    final controller = CollageEditorController(
+        initialProject: editorialProject(count: 1).copyWith(
+            design: const EditorialDesign(
+                mode: DesignMode.editorial, layers: [layer])),
+        repository: EditorialMemoryRepository());
+    addTearDown(controller.dispose);
+    final before = controller.project.toJson();
+    await tester.pumpWidget(MaterialApp(
+        home: Center(
+            child: SizedBox(
+                width: 300,
+                height: 300,
+                child: Stack(children: [
+                  DesignLayerInteractions(
+                      controller: controller,
+                      size: const Size(300, 300),
+                      onEditLayer: () {})
+                ])))));
+    final center = tester.getCenter(find.byType(DesignLayerInteractions));
+    final left =
+        await tester.startGesture(center - const Offset(30, 0), pointer: 1);
+    final right =
+        await tester.startGesture(center + const Offset(30, 0), pointer: 2);
+    await tester.pump();
+    for (var i = 1; i <= 4; i++) {
+      await left.moveTo(center - Offset(30.0 + 10 * i, 0));
+      await right.moveTo(center + Offset(30.0 + 10 * i, 0));
+      await tester.pump();
+    }
+    await left.up();
+    await right.up();
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(controller.project.toJson(), before);
+    expect(controller.canUndo, isFalse);
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   test('Rejected design keeps project and existing redo history intact', () {
     final c = CollageEditorController(
         initialProject: _project(), repository: EditorialMemoryRepository());
