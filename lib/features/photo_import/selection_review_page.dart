@@ -16,16 +16,20 @@ import '../projects/state/project_providers.dart';
 import '../settings/state/settings_controller.dart';
 
 class SelectionReviewPage extends ConsumerStatefulWidget {
-  const SelectionReviewPage({required this.files, super.key});
+  const SelectionReviewPage(
+      {required this.files, this.freeform = false, this.onConfirm, super.key});
   final List<XFile> files;
+  final bool freeform;
+  final Future<void> Function(List<XFile>)? onConfirm;
   @override
   ConsumerState<SelectionReviewPage> createState() =>
       _SelectionReviewPageState();
 }
 
 class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
-  late final List<XFile> _files =
-      widget.files.take(AppConfig.maxPhotos).toList();
+  late final List<XFile> _files = widget.files
+      .take(widget.freeform ? AppConfig.maxFreeformFrames : AppConfig.maxPhotos)
+      .toList();
   final _metadata = <String, PhotoMetadata?>{};
   bool _creating = false, _loading = true, _formatChosen = false;
   String _ratioId = '9_16';
@@ -40,7 +44,9 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
     try {
       final settings = await ref.read(settingsControllerProvider.future);
       if (!mounted) return;
-      if (!_formatChosen) setState(() => _ratioId = settings.aspectRatioId);
+      if (!_formatChosen && !widget.freeform) {
+        setState(() => _ratioId = settings.aspectRatioId);
+      }
     } catch (_) {
       // The visible Story default remains usable if preferences are unavailable.
     }
@@ -82,26 +88,35 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
               header: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(strings.format,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    AspectRatioChoices(
-                      selectedId: _ratioId,
-                      onSelected: _creating
-                          ? null
-                          : (ratio) => setState(() {
-                                _ratioId = ratio.id;
-                                _formatChosen = true;
-                                _selectedLayout = null;
-                              }),
-                    ),
-                    const SizedBox(height: 12),
-                    RecommendedLayouts(
-                        recommendations: recommendations,
-                        targetRatio: AspectRatios.byId(_ratioId).value,
-                        selectedId: selected,
-                        loading: _loading || _creating,
-                        onSelected: (id) =>
-                            setState(() => _selectedLayout = id)),
+                    Semantics(
+                        liveRegion: true,
+                        child: Text(
+                            '${_files.length} / ${widget.freeform ? AppConfig.maxFreeformFrames : AppConfig.maxPhotos} ${strings.selectedPhotos}',
+                            key: const ValueKey('selection-photo-count'),
+                            style: Theme.of(context).textTheme.titleMedium)),
+                    if (widget.onConfirm == null) ...[
+                      Text(strings.format,
+                          style: Theme.of(context).textTheme.titleMedium),
+                      AspectRatioChoices(
+                        selectedId: _ratioId,
+                        onSelected: _creating
+                            ? null
+                            : (ratio) => setState(() {
+                                  _ratioId = ratio.id;
+                                  _formatChosen = true;
+                                  _selectedLayout = null;
+                                }),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (!widget.freeform)
+                      RecommendedLayouts(
+                          recommendations: recommendations,
+                          targetRatio: AspectRatios.byId(_ratioId).value,
+                          selectedId: selected,
+                          loading: _loading || _creating,
+                          onSelected: (id) =>
+                              setState(() => _selectedLayout = id)),
                   ]),
               itemCount: _files.length,
               onReorderItem: (oldIndex, newIndex) {
@@ -163,7 +178,9 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.auto_awesome_mosaic),
-                  label: Text(strings.createCollage),
+                  label: Text(widget.onConfirm == null
+                      ? strings.createCollage
+                      : strings.done),
                 )),
           ])),
         ));
@@ -175,8 +192,13 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
     final repository = ref.read(projectRepositoryProvider);
     final projects = ref.read(projectsProvider.notifier);
     try {
+      if (widget.onConfirm != null) {
+        await widget.onConfirm!(List.of(_files));
+        if (mounted) navigator.pop();
+        return;
+      }
       var project = await repository.createFromPickedImages(List.of(_files),
-          aspectRatioId: _ratioId);
+          aspectRatioId: _ratioId, freeform: widget.freeform);
       if (_selectedLayout != null) {
         project = project
             .copyWith(layoutTemplateId: _selectedLayout)

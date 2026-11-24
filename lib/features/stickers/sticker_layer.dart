@@ -10,10 +10,12 @@ class StickerLayer extends StatefulWidget {
       {required this.controller,
       required this.size,
       required this.onEdit,
+      this.interactive = true,
       super.key});
   final CollageEditorController controller;
   final Size size;
   final VoidCallback onEdit;
+  final bool interactive;
   @override
   State<StickerLayer> createState() => _StickerLayerState();
 }
@@ -30,8 +32,8 @@ class _StickerLayerState extends State<StickerLayer> {
           child: IgnorePointer(
               child: CustomPaint(
                   painter: StickerPainter(controller.project.stickers)))),
-      for (final sticker in controller.project.stickers)
-        if (!sticker.hidden)
+      if (widget.interactive)
+        for (final sticker in controller.project.stickers)
           Positioned.fromRect(
             rect: Rect.fromCenter(
                 center: StickerRenderer.bounds(sticker, widget.size).center,

@@ -1,4 +1,5 @@
 import '../../stickers/sticker_overlay.dart';
+import '../../editorial/models/editorial_design.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import 'package:uuid/uuid.dart';
 
@@ -6,6 +7,7 @@ import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
 import '../../collage_editor/models/canvas_settings.dart';
 import '../../collage_editor/models/photo_placement.dart';
+import '../../collage_editor/models/photo_adjustments.dart';
 import '../../collage_editor/models/text_overlay.dart';
 import '../../projects/models/collage_project.dart';
 
@@ -24,9 +26,15 @@ class CollageTemplate {
     this.stickers = const [],
     this.freestyle = false,
     this.placements = const [],
+    this.design = const EditorialDesign(),
+    this.photoStyles = const [],
   });
 
   final bool includeStickers;
+
+  /// Positional color settings only: never IDs, paths, or crop transforms.
+  final List<PhotoAdjustments> photoStyles;
+  final EditorialDesign design;
   final List<StickerOverlay> stickers;
   final String id;
   final String name;
@@ -48,11 +56,25 @@ class CollageTemplate {
     bool includeStickers = false,
   }) {
     return CollageTemplate(
+      photoStyles: project.photos.any((p) =>
+              p.adjustments.hasStudioEffects ||
+              p.adjustments.preset != PhotoFilterPreset.original ||
+              p.adjustments.filterIntensity != 1 ||
+              p.adjustments.brightness != 0 ||
+              p.adjustments.contrast != 1 ||
+              p.adjustments.saturation != 1 ||
+              p.adjustments.warmth != 0)
+          ? [for (final photo in project.photos) photo.adjustments]
+          : const [],
+      design: project.design
+          .asTemplate(project.photos, includeText: includeTextOverlays),
       includeStickers: includeStickers,
       stickers: includeStickers ? List.of(project.stickers) : const [],
       id: id,
       name: name.trim(),
-      photoCount: project.photos.length,
+      photoCount: project.isFreeform
+          ? project.design.layers.where((l) => l.isPhoto).length
+          : project.photos.length,
       aspectRatioId: project.aspectRatioId,
       layoutTemplateId: project.layoutTemplateId,
       customLayout: project.customLayout,
@@ -70,26 +92,31 @@ class CollageTemplate {
   CollageProject applyTo(CollageProject project) {
     final layout = LayoutLibrary.byIdOrDefault(
       layoutTemplateId,
-      project.photos.length,
+      project.photos.length.clamp(1, 12),
     );
     return project.copyWith(
+      design: design.bindPhotos(project.photos),
       stickers: includeStickers
           ? [for (final s in stickers) s.copyWith(id: const Uuid().v4())]
           : project.stickers,
       aspectRatioId: AspectRatios.byId(aspectRatioId).id,
       freestyle: freestyle,
-      photos: freestyle
-          ? [
-              for (var i = 0; i < project.photos.length; i++)
-                project.photos[i].copyWith(
-                  placement: i < placements.length
+      photos: [
+        for (var i = 0; i < project.photos.length; i++)
+          if (freestyle || i < photoStyles.length)
+            project.photos[i].copyWith(
+              adjustments: i < photoStyles.length ? photoStyles[i] : null,
+              placement: freestyle
+                  ? (i < placements.length
                       ? placements[i]
-                      : const PhotoPlacement(),
-                  clearPlacement:
-                      i < placements.length && placements[i] == null,
-                ),
-            ]
-          : project.photos,
+                      : const PhotoPlacement())
+                  : null,
+              clearPlacement:
+                  freestyle && i < placements.length && placements[i] == null,
+            )
+          else
+            project.photos[i],
+      ],
       layoutTemplateId: layout.id,
       customLayout: customLayout?.photoCount == project.photos.length
           ? customLayout
@@ -106,6 +133,9 @@ class CollageTemplate {
   }
 
   Map<String, Object?> toJson() => {
+        if (photoStyles.isNotEmpty)
+          'photoStyles': [for (final style in photoStyles) style.toJson()],
+        'design': design.toJson(),
         'includeStickers': includeStickers,
         'stickers': includeStickers
             ? stickers.map((s) => s.toJson()).toList()
@@ -129,6 +159,12 @@ class CollageTemplate {
   factory CollageTemplate.fromJson(Map<String, Object?> json) {
     final includeText = json['includeTextOverlays'] as bool? ?? false;
     return CollageTemplate(
+      photoStyles: [
+        for (final item in (json['photoStyles'] as List? ?? const []))
+          if (item is Map)
+            PhotoAdjustments.fromJson(Map<String, Object?>.from(item))
+      ],
+      design: EditorialDesign.fromJson(json['design']),
       includeStickers: json['includeStickers'] == true,
       stickers: json['includeStickers'] == true
           ? StickerOverlay.parseList(json['stickers'])

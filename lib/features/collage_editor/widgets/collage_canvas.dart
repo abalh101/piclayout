@@ -1,3 +1,6 @@
+import '../../editorial/widgets/design_layer_interactions.dart';
+import '../../editorial/widgets/design_sheet.dart';
+import 'canvas_divider_layer.dart';
 import '../../stickers/sticker_layer.dart';
 import '../../stickers/sticker_sheet.dart';
 import 'styled_collage_scene.dart';
@@ -83,6 +86,7 @@ class _CollageCanvasState extends State<CollageCanvas> {
                             child: IgnorePointer(
                                 child: StyledCollageScene(
                                     project: project,
+                                    imageCache: controller.previewImages,
                                     showMissingPhotoWarning: true))),
                         if (project.freestyle)
                           FreestyleLayer(
@@ -90,7 +94,9 @@ class _CollageCanvasState extends State<CollageCanvas> {
                               size: size,
                               onEditPhoto: widget.onEditPhoto),
                         for (final cell in cells)
-                          if (cell.photoIndex < project.photos.length)
+                          if (!project.design.active &&
+                              !controller.editingDividers &&
+                              cell.photoIndex < project.photos.length)
                             _PhotoCell(
                               key: ValueKey(project.photos[cell.photoIndex].id),
                               label:
@@ -119,8 +125,22 @@ class _CollageCanvasState extends State<CollageCanvas> {
                                 final change = details.scale / _gestureScale;
                                 _gestureScale = details.scale;
                                 if (current.fitMode == PhotoFitMode.fit ||
-                                    metadata == null ||
                                     !change.isFinite) {
+                                  return;
+                                }
+                                if (metadata == null) {
+                                  controller.updateTransformLive(
+                                      photo.id,
+                                      current.copyWith(
+                                        scale: (current.scale * change)
+                                            .clamp(1.0, 5.0),
+                                        offsetX: current.offsetX +
+                                            details.focalPointDelta.dx /
+                                                cell.rect.width,
+                                        offsetY: current.offsetY +
+                                            details.focalPointDelta.dy /
+                                                cell.rect.height,
+                                      ));
                                   return;
                                 }
                                 controller.updateTransformLive(
@@ -138,16 +158,30 @@ class _CollageCanvasState extends State<CollageCanvas> {
                                 );
                               },
                             ),
+                        if (project.design.active)
+                          DesignLayerInteractions(
+                              controller: controller,
+                              size: size,
+                              onEditPhoto: widget.onEditPhoto,
+                              onEditLayer: () => showDesignSheet(
+                                  context, controller,
+                                  layers: true)),
                         _TextOverlayLayer(
                           controller: controller,
+                          interactive: !controller.editingDividers,
                           size: size,
                           onEditText: widget.onEditText,
                         ),
                         StickerLayer(
                             controller: controller,
+                            interactive: !controller.editingDividers,
                             size: size,
                             onEdit: () =>
                                 showStickerEditor(context, controller)),
+                        if (controller.editingDividers)
+                          Positioned.fill(
+                              child: CanvasDividerLayer(
+                                  controller: controller, size: size)),
                       ],
                     )),
               );
@@ -163,11 +197,13 @@ class _TextOverlayLayer extends StatelessWidget {
   const _TextOverlayLayer({
     required this.controller,
     required this.size,
+    this.interactive = true,
     this.onEditText,
   });
 
   final CollageEditorController controller;
   final Size size;
+  final bool interactive;
   final VoidCallback? onEditText;
 
   @override
@@ -184,8 +220,9 @@ class _TextOverlayLayer extends StatelessWidget {
               ),
             ),
           ),
-          for (final overlay in overlays)
-            if (!overlay.hidden) _textHitTarget(context, overlay),
+          if (interactive)
+            for (final overlay in overlays)
+              if (!overlay.hidden) _textHitTarget(context, overlay),
         ],
       ),
     );
@@ -197,39 +234,56 @@ class _TextOverlayLayer extends StatelessWidget {
     layout.dispose();
     final selected = controller.selectedTextId == overlay.id;
     return Positioned.fromRect(
-      rect: bounds,
+      rect: Rect.fromCenter(
+          center: bounds.center,
+          width: math.max(48, bounds.width),
+          height: math.max(48, bounds.height)),
       child: Transform.rotate(
         angle: overlay.rotation * math.pi / 180,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => controller.selectText(overlay.id),
-          onDoubleTap: overlay.locked
-              ? null
-              : () {
-                  controller.selectText(overlay.id);
-                  onEditText?.call();
-                },
-          onPanStart: overlay.locked
-              ? null
-              : (details) =>
-                  controller.beginTextDrag(overlay.id, details.globalPosition),
-          onPanUpdate: overlay.locked
-              ? null
-              : (details) =>
-                  controller.updateTextDrag(details.globalPosition, size),
-          onPanEnd: overlay.locked ? null : (_) => controller.endTextDrag(),
-          onPanCancel: overlay.locked ? null : controller.endTextDrag,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: selected
-                  ? Border.all(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )
-                  : null,
-            ),
-          ),
-        ),
+        child: Semantics(
+            label: overlay.text,
+            button: true,
+            selected: selected,
+            onTap: overlay.locked
+                ? null
+                : () {
+                    controller.selectText(overlay.id);
+                    onEditText?.call();
+                  },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => controller.selectText(overlay.id),
+              onDoubleTap: overlay.locked
+                  ? null
+                  : () {
+                      controller.selectText(overlay.id);
+                      onEditText?.call();
+                    },
+              onPanStart: overlay.locked
+                  ? null
+                  : (details) => controller.beginTextDrag(
+                      overlay.id, details.globalPosition),
+              onPanUpdate: overlay.locked
+                  ? null
+                  : (details) =>
+                      controller.updateTextDrag(details.globalPosition, size),
+              onPanEnd: overlay.locked ? null : (_) => controller.endTextDrag(),
+              onPanCancel: overlay.locked ? null : controller.endTextDrag,
+              child: Center(
+                  child: SizedBox(
+                      width: bounds.width,
+                      height: bounds.height,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: selected
+                              ? Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                      ))),
+            )),
       ),
     );
   }

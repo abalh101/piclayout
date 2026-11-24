@@ -12,6 +12,8 @@ import '../../../app/app_config.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
 import '../../collage_editor/models/photo_asset.dart';
+import '../../editorial/models/freeform_presets.dart';
+import '../../editorial/models/editorial_design.dart';
 import '../models/collage_project.dart';
 
 class ProjectRepository {
@@ -22,6 +24,8 @@ class ProjectRepository {
   final Uuid _uuid;
   final Directory? _documentsDirectory;
   final Map<String, Future<void>> _pendingSaves = {};
+  final Map<String, Future<void>> _pendingDeletes = {};
+  final Set<String> _deletedProjects = {};
 
   Future<List<CollageProject>> loadProjects() async {
     final root = await _projectsRoot();
@@ -58,8 +62,13 @@ class ProjectRepository {
   }
 
   Future<CollageProject> createFromPickedImages(List<XFile> picked,
-      {String aspectRatioId = '9_16'}) async {
-    if (picked.isEmpty) throw ArgumentError.value(picked, 'picked');
+      {String aspectRatioId = '9_16', bool freeform = false}) async {
+    if ((!freeform && picked.isEmpty) ||
+        picked.length >
+            (freeform ? AppConfig.maxFreeformFrames : AppConfig.maxPhotos)) {
+      throw ArgumentError.value(picked.length, 'picked.length',
+          'Select 1 to ${AppConfig.maxPhotos} photos');
+    }
     final now = DateTime.now();
     return _withNewProjectDirectory((dir) async {
       final projectId = p.basename(dir.path);
@@ -67,7 +76,7 @@ class ProjectRepository {
         ..createSync(recursive: true);
       final photos = <PhotoAsset>[];
 
-      for (var i = 0; i < picked.length && i < AppConfig.maxPhotos; i++) {
+      for (var i = 0; i < picked.length; i++) {
         final source = picked[i];
         final extension = p.extension(source.path).isEmpty
             ? '.jpg'
@@ -89,17 +98,22 @@ class ProjectRepository {
           photos,
           targetRatio: AspectRatios.byId(aspectRatioId).value);
       final template = recommendations.isEmpty
-          ? LayoutLibrary.defaultFor(photos.length)
+          ? LayoutLibrary.defaultFor(
+              photos.length.clamp(1, AppConfig.maxPhotos))
           : recommendations.first.layout;
       final project = CollageProject(
         id: projectId,
-        name: 'Collage ${now.day}.${now.month}.${now.year}',
+        name:
+            '${freeform ? 'Freeform' : 'Collage'} ${now.day}.${now.month}.${now.year}',
         createdAt: now,
         updatedAt: now,
         formatVersion: AppConfig.projectFormatVersion,
         aspectRatioId: AspectRatios.byId(aspectRatioId).id,
         layoutTemplateId: template.id,
         photos: photos,
+        design: freeform
+            ? FreeformPresets.create('ffCanvas', photos)
+            : const EditorialDesign(),
       );
       await save(project);
       return project;
@@ -107,6 +121,9 @@ class ProjectRepository {
   }
 
   Future<void> save(CollageProject project) async {
+    if (_deletedProjects.contains(project.id)) {
+      throw StateError('Cannot save a deleted project');
+    }
     final previous = _pendingSaves[project.id] ?? Future<void>.value();
     final pending = previous.catchError((Object _) {}).then(
           (_) => _writeProject(project),
@@ -138,7 +155,8 @@ class ProjectRepository {
       for (final photo in normalized.photos)
         {
           ...photo.toJson(),
-          'localPath': p.join('images', p.basename(photo.localPath))
+          // Persist portable paths, independent of the host OS.
+          'localPath': 'images/${p.basename(photo.localPath)}'
         },
     ];
     final previous = await _readProject(file, project.id);
@@ -168,8 +186,8 @@ class ProjectRepository {
         return null;
       }
       final project = CollageProject.fromJson(json);
-      if (project.photos.isEmpty ||
-          project.photos.length > AppConfig.maxPhotos ||
+      if ((!project.isFreeform && project.photos.isEmpty) ||
+          project.photos.length > project.photoLimit ||
           project.photos.map((photo) => photo.id).toSet().length !=
               project.photos.length ||
           project.photos.any((photo) =>
@@ -183,11 +201,15 @@ class ProjectRepository {
       return null;
     } on TypeError {
       return null;
+    } on ArgumentError {
+      return null;
     }
   }
 
   Future<void> _atomicWrite(File destination, String contents) async {
-    final pending = File('${destination.path}.pending');
+    final suffix =
+        p.basename(destination.path) == 'project.json' ? 'tmp' : 'pending';
+    final pending = File('${destination.path}.$suffix');
     await pending.writeAsString(contents, flush: true);
     await pending.rename(destination.path);
   }
@@ -208,6 +230,27 @@ class ProjectRepository {
       localPath: target.path,
       metadata: await const PhotoMetadataReader().read(target.path),
     );
+  }
+
+  /// Only for fresh imports that have never entered a project/history snapshot.
+  /// Validate every target before deleting anything; original picker files are
+  /// never valid cleanup targets.
+  Future<void> discardImportedPhotos(
+      String projectId, Iterable<PhotoAsset> photos) async {
+    final dir = await _projectDirectory(projectId, create: false);
+    final images = p.normalize(p.absolute(p.join(dir.path, 'images')));
+    final targets = <File>[];
+    for (final photo in photos) {
+      final path = p.normalize(p.absolute(photo.localPath));
+      if (p.dirname(path) != images ||
+          p.basenameWithoutExtension(path) != photo.id) {
+        throw ArgumentError('Cleanup target is not an imported project photo');
+      }
+      targets.add(File(path));
+    }
+    for (final file in targets) {
+      if (await file.exists()) await file.delete();
+    }
   }
 
   Future<CollageProject> duplicate(CollageProject source) async {
@@ -239,6 +282,10 @@ class ProjectRepository {
         updatedAt: now,
         photos: photos,
         recovered: false,
+        design: source.design.remapPhotos({
+          for (var i = 0; i < photos.length; i++)
+            source.photos[i].id: photos[i].id,
+        }),
       );
       await save(copy);
       return copy;
@@ -250,7 +297,24 @@ class ProjectRepository {
         project.copyWith(name: name.trim().isEmpty ? project.name : name));
   }
 
-  Future<void> delete(CollageProject project) async {
+  Future<void> delete(CollageProject project) {
+    final previous = _pendingDeletes[project.id];
+    if (previous != null) return previous;
+    _deletedProjects.add(project.id);
+    final pending = _deleteProject(project);
+    _pendingDeletes[project.id] = pending;
+    pending.then((_) {
+      _pendingDeletes.remove(project.id);
+    }, onError: (Object _, StackTrace __) {
+      _pendingDeletes.remove(project.id);
+      _deletedProjects.remove(project.id);
+    });
+    return pending;
+  }
+
+  Future<void> _deleteProject(CollageProject project) async {
+    // Existing autosaves finish first. New saves are rejected once deletion
+    // starts, including late saves triggered by an editor's disposal.
     await _pendingSaves[project.id]?.catchError((Object _) {});
     final dir = await _projectDirectory(project.id);
     if (dir.existsSync()) {

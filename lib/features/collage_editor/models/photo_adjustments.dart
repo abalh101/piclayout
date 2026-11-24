@@ -20,21 +20,27 @@ class PhotoAdjustments {
       this.contrast = 1,
       this.saturation = 1,
       this.warmth = 0,
-      this.exposure = 0,
-      this.vignette = 0,
+      this.tint = 0,
       this.highlights = 0,
       this.shadows = 0,
+      this.fade = 0,
+      this.blackPoint = 0,
+      this.vignette = 0,
+      this.exposure = 0,
       this.sharpness = 0});
   final PhotoFilterPreset preset;
-  final double filterIntensity,
-      brightness,
-      contrast,
-      saturation,
-      warmth,
-      exposure,
-      vignette;
-  final double highlights, shadows, sharpness;
-  bool get usesDetail => highlights != 0 || shadows != 0 || sharpness != 0;
+  final double filterIntensity, brightness, contrast, saturation, warmth;
+  final double tint, highlights, shadows, fade, blackPoint, vignette;
+  final double exposure, sharpness;
+  bool get hasStudioEffects =>
+      tint != 0 ||
+      highlights != 0 ||
+      shadows != 0 ||
+      fade != 0 ||
+      blackPoint != 0 ||
+      vignette != 0 ||
+      sharpness != 0 ||
+      exposure != 0;
   PhotoAdjustments copyWith(
           {PhotoFilterPreset? preset,
           double? filterIntensity,
@@ -42,10 +48,13 @@ class PhotoAdjustments {
           double? contrast,
           double? saturation,
           double? warmth,
-          double? exposure,
-          double? vignette,
+          double? tint,
           double? highlights,
           double? shadows,
+          double? fade,
+          double? blackPoint,
+          double? vignette,
+          double? exposure,
           double? sharpness}) =>
       PhotoAdjustments(
           preset: preset ?? this.preset,
@@ -54,10 +63,13 @@ class PhotoAdjustments {
           contrast: contrast ?? this.contrast,
           saturation: saturation ?? this.saturation,
           warmth: warmth ?? this.warmth,
-          exposure: exposure ?? this.exposure,
-          vignette: vignette ?? this.vignette,
+          tint: tint ?? this.tint,
           highlights: highlights ?? this.highlights,
           shadows: shadows ?? this.shadows,
+          fade: fade ?? this.fade,
+          blackPoint: blackPoint ?? this.blackPoint,
+          vignette: vignette ?? this.vignette,
+          exposure: exposure ?? this.exposure,
           sharpness: sharpness ?? this.sharpness);
   Map<String, Object?> toJson() => {
         'preset': preset.name,
@@ -66,11 +78,14 @@ class PhotoAdjustments {
         'contrast': contrast,
         'saturation': saturation,
         'warmth': warmth,
+        'tint': tint,
+        'highlights': highlights,
+        'shadows': shadows,
+        'fade': fade,
+        'blackPoint': blackPoint,
+        'vignette': vignette,
         if (exposure != 0) 'exposure': exposure,
-        if (vignette != 0) 'vignette': vignette,
-        if (highlights != 0) 'highlights': highlights,
-        if (shadows != 0) 'shadows': shadows,
-        if (sharpness != 0) 'sharpness': sharpness,
+        if (sharpness != 0) 'sharpness': sharpness
       };
   factory PhotoAdjustments.fromJson(Map<String, Object?> json) {
     double number(String key, double fallback, double min, double max) {
@@ -89,10 +104,13 @@ class PhotoAdjustments {
         contrast: number('contrast', 1, 0, 2),
         saturation: number('saturation', 1, 0, 2),
         warmth: number('warmth', 0, -1, 1),
-        exposure: number('exposure', 0, -2, 2),
-        vignette: number('vignette', 0, 0, 1),
+        tint: number('tint', 0, -1, 1),
         highlights: number('highlights', 0, -1, 1),
         shadows: number('shadows', 0, -1, 1),
+        fade: number('fade', 0, 0, 1),
+        blackPoint: number('blackPoint', 0, 0, 1),
+        vignette: number('vignette', 0, 0, 1),
+        exposure: number('exposure', 0, -2, 2),
         sharpness: number('sharpness', 0, 0, 1));
   }
 }

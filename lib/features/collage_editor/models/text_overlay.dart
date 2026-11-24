@@ -13,6 +13,9 @@ class TextOverlay {
     this.alignment = TextOverlayAlignment.center,
     this.hidden = false,
     this.locked = false,
+    this.fontFamily,
+    this.padding = 8,
+    this.cornerRadius = 6,
   });
 
   final String id;
@@ -25,6 +28,8 @@ class TextOverlay {
   final double rotation; // Degrees.
   final TextOverlayAlignment alignment;
   final bool hidden, locked;
+  final String? fontFamily;
+  final double padding, cornerRadius;
 
   TextOverlay copyWith({
     String? id,
@@ -38,6 +43,9 @@ class TextOverlay {
     TextOverlayAlignment? alignment,
     bool? hidden,
     bool? locked,
+    String? fontFamily,
+    double? padding,
+    double? cornerRadius,
   }) {
     return TextOverlay(
       id: id ?? this.id,
@@ -53,6 +61,9 @@ class TextOverlay {
       alignment: alignment ?? this.alignment,
       hidden: hidden ?? this.hidden,
       locked: locked ?? this.locked,
+      fontFamily: fontFamily ?? this.fontFamily,
+      padding: (padding ?? this.padding).clamp(0, 32).toDouble(),
+      cornerRadius: (cornerRadius ?? this.cornerRadius).clamp(0, 40).toDouble(),
     );
   }
 
@@ -68,6 +79,9 @@ class TextOverlay {
         'alignment': alignment.name,
         if (hidden) 'hidden': true,
         if (locked) 'locked': true,
+        if (fontFamily != null) 'fontFamily': fontFamily,
+        'padding': padding,
+        'cornerRadius': cornerRadius,
       };
 
   static TextOverlay fromJson(Map<String, Object?> json) {
@@ -82,6 +96,10 @@ class TextOverlay {
       backgroundColor: json['backgroundColor'] as int?,
       hidden: json['hidden'] == true,
       locked: json['locked'] == true,
+      fontFamily: const ['serif', 'sans-serif', 'monospace']
+              .contains(json['fontFamily'])
+          ? json['fontFamily'] as String
+          : null,
       alignment: TextOverlayAlignment.values.firstWhere(
         (value) => value.name == alignmentName,
         orElse: () => TextOverlayAlignment.center,
@@ -91,6 +109,8 @@ class TextOverlay {
       y: (json['y'] as num?)?.toDouble() ?? 0.5,
       fontSize: (json['fontSize'] as num?)?.toDouble() ?? 32,
       rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+      padding: (json['padding'] as num?)?.toDouble() ?? 8,
+      cornerRadius: (json['cornerRadius'] as num?)?.toDouble() ?? 6,
     );
   }
 }

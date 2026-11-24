@@ -1,15 +1,14 @@
 import '../../collage_editor/models/aspect_ratio_preset.dart';
-import '../../collage_editor/models/photo_placement.dart';
-import '../../collage_editor/rendering/layout_geometry.dart';
 import '../models/built_in_designs.dart';
 import '../models/collage_template.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_localizations.dart';
-import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/state/collage_editor_controller.dart';
 import '../state/design_library_providers.dart';
+import 'template_preview.dart';
+import '../../editorial/widgets/freeform_tools.dart';
 
 Future<void> showSaveTemplateDialog(
   BuildContext context,
@@ -231,21 +230,53 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                               style: theme.textTheme.titleSmall)),
                     Card(
                       child: ListTile(
-                        leading: SizedBox(
-                            width: 54,
-                            height: 52,
-                            child:
-                                CustomPaint(painter: _TemplatePreview(item))),
+                        leading: TemplatePreview(template: item),
                         title: Text(title(item)),
                         subtitle: Text(
                             '${item.photoCount} ${t('Fotos')} · ${AspectRatios.byId(item.aspectRatioId).label}'),
                         onTap: () async {
+                          if (!item.design.freeform &&
+                              (project.photos.isEmpty ||
+                                  project.photos.length > 12)) {
+                            _notice(context, t('ffGridLimit'));
+                            return;
+                          }
+                          final ordered = item.design.freeform
+                              ? await orderFreeformPhotos(
+                                  context, widget.controller)
+                              : null;
+                          if (!context.mounted ||
+                              (item.design.freeform && ordered == null)) {
+                            return;
+                          }
+                          if (project.design.layers.isNotEmpty &&
+                              !item.design.freeform) {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text(t('edChangeDesign')),
+                                content: Text(t('edChangeWarning')),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: Text(strings.cancel)),
+                                  FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: Text(strings.applyTemplate)),
+                                ],
+                              ),
+                            );
+                            if (confirmed != true || !context.mounted) return;
+                          }
                           final messenger = ScaffoldMessenger.of(context);
                           final adjusted =
                               item.photoCount != project.photos.length;
-                          widget.controller.applyTemplate(item);
+                          widget.controller
+                              .applyTemplate(item, orderedPhotos: ordered);
                           Navigator.pop(context);
-                          if (adjusted) {
+                          if (adjusted && !item.design.freeform) {
                             messenger.showSnackBar(SnackBar(
                                 content: Text(strings.layoutAdjusted)));
                           }
@@ -306,63 +337,4 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
   void _notice(BuildContext context, String message) =>
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
-}
-
-class _TemplatePreview extends CustomPainter {
-  const _TemplatePreview(this.template);
-  final CollageTemplate template;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (template.photoCount < 1 || template.photoCount > 12) return;
-    final ratio = AspectRatios.byId(template.aspectRatioId).value;
-    final width = (size.height * ratio).clamp(0, size.width).toDouble();
-    final extent = Size(width, width / ratio);
-    final origin = (Offset.zero & size).center -
-        Offset(extent.width / 2, extent.height / 2);
-    final area = Offset.zero & extent;
-    final background = Color(template.canvas.backgroundColor);
-    final ink =
-        background.computeLuminance() > .40 ? Colors.black : Colors.white;
-    canvas.save();
-    canvas.translate(origin.dx, origin.dy);
-    canvas.clipRRect(RRect.fromRectAndRadius(area, const Radius.circular(4)));
-    canvas.drawColor(background, BlendMode.srcOver);
-    final paint = Paint()..color = ink.withValues(alpha: .30);
-    if (template.freestyle) {
-      for (final placement in template.placements) {
-        final item = placement ?? const PhotoPlacement();
-        if (item.hidden) continue;
-        final rect = item.rect(extent);
-        canvas.save();
-        canvas.translate(rect.center.dx, rect.center.dy);
-        canvas.rotate(item.radians);
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                rect.shift(-rect.center), const Radius.circular(2)),
-            paint);
-        canvas.restore();
-      }
-    } else {
-      final layout = LayoutLibrary.byIdOrDefault(
-          template.layoutTemplateId, template.photoCount);
-      final style = template.canvas;
-      final cells = template.customLayout?.layoutCells ??
-          LayoutLibrary.cellsFor(layout, staggerAmount: style.staggerAmount);
-      for (final cell in LayoutGeometry.resolveCells(cells, extent,
-          spacing: style.spacing + 4,
-          outerMargin: style.outerMargin,
-          cornerRadius: style.cornerRadius)) {
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                cell.rect, Radius.circular(cell.cornerRadius)),
-            paint);
-      }
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _TemplatePreview oldDelegate) =>
-      oldDelegate.template != template;
 }

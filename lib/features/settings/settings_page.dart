@@ -4,7 +4,6 @@ import '../tutorial_tips/tutorial_tip_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app/app_config.dart';
 import '../../core/localization/app_localizations.dart';
 import '../collage_editor/models/aspect_ratio_preset.dart';
 import '../export/export_settings.dart';
@@ -24,6 +23,7 @@ class SettingsPage extends ConsumerWidget {
     final strings = AppLocalizations.of(context);
     final t = strings.tr;
     final metadata = ref.watch(appMetadataProvider);
+    final reportService = ref.watch(problemReportServiceProvider);
     Future<void> update(AppSettings value) async {
       try {
         await ref.read(settingsControllerProvider.notifier).saveSettings(value);
@@ -64,47 +64,56 @@ class SettingsPage extends ConsumerWidget {
                   ListTile(
                       leading: const Icon(Icons.mail_outline),
                       title: Text(t('reportProblem')),
-                      onTap: () async {
-                        final service = ref.read(problemReportServiceProvider);
-                        final info = await ref
-                            .read(appMetadataProvider.future)
-                            .catchError((Object _) => const AppMetadata(
-                                version: '—', platform: '—', device: '—'));
-                        final opened =
-                            await service.open(info, prompt: t('reportPrompt'));
-                        if (!opened && context.mounted) {
-                          await showDialog<void>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                    title: Text(t('reportProblem')),
-                                    content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(t('noMail')),
-                                          const SizedBox(height: 12),
-                                          const SelectableText(
-                                              AppConfig.supportEmail)
-                                        ]),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () async {
-                                            await Clipboard.setData(
-                                                const ClipboardData(
-                                                    text: AppConfig
-                                                        .supportEmail));
-                                            if (context.mounted) {
-                                              _notice(context, t('copied'));
-                                            }
-                                          },
-                                          child: Text(t('copy'))),
-                                      TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: Text(strings.done))
-                                    ],
-                                  ));
-                        }
-                      }),
+                      subtitle: reportService.isConfigured
+                          ? null
+                          : Text(t('supportUnavailable')),
+                      onTap: !reportService.isConfigured
+                          ? null
+                          : () async {
+                              final service =
+                                  ref.read(problemReportServiceProvider);
+                              final info = await ref
+                                  .read(appMetadataProvider.future)
+                                  .catchError((Object _) => const AppMetadata(
+                                      version: '—',
+                                      platform: '—',
+                                      device: '—'));
+                              final opened = await service.open(info,
+                                  prompt: t('reportPrompt'));
+                              if (!opened && context.mounted) {
+                                await showDialog<void>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                          title: Text(t('reportProblem')),
+                                          content: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(t('noMail')),
+                                                const SizedBox(height: 12),
+                                                SelectableText(
+                                                    service.supportEmail)
+                                              ]),
+                                          actions: [
+                                            TextButton(
+                                                onPressed: () async {
+                                                  await Clipboard.setData(
+                                                      ClipboardData(
+                                                          text: service
+                                                              .supportEmail));
+                                                  if (context.mounted) {
+                                                    _notice(
+                                                        context, t('copied'));
+                                                  }
+                                                },
+                                                child: Text(t('copy'))),
+                                            TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: Text(strings.done))
+                                          ],
+                                        ));
+                              }
+                            }),
                   const Divider(),
                   ListTile(
                     key: const ValueKey('replay-onboarding'),

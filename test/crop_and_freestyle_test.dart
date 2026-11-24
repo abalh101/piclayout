@@ -19,6 +19,7 @@ import 'package:piclayout/features/collage_editor/state/collage_editor_controlle
 import 'package:piclayout/features/export/collage_exporter.dart';
 import 'package:piclayout/features/export/export_settings.dart';
 import 'package:piclayout/features/export/services/gallery_save_service.dart';
+import 'package:piclayout/features/editorial/models/freeform_presets.dart';
 import 'package:piclayout/features/project_archive/project_archive_service.dart';
 import 'package:piclayout/features/projects/models/collage_project.dart';
 import 'package:piclayout/features/projects/services/project_repository.dart';
@@ -40,6 +41,32 @@ Future<File> _solid(Directory root, String name, img.Color color) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('switching to Editorial Freeform preserves Freestyle placement for undo',
+      () {
+    final controller = CollageEditorController(
+        initialProject: layoutProject(count: 2),
+        repository: LayoutMemoryProjects());
+    addTearDown(controller.dispose);
+    controller.setFreestyle(true);
+    final photo = controller.project.photos.first;
+    const placement = PhotoPlacement(x: .21, y: .67, rotation: 34, border: .03);
+    controller.updatePlacement(photo.id, placement);
+    final design =
+        FreeformPresets.create('ffCanvas', controller.project.photos);
+    controller.applyDesign(design);
+    expect(controller.project.isFreeform, isTrue);
+    expect(controller.project.freestyle, isFalse);
+    expect(controller.project.photos.first.placement!.toJson(),
+        placement.toJson());
+    final reloaded = CollageProject.fromJson(controller.project.toJson());
+    expect(reloaded.design.layers.first.source(reloaded.photos)?.id, photo.id);
+    controller.undo();
+    expect(controller.project.freestyle, isTrue);
+    expect(controller.project.isFreeform, isFalse);
+    expect(controller.project.photos.first.placement!.toJson(),
+        placement.toJson());
+  });
 
   test(
       'recommendation categories rank crop, grids and hero layouts independently',

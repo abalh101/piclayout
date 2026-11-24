@@ -1,4 +1,6 @@
 import '../../stickers/sticker_overlay.dart';
+import '../../editorial/models/editorial_design.dart';
+import '../../../app/app_config.dart';
 import '../../custom_layouts/models/custom_layout.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
@@ -22,9 +24,11 @@ class CollageProject {
     this.stickers = const [],
     this.recovered = false,
     this.freestyle = false,
+    this.design = const EditorialDesign(),
   });
 
   final List<StickerOverlay> stickers;
+  final EditorialDesign design;
   final String id;
   final String name;
   final DateTime createdAt;
@@ -40,6 +44,9 @@ class CollageProject {
   final bool freestyle;
 
   AspectRatioPreset get aspectRatio => AspectRatios.byId(aspectRatioId);
+  bool get isFreeform => design.freeform;
+  int get photoLimit =>
+      isFreeform ? AppConfig.maxFreeformFrames : AppConfig.maxPhotos;
 
   CollageProject copyWith({
     String? id,
@@ -57,8 +64,10 @@ class CollageProject {
     bool clearCustomLayout = false,
     bool? recovered,
     bool? freestyle,
+    EditorialDesign? design,
   }) {
     return CollageProject(
+      design: design ?? this.design,
       stickers: stickers ?? this.stickers,
       id: id ?? this.id,
       name: name ?? this.name,
@@ -78,6 +87,17 @@ class CollageProject {
   }
 
   CollageProject normalizedForPhotoCount() {
+    if (freestyle && design.active) {
+      return copyWith(freestyle: false).normalizedForPhotoCount();
+    }
+    if (photos.length > photoLimit ||
+        (isFreeform &&
+            design.layers.where((l) => l.isPhoto).length >
+                AppConfig.maxFreeformFrames)) {
+      throw ArgumentError.value(photos.length, 'photos.length',
+          'Projects support at most ${AppConfig.maxPhotos} photos');
+    }
+    if (isFreeform) return this;
     if (photos.isEmpty) {
       return this;
     }
@@ -92,6 +112,7 @@ class CollageProject {
   }
 
   Map<String, Object?> toJson() => {
+        'design': design.toJson(),
         'stickers': stickers.map((s) => s.toJson()).toList(),
         'id': id,
         'name': name,
@@ -110,6 +131,7 @@ class CollageProject {
 
   static CollageProject fromJson(Map<String, Object?> json) {
     return CollageProject(
+      design: EditorialDesign.fromJson(json['design']),
       stickers: StickerOverlay.parseList(json['stickers']),
       freestyle: json['freestyle'] == true,
       customLayout: CustomLayout.tryParse(json['customLayout']),

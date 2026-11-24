@@ -1,6 +1,7 @@
 import '../demo_projects/demo_projects_page.dart';
 import '../project_archive/project_archive_actions.dart';
 import '../project_archive/project_archive_controller.dart';
+import '../collage_editor/widgets/styled_collage_scene.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,17 +10,22 @@ import 'package:image_picker/image_picker.dart';
 import '../../app/app_config.dart';
 import '../../core/localization/app_localizations.dart';
 import '../collage_editor/editor_page.dart';
-import '../collage_editor/widgets/styled_collage_scene.dart';
 import '../photo_import/selection_review_page.dart';
 import '../projects/models/collage_project.dart';
 import '../projects/state/project_providers.dart';
 import '../settings/settings_page.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  bool _picking = false;
+  @override
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final projects = ref.watch(projectsProvider);
     final archiveBusy = ref.watch(projectArchiveControllerProvider).busy;
@@ -71,10 +77,21 @@ class HomePage extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             FilledButton.icon(
-                              onPressed: () => _pickPhotos(context),
+                              onPressed: _picking || archiveBusy
+                                  ? null
+                                  : () => _pickPhotos(context),
                               icon: const Icon(
                                   Icons.add_photo_alternate_outlined),
                               label: Text(strings.newCollage),
+                            ),
+                            OutlinedButton.icon(
+                              key: const ValueKey('new-freeform'),
+                              onPressed: _picking || archiveBusy
+                                  ? null
+                                  : () => _newFreeform(context),
+                              icon: const Icon(
+                                  Icons.dashboard_customize_outlined),
+                              label: Text(strings.tr('ffTitle')),
                             ),
                             const SizedBox(height: 8),
                             Wrap(spacing: 8, runSpacing: 6, children: [
@@ -152,35 +169,46 @@ class HomePage extends ConsumerWidget {
   }
 
   Future<void> _pickPhotos(BuildContext context) async {
-    final strings = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final picker = ImagePicker();
-    final List<XFile> picked;
+    if (_picking) return;
+    setState(() => _picking = true);
     try {
-      picked = await picker.pickMultiImage(
-        limit: AppConfig.maxPhotos,
-        requestFullMetadata: false,
-      );
+      final picked = await ImagePicker().pickMultiImage(
+          limit: AppConfig.maxPhotos, requestFullMetadata: false);
+      if (!context.mounted || picked.isEmpty) return;
+      await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => SelectionReviewPage(files: picked)));
     } catch (_) {
       if (context.mounted) {
-        messenger.showSnackBar(
-            SnackBar(content: Text(strings.tr('operationFailed'))));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).tr('photoPickFailed'))));
       }
-      return;
+    } finally {
+      if (mounted) setState(() => _picking = false);
     }
-    if (!context.mounted) return;
-    if (picked.isEmpty) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(strings.permissionOrPickerCancelled)),
-      );
-      return;
+  }
+
+  Future<void> _newFreeform(BuildContext context) async {
+    if (_picking) return;
+    setState(() => _picking = true);
+    try {
+      final project = await ref
+          .read(projectRepositoryProvider)
+          .createFromPickedImages([], freeform: true);
+      await ref.read(projectsProvider.notifier).add(project);
+      if (context.mounted) {
+        await Navigator.push(context,
+            MaterialPageRoute(builder: (_) => EditorPage(project: project)));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).tr('operationFailed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _picking = false);
     }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SelectionReviewPage(files: picked),
-      ),
-    );
   }
 }
 
@@ -315,55 +343,59 @@ class _ProjectCard extends ConsumerWidget {
     CollageProject project,
   ) async {
     final notifier = ref.read(projectsProvider.notifier);
-    final strings = AppLocalizations.of(context);
     try {
       if (value == 'archive') {
         await exportProjectArchive(context, ref, project);
       } else if (value == 'rename') {
         final name = await _askName(context, project.name);
-        if (name != null) await notifier.rename(project, name);
+        if (name != null) {
+          await notifier.rename(project, name);
+        }
       } else if (value == 'duplicate') {
         final copy = await notifier.duplicate(project);
         if (context.mounted) {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => EditorPage(project: copy)));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => EditorPage(project: copy)),
+          );
         }
       } else if (value == 'delete') {
+        final strings = AppLocalizations.of(context);
         final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(strings.delete),
-            content: Text(strings.tr('confirmDeleteProject')),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(strings.cancel)),
-              FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(strings.delete)),
-            ],
-          ),
-        );
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: Text(strings.delete),
+                  content: Text(strings
+                      .tr('deleteProjectConfirm')
+                      .replaceAll('{name}', project.name)),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(strings.cancel)),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(strings.delete)),
+                  ],
+                ));
         if (confirmed == true) await notifier.delete(project);
       }
     } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(strings.tr('operationFailed'))));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context).tr('operationFailed'))));
       }
     }
   }
 
   Future<String?> _askName(BuildContext context, String current) async {
     final strings = AppLocalizations.of(context);
-    var name = current;
+    final controller = TextEditingController(text: current);
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(strings.projectName),
-        content: TextFormField(
-          initialValue: current,
-          onChanged: (value) => name = value,
+        content: TextField(
+          controller: controller,
           autofocus: true,
           decoration: InputDecoration(labelText: strings.projectName),
         ),
@@ -373,7 +405,7 @@ class _ProjectCard extends ConsumerWidget {
             child: Text(strings.cancel),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, name),
+            onPressed: () => Navigator.pop(context, controller.text),
             child: Text(strings.done),
           ),
         ],

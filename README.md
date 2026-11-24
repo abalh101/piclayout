@@ -1,12 +1,13 @@
 # PicLayout
 
-PicLayout is a local-first Flutter collage editor for Android and iOS. Pick and reorder 1–12 photos, compose them with a grid or a free canvas, then export an image or save a portable project for later editing.
+PicLayout is a local-first Flutter collage editor for Android and iOS. Reorder up to 12 photos in Grid or Freestyle, or start a Freeform design with up to 20 independent frames. Export an image or save an editable project archive.
 
 ## Editing
 
 - **Grid and Freestyle.** Choose automatic, built-in, or custom grid layouts. In Freestyle, drag, pinch, rotate, or resize each photo with its handle. Alignment guides can snap to the canvas and other visible photos. Per-photo opacity, corners, borders, and shadows are available in the photo controls.
-- **Formats.** Choose a standard or social preset, or enter a custom width and height. Custom ratios accept 1:4–4:1, with a live shape preview, orientation swap, recent ratios, and favorites.
-- **Photo adjustments.** Use fit or fill, zoom, pan, flip, and quarter-turn rotation. Edit exposure, brightness, contrast, saturation, warmth, highlights, shadows, sharpness, and vignette. Grayscale and sepia are available as presets. Compare with the original, reset individual controls, copy and paste adjustments, or apply a draft to all editable photos.
+- **Freeform and Editorial.** Start from an empty canvas or a Freeform preset with independent photo frames and per-frame crops. The Editorial and Story designs include masonry, numbered grids, torn photo strips, and detail callouts. Grid layouts with supported geometry offer direct divider editing.
+- **Formats.** The custom ratio picker accepts 1:4–4:1 and offers a live shape preview, orientation swap, recents, and favorites. Advanced ratios accept decimals and extend the range to 1:8–8:1, with library storage.
+- **Photo adjustments.** Use fit or fill, zoom, pan, flip, and quarter-turn rotation. The adjustment tools include exposure, brightness, contrast, saturation, warmth, tint, highlights, shadows, sharpness, fade, black point, and vignette. Grayscale and sepia are available as presets. Compare with the original, reset individual controls, copy and paste adjustments, or apply changes to all editable photos.
 - **Layers and styles.** Style Studio offers backgrounds, patterns, blur, and grid styling. Add text, stickers, and shapes. The Layers sheet manages visibility, locks, ordering, duplication, and deletion for overlay layers and Freestyle photos. Grid photos stay in the grid and can be reordered from the photo strip.
 - **Design library.** Browse six built-in designs and your own templates. Search, filter by aspect ratio or photo count, and browse favorites and recently used designs. Templates store geometry and style, with optional text and stickers. They contain no photos, image paths, or photo IDs.
 - **Smart Auto Layout.** Local geometry rules recommend layouts based on the original dimensions, photo order, rotation, and target canvas. Browse Best fit, Minimal crop, Balanced, Featured photo, and Creative. Recommendations preserve photo edits and overlay content.
@@ -34,7 +35,9 @@ flutter test
 flutter build apk --debug
 ```
 
-Run on a configured device with `flutter run`. Before a store release, configure the real support email in `lib/app/app_config.dart`, replace the example Android application ID and iOS bundle identifier with the intended production identifiers, and configure release signing. The repository currently uses Android debug signing in the release block. App version and build number come from `pubspec.yaml`.
+Run on a configured device with `flutter run`. Android and iOS use `com.abalh101.piclayout`. Android release builds require an external upload keystore configured through `android/key.properties`. Start from `android/key.properties.example`. Supply a production support address with `--dart-define=SUPPORT_EMAIL=...`. App version and build number come from `pubspec.yaml`.
+
+GitHub Actions runs the Flutter format, analysis, and test checks. The iOS workflow can build an unsigned IPA for inspection or a signed IPA with the appropriate Apple signing configuration. See the [release checklist](docs/release-checklist.md) and [iOS IPA workflow](docs/ios-ipa-builds.md).
 
 The native picker, Android MediaStore and Android 9 legacy gallery path, iOS Photos add-only authorization, and native share integrations are described in the device checklist. Real gallery, picker, and social handoffs need device verification.
 
@@ -53,3 +56,8 @@ python3 tool/generate_demo_assets.py
 - [Stickers, shapes, and labels](docs/stickers.md)
 - [Editable project archives](docs/project-archives.md)
 - [Onboarding and examples](docs/onboarding-and-examples.md)
+- [Freeform collage](docs/freeform-collage.md)
+- [Editorial and Story designs](docs/editorial-story-designs.md)
+- [Photo Adjustments Studio](docs/photo-adjustments-and-editor-polish.md)
+- [Advanced formats and crop behavior](docs/custom-formats-and-cropping.md)
+- [Canvas dividers and twelve-photo layouts](docs/twelve-photos-and-dividers.md)

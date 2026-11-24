@@ -28,7 +28,9 @@ class AspectRatioPreset {
   double get value => width / height;
 
   List<ExportSizePreset> exportSizes() {
-    final largest = math.min(2160, (4096 / math.max(value, 1 / value)).floor());
+    final longest = math.max(value, 1 / value);
+    final maxEdge = longest > 4 ? 8192 : 4096;
+    final largest = math.min(2160, (maxEdge / longest).floor());
     return [.5, 2 / 3, 1].map((fraction) {
       final isPortrait = height >= width;
       final short = (largest * fraction).round();
@@ -87,10 +89,12 @@ class AspectRatios {
   }
 
   static AspectRatioPreset? customById(String id) {
-    final match = RegExp(r'^custom_([0-9]{1,5})_([0-9]{1,5})$').firstMatch(id);
-    return match == null
-        ? null
-        : custom(int.parse(match[1]!), int.parse(match[2]!));
+    final match = RegExp(r'^custom_(\d{1,10})_(\d{1,10})$').firstMatch(id);
+    if (match == null) return null;
+    final w = int.parse(match[1]!);
+    final h = int.parse(match[2]!);
+    if (w <= 0 || h <= 0 || w / h < 1 / 8 || w / h > 8) return null;
+    return AspectRatioPreset(id: id, label: '$w:$h', width: w, height: h);
   }
 
   static AspectRatioPreset? custom(int? width, int? height) {
@@ -112,11 +116,43 @@ class AspectRatios {
   }
 
   static int? parseDimension(String value) {
-    const digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹';
-    final normalized = value.trim().replaceAllMapped(
-        RegExp('[$digits]'), (match) => '${digits.indexOf(match[0]!) % 10}');
+    final normalized = _normalizeDigits(value).trim();
     return RegExp(r'^[0-9]{1,5}$').hasMatch(normalized)
         ? int.tryParse(normalized)
         : null;
+  }
+
+  static String _normalizeDigits(String input) {
+    const digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹';
+    return input.replaceAllMapped(
+        RegExp('[$digits]'), (match) => '${digits.indexOf(match[0]!) % 10}');
+  }
+
+  /// Accept width/height units or a ratio; at most three decimal places.
+  static AspectRatioPreset parse(String width, String height) {
+    int units(String input) {
+      final text = _normalizeDigits(input).trim().replaceAll(',', '.');
+      if (!RegExp(r'^\d{1,7}(\.\d{1,3})?$').hasMatch(text)) {
+        throw const FormatException('Invalid dimension');
+      }
+      final value = double.parse(text);
+      if (value <= 0 || value > 1000000) {
+        throw const FormatException('Invalid dimension');
+      }
+      return (value * 1000).round();
+    }
+
+    var w = units(width), h = units(height);
+    if (w / h < 1 / 8 || w / h > 8) {
+      throw const FormatException('Ratio must be between 1:8 and 8:1');
+    }
+    final divisor = w.gcd(h);
+    w ~/= divisor;
+    h ~/= divisor;
+    for (final preset in all) {
+      if (w * preset.height == h * preset.width) return preset;
+    }
+    return AspectRatioPreset(
+        id: 'custom_${w}_$h', label: '$w:$h', width: w, height: h);
   }
 }

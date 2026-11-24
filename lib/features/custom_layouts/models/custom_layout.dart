@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../app/app_config.dart';
 import '../../collage_editor/models/layout_template.dart';
 
 enum DividerAxis { vertical, horizontal }
@@ -78,7 +79,7 @@ class CustomLayout {
     if (id.isEmpty ||
         name.trim().isEmpty ||
         photoCount < 1 ||
-        photoCount > 12 ||
+        photoCount > AppConfig.maxPhotos ||
         cells.length != photoCount) {
       return false;
     }

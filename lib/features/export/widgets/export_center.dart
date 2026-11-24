@@ -167,9 +167,12 @@ class _ExportCenterState extends State<ExportCenter> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                                 color: scheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(16)),
+                                borderRadius: BorderRadius.circular(8)),
                             child: Text(
-                                '${_preset.width} × ${_preset.height} ${t('pixelUnit')}',
+                                t('exportPixels')
+                                    .replaceAll('{width}', '${_preset.width}')
+                                    .replaceAll(
+                                        '{height}', '${_preset.height}'),
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
@@ -265,7 +268,11 @@ class _ExportCenterState extends State<ExportCenter> {
                                         strokeWidth: 2))
                                 : Icon(_icon(_destination)),
                             label: Text(_flow.busy
-                                ? t('Bild wird vorbereitet …')
+                                ? t(switch (_flow.phase) {
+                                    ExportPhase.saving => 'exportSaving',
+                                    ExportPhase.sharing => 'exportSharing',
+                                    _ => 'Bild wird vorbereitet …',
+                                  })
                                 : _destination == SocialShareDestination.gallery
                                     ? t('In Galerie speichern')
                                     : t('Bild vorbereiten & teilen')),
@@ -292,11 +299,12 @@ class _ExportCenterState extends State<ExportCenter> {
     final origin = box.localToGlobal(Offset.zero) & box.size;
     final messenger = ScaffoldMessenger.of(context);
     void notice(String message) {
-      if (mounted) {
-        setState(() => _message = AppLocalizations.of(context).tr(message));
-      }
+      if (!mounted) return;
+      message = AppLocalizations.of(context).tr(message);
+      setState(() => _message = message);
     }
 
+    setState(() => _message = null);
     try {
       final result = await _flow.run(
           project: widget.project,
@@ -311,9 +319,9 @@ class _ExportCenterState extends State<ExportCenter> {
       if (mounted &&
           result != null &&
           _destination == SocialShareDestination.gallery) {
+        final message = AppLocalizations.of(context).tr(result);
         Navigator.pop(context);
-        messenger.showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).tr(result))));
+        messenger.showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (error) {
       if (mounted) {

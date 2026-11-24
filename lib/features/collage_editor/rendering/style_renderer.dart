@@ -1,17 +1,17 @@
+import '../models/photo_placement.dart';
+import '../models/photo_asset.dart';
+import '../../projects/models/collage_project.dart';
 import '../models/photo_adjustments.dart';
 import 'photo_filter_renderer.dart';
-import 'photo_detail_renderer.dart';
 import 'dart:math' as math;
+import 'crop_geometry.dart';
+import 'photo_crop.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../models/canvas_settings.dart';
 import '../models/canvas_style.dart';
 import '../models/photo_transform.dart';
-import '../models/photo_placement.dart';
-import '../models/photo_asset.dart';
-import '../../projects/models/collage_project.dart';
 import 'layout_geometry.dart';
-import 'crop_geometry.dart';
 
 class StyleRenderer {
   const StyleRenderer._();
@@ -182,64 +182,56 @@ class StyleRenderer {
   static void photo(Canvas canvas, ui.Image image, Rect cell, double radius,
       PhotoTransform transform,
       {PhotoAdjustments adjustments = const PhotoAdjustments(),
-      ui.FragmentProgram? detailProgram}) {
+      Size? sourceSize,
+      Rect? sourceCrop,
+      bool allowFitTransform = false}) {
+    final crop = sourceCrop ?? const Rect.fromLTWH(0, 0, 1, 1);
+    final fullSource =
+        sourceSize ?? Size(image.width.toDouble(), image.height.toDouble());
+    final source =
+        Size(fullSource.width * crop.width, fullSource.height * crop.height);
+    var geometry = CropGeometry.resolve(cell, source, transform);
+    if (allowFitTransform && transform.fitMode == PhotoFitMode.fit) {
+      final fit = PhotoCrop.clamp(transform, source, cell.size);
+      geometry = (
+        center: cell.center +
+            Offset(fit.offsetX * cell.width, fit.offsetY * cell.height),
+        imageSize: geometry.imageSize * fit.scale,
+        zoom: fit.scale,
+      );
+    }
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(cell, Radius.circular(radius)));
-    final vignette = adjustments.vignette.clamp(0.0, 1.0);
-    if (vignette > 0) canvas.saveLayer(cell, Paint());
-    canvas.save();
-    final rotation = transform.rotationQuarterTurns % 4;
-    final source = Size(image.width.toDouble(), image.height.toDouble());
-    final crop = CropGeometry.resolve(cell, source, transform);
-    final center = crop.center;
-    canvas.translate(center.dx, center.dy);
+    canvas.translate(geometry.center.dx, geometry.center.dy);
     if (transform.flipX) canvas.scale(-1, 1);
-    canvas.rotate(rotation * math.pi / 2);
-    final destination = Rect.fromCenter(
+    canvas.rotate(transform.rotationQuarterTurns % 4 * math.pi / 2);
+    final target = Rect.fromCenter(
         center: Offset.zero,
-        width: crop.imageSize.width,
-        height: crop.imageSize.height);
-    final paint = Paint()
-      ..colorFilter = PhotoFilterRenderer.filter(adjustments)
-      ..isAntiAlias = true
-      ..filterQuality = FilterQuality.high;
-    if (detailProgram != null && adjustments.usesDetail) {
-      PhotoDetailRenderer.paint(
-          canvas, image, destination, paint, adjustments, detailProgram);
+        width: geometry.imageSize.width,
+        height: geometry.imageSize.height);
+    if (adjustments.hasStudioEffects) {
+      canvas.drawRect(
+          target,
+          Paint()
+            ..shader = PhotoFilterRenderer.studioShader(
+                image, adjustments, target.size, crop));
     } else {
       canvas.drawImageRect(
           image,
-          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-          destination,
-          paint);
-    }
-    canvas.restore();
-    if (vignette > 0) {
-      canvas.save();
-      canvas.translate(cell.center.dx, cell.center.dy);
-      canvas.scale(cell.width / 2, cell.height / 2);
-      canvas.drawRect(
-          const Rect.fromLTRB(-1, -1, 1, 1),
+          Rect.fromLTWH(crop.left * image.width, crop.top * image.height,
+              crop.width * image.width, crop.height * image.height),
+          target,
           Paint()
-            ..blendMode = BlendMode.srcATop
-            ..shader = ui.Gradient.radial(Offset.zero, math.sqrt2, [
-              Colors.transparent,
-              Colors.black.withValues(alpha: vignette * .48),
-              Colors.black.withValues(alpha: vignette * .85),
-            ], [
-              .28,
-              .72,
-              1
-            ]));
-      canvas.restore();
-      canvas.restore();
+            ..colorFilter = PhotoFilterRenderer.filter(adjustments)
+            ..isAntiAlias = true
+            ..filterQuality = FilterQuality.high);
     }
     canvas.restore();
   }
 
   static void freestylePhoto(
       Canvas canvas, Size size, PhotoAsset photoAsset, ui.Image? image,
-      {Color? placeholder, ui.FragmentProgram? detailProgram}) {
+      {Color? placeholder, Size? sourceSize}) {
     final placement = photoAsset.placement ?? const PhotoPlacement();
     if (placement.hidden ||
         placement.opacity == 0 ||
@@ -269,7 +261,7 @@ class StyleRenderer {
       canvas.drawRRect(outline, Paint()..color = placeholder!);
     } else {
       photo(canvas, image, rect, radius, photoAsset.transform,
-          adjustments: photoAsset.adjustments, detailProgram: detailProgram);
+          adjustments: photoAsset.adjustments, sourceSize: sourceSize);
     }
     if (placement.border > 0) {
       canvas.save();

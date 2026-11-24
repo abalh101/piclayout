@@ -37,17 +37,28 @@ class _PhotoEditorState extends State<_PhotoEditor> {
     final strings = AppLocalizations.of(context);
     final t = strings.tr;
     final project = widget.controller.project;
-    final preview = project.copyWith(photos: [
-      for (final photo in project.photos)
-        if ((photo.id == widget.photo.id || _all) &&
-            (!project.freestyle || photo.placement?.locked != true))
-          photo.copyWith(
-              adjustments: _original ? const PhotoAdjustments() : _draft)
-        else
-          photo
-    ]);
+    final adjusted = _original ? const PhotoAdjustments() : _draft;
+    final preview = !_all
+        ? widget.controller.adjustmentPreview(adjusted)
+        : project.isFreeform
+            ? project.copyWith(
+                design: project.design.copyWith(layers: [
+                for (final layer in project.design.layers)
+                  layer.isPhoto && !layer.locked
+                      ? layer.copyWith(adjustments: adjusted)
+                      : layer,
+              ]))
+            : project.copyWith(photos: [
+                for (final photo in project.photos)
+                  if ((photo.id == widget.photo.id || _all) &&
+                      (!project.freestyle || photo.placement?.locked != true))
+                    photo.copyWith(adjustments: adjusted)
+                  else
+                    photo
+              ]);
     Widget slider(String key, double value, double min, double max,
-            double neutral, ValueChanged<double> change) =>
+            double neutral, ValueChanged<double> change,
+            {bool enabled = true}) =>
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Expanded(child: Text('${t(key)} · ${value.toStringAsFixed(2)}')),
@@ -60,12 +71,14 @@ class _PhotoEditorState extends State<_PhotoEditor> {
             ),
           ]),
           Slider(
+              key: ValueKey(key),
               value: value,
               min: min,
               max: max,
-              semanticFormatterCallback: (value) =>
-                  '${t(key)} ${value.toStringAsFixed(2)}',
-              onChanged: (value) => setState(() => change(value))),
+              label: '${(value * 100).round()}%',
+              semanticFormatterCallback: (value) => '${(value * 100).round()}%',
+              onChanged:
+                  enabled ? (value) => setState(() => change(value)) : null),
         ]);
     return SafeArea(
         child: SizedBox(
@@ -79,7 +92,8 @@ class _PhotoEditorState extends State<_PhotoEditor> {
                       child: AspectRatio(
                           aspectRatio: project.aspectRatio.value,
                           child: StyledCollageScene(
-                              project: preview, maxEdge: 512)))),
+                              project: preview,
+                              imageCache: widget.controller.previewImages)))),
               Expanded(
                   child: ListView(padding: const EdgeInsets.all(16), children: [
                 Wrap(spacing: 8, runSpacing: 8, children: [
@@ -115,7 +129,8 @@ class _PhotoEditorState extends State<_PhotoEditor> {
                               _draft = widget.controller.copiedAdjustments!)),
                 ]),
                 slider('filterIntensity', _draft.filterIntensity, 0, 1, 1,
-                    (v) => _draft = _draft.copyWith(filterIntensity: v)),
+                    (v) => _draft = _draft.copyWith(filterIntensity: v),
+                    enabled: _draft.preset != PhotoFilterPreset.original),
                 slider('brightness', _draft.brightness, -1, 1, 0,
                     (v) => _draft = _draft.copyWith(brightness: v)),
                 slider('exposure', _draft.exposure, -2, 2, 0,

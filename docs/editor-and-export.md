@@ -4,6 +4,8 @@
 
 Choose Freestyle in the editor. The first switch seeds each photo from its grid cell. Grid remains available, and switching back to Freestyle restores the previous placements. Selecting a photo shows its outline and resize handle. Drag to move. Pinch or rotate with two fingers. Double-tap to open photo controls. The central axes, canvas edges, and nearby visible photo bounds can provide alignment guides. The Snap to guides chip controls snapping for the editing session.
 
+The Freeform workspace also supports independent frame crops, up to 20 photo frames, and the Editorial layer tools. Saved Freestyle projects continue to open with their original photo placements. [Freeform workflow](freeform-collage.md)
+
 Placement is relative to the canvas on both axes. Photos keep their source proportions inside the placement frame using fit or fill. A different canvas ratio can change the shape of a frame and its crop. Fit centers the whole rotated photo. Fill clamps pan to the area that can cover the cell, including after rotation, mirroring, changing layouts, or changing the canvas ratio. Previous fill offsets and zoom remain available when switching back from fit. A continuous gesture records one undo step.
 
 Freestyle photos are painted back to front in project photo order. They support opacity, rounded corners, a white frame, a shadow, replacement, and duplication. Add photos up to a total of 12. Every collage retains at least one photo. Styles such as blur and patterns apply to the full canvas. Grid frames and shadows are managed in Style Studio. Freestyle frames and shadows are managed per photo.
@@ -12,7 +14,7 @@ The Layers panel lists stickers and shapes above text, above photos. You can sel
 
 ## Formats, adjustments, and templates
 
-The ratio picker accepts integer width and height from 1 to 10,000, with a ratio between 1:4 and 4:1. Equivalent inputs share one normalized ID. Recents and favorites each retain eight ratios. Arabic and Persian numerals are accepted. The project stores the normalized ratio ID. A template keeps the same ratio and, for Freestyle designs, placement data keyed by photo position. If a template has fewer positions than the destination project has photos, additional photos receive a centered default placement.
+The ratio picker accepts integer width and height from 1 to 10,000, with a ratio between 1:4 and 4:1. Advanced ratio entry supports decimals and ratios from 1:8 to 8:1. Equivalent inputs share a normalized ratio. Recents and favorites each retain eight ratios. Arabic and Persian numerals are accepted. The project stores the normalized ratio ID. A template keeps the same ratio and, for Freestyle designs, placement data keyed by photo position. If a template has fewer positions than the destination project has photos, additional photos receive a centered default placement.
 
 The adjustment sheet stages edits until Done. It supports a preview of the unadjusted image, copying and pasting within the editor session, individual resets, and application to all editable photos in one undo step. Exposure uses a gain. Highlights, shadows, and sharpness use a shared Flutter fragment shader. Vignette draws a radial falloff within the visible photo. Projects and archives store optional adjustment values. Older projects retain neutral defaults. Preset intensity controls grayscale and sepia with the other filters.
 

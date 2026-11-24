@@ -3,6 +3,42 @@ import 'package:piclayout/features/collage_editor/layouts/layout_library.dart';
 import 'package:piclayout/features/collage_editor/models/layout_template.dart';
 
 void main() {
+  test(
+      '7–12 photo layouts include complete editable partitions and stable legacy IDs',
+      () {
+    const legacyIds = {
+      7: 'grid_3x3_7',
+      8: 'grid_3x3_8',
+      9: 'grid_3x3_9',
+      10: 'grid_3x4_10',
+      11: 'grid_3x4_11',
+      12: 'grid_3x4_12',
+    };
+    for (final entry in legacyIds.entries) {
+      final layouts = LayoutLibrary.templatesFor(entry.key);
+      expect(layouts.map((t) => t.id), contains(entry.value));
+      expect(layouts.any((t) {
+        final cells = LayoutLibrary.cellsFor(t);
+        final area = cells.fold<double>(
+            0, (sum, cell) => sum + cell.rect.width * cell.rect.height);
+        return (area - 1).abs() < 1e-8 &&
+            cells.every((c) => c.rect.width >= .12 && c.rect.height >= .12);
+      }), isTrue, reason: '${entry.key} photos');
+    }
+    expect(LayoutLibrary.templatesFor(0), isEmpty);
+    expect(LayoutLibrary.templatesFor(13), isEmpty);
+  });
+
+  test(
+      'Partial grids have only real photo cells, with no phantom photo indexes',
+      () {
+    final cells = LayoutLibrary.cellsFor(LayoutLibrary.defaultFor(7));
+    expect(cells.map((c) => c.photoIndex),
+        orderedEquals(List.generate(7, (i) => i)));
+    final area =
+        cells.fold<double>(0, (sum, c) => sum + c.rect.width * c.rect.height);
+    expect(area, closeTo(7 / 9, 1e-8));
+  });
   test('classic 2 x 3 layout keeps row-major order for six photos', () {
     final template = LayoutLibrary.templatesFor(6).firstWhere(
       (item) => item.id == 'grid_2x3_6',

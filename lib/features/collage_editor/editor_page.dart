@@ -1,10 +1,17 @@
+import '../../app/app_config.dart';
+import 'widgets/aspect_ratio_choices.dart';
+import 'widgets/freestyle_photo_controls.dart';
+import 'widgets/layers_sheet.dart';
 import '../layout_recommendations/recommended_layouts.dart';
+import '../editorial/widgets/design_sheet.dart';
+import '../editorial/widgets/freeform_tools.dart';
 import '../tutorial_tips/tutorial_tip.dart';
 import '../project_archive/project_archive_actions.dart';
 import '../project_archive/project_archive_controller.dart';
 import '../stickers/sticker_sheet.dart';
 import '../custom_layouts/widgets/custom_layout_section.dart';
 import 'widgets/photo_edit_sheet.dart';
+import 'widgets/photo_adjustments_studio.dart';
 import 'widgets/style_studio_sheet.dart';
 import 'dart:async';
 
@@ -24,12 +31,9 @@ import 'models/layout_template.dart';
 import 'models/photo_transform.dart';
 import 'state/collage_editor_controller.dart';
 import 'widgets/collage_canvas.dart';
-import 'widgets/aspect_ratio_choices.dart';
-import 'widgets/freestyle_photo_controls.dart';
-import 'widgets/layers_sheet.dart';
-import '../../app/app_config.dart';
 import 'widgets/thumbnail_strip.dart';
 import 'widgets/text_overlay_sheet.dart';
+import 'widgets/custom_aspect_ratio_dialog.dart';
 
 class EditorPage extends ConsumerStatefulWidget {
   const EditorPage({
@@ -44,6 +48,9 @@ class EditorPage extends ConsumerStatefulWidget {
 }
 
 class _EditorPageState extends ConsumerState<EditorPage> {
+  bool _leaving = false;
+  bool _savedForExit = false;
+
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -61,41 +68,51 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     super.dispose();
   }
 
+  Future<void> _leave(CollageEditorController controller) async {
+    if (_leaving) return;
+    setState(() => _leaving = true);
+    try {
+      await controller.saveNow();
+      if (!mounted) return;
+      final projects = ref.read(projectsProvider.notifier);
+      setState(() => _savedForExit = true);
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      unawaited(projects.reload());
+    } catch (_) {
+      // The persistent retry message keeps the unsaved project reachable.
+    } finally {
+      if (mounted) setState(() => _leaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final provider = editorControllerProvider(widget.project);
-    ref.watch(provider.select((controller) => (
-          controller.canUndo,
-          controller.canRedo,
-          controller.project.recovered,
-          controller.project.name,
-          controller.saveFailed,
+    ref.watch(provider.select((c) => (
+          c.canUndo,
+          c.canRedo,
+          c.saveFailed,
+          c.project.recovered,
+          c.project.name,
         )));
     final controller = ref.read(provider);
-    final messenger = ScaffoldMessenger.of(context);
 
     return PopScope(
+      canPop: _savedForExit,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) {
-          final projects = ref.read(projectsProvider.notifier);
-          unawaited(
-            controller
-                .flushPendingSave()
-                .then((_) => projects.reload())
-                .catchError((Object _) {
-              messenger.showSnackBar(
-                  SnackBar(content: Text(strings.tr('projectSaveFailed'))));
-            }),
-          );
-        }
+        if (!didPop) unawaited(_leave(controller));
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(controller.project.name),
+          title: Text(controller.project.name,
+              maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
             PopupMenuButton<String>(
-              enabled: !ref.watch(projectArchiveControllerProvider).busy,
+              enabled: !_leaving &&
+                  !ref.watch(projectArchiveControllerProvider).busy,
               onSelected: (_) =>
                   exportProjectArchive(context, ref, controller.project),
               itemBuilder: (_) => [
@@ -105,48 +122,60 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             ),
             IconButton(
               tooltip: strings.tr('undo'),
-              onPressed: controller.canUndo ? controller.undo : null,
+              onPressed:
+                  !_leaving && controller.canUndo ? controller.undo : null,
               icon: const Icon(Icons.undo),
             ),
             IconButton(
               tooltip: strings.tr('redo'),
-              onPressed: controller.canRedo ? controller.redo : null,
+              onPressed:
+                  !_leaving && controller.canRedo ? controller.redo : null,
               icon: const Icon(Icons.redo),
             ),
             IconButton(
               tooltip: strings.export,
-              onPressed: () => showExportCenter(context, controller.project),
+              onPressed: _leaving
+                  ? null
+                  : () => showExportCenter(context, controller.project),
               icon: const Icon(Icons.ios_share),
             ),
           ],
         ),
-        bottomNavigationBar: ref.watch(projectArchiveControllerProvider).busy
-            ? const LinearProgressIndicator()
-            : null,
-        body: SafeArea(
-          child: Column(children: [
-            if (controller.project.recovered || controller.saveFailed)
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.info_outline),
-                title: Text(strings.tr(controller.saveFailed
-                    ? 'projectSaveFailed'
-                    : 'projectRecovered')),
-                trailing: controller.saveFailed
-                    ? IconButton(
-                        tooltip: strings.tr('retrySave'),
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () => unawaited(
-                            controller.saveNow().catchError((Object _) {})),
-                      )
-                    : null,
-              ),
-            Expanded(
+        bottomNavigationBar:
+            _leaving || ref.watch(projectArchiveControllerProvider).busy
+                ? const LinearProgressIndicator()
+                : controller.saveFailed
+                    ? SafeArea(
+                        child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            child: Wrap(
+                                spacing: 12,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(strings.tr('projectSaveFailed')),
+                                  TextButton(
+                                      onPressed: () async {
+                                        try {
+                                          await controller.saveNow();
+                                        } catch (_) {/* Keep retry visible. */}
+                                      },
+                                      child: Text(strings.tr('retry'))),
+                                ])))
+                    : controller.project.recovered
+                        ? SafeArea(
+                            child: ListTile(
+                                leading: const Icon(Icons.info_outline),
+                                title: Text(strings.tr('projectRecovered'))))
+                        : null,
+        body: AbsorbPointer(
+            absorbing: _leaving,
+            child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= 760 ||
                       (constraints.maxWidth >= 560 &&
-                          constraints.maxHeight < 420);
+                          constraints.maxHeight < 500);
                   final preview = _PreviewPanel(controller: controller);
                   final tools = _ToolsPanel(
                       initialProject: widget.project, controller: controller);
@@ -174,9 +203,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   );
                 },
               ),
-            ),
-          ]),
-        ),
+            )),
       ),
     );
   }
@@ -212,6 +239,7 @@ class _ToolsPanel extends ConsumerWidget {
   const _ToolsPanel({required this.initialProject, required this.controller});
 
   final CollageProject initialProject;
+
   final CollageEditorController controller;
 
   @override
@@ -221,10 +249,14 @@ class _ToolsPanel extends ConsumerWidget {
           editor.projectAtGestureStart,
           editor.project.canvas.staggerAmount,
           editor.selectedPhotoId,
+          editor.selectedDesignLayerId,
           editor.selectedTextId,
           editor.selectedStickerId,
           editor.metadataLoading,
           editor.snapFreestyle,
+          editor.editingDividers,
+          editor.editingDesignCrop,
+          editor.importingPhotos,
         )));
     final project = controller.project;
     final layouts = LayoutLibrary.templatesFor(project.photos.length);
@@ -243,6 +275,29 @@ class _ToolsPanel extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (project.isFreeform) ...[
+              Text(strings.tr(controller.editingDesignCrop
+                  ? 'ffCropHint'
+                  : 'ffGestureHint')),
+              Wrap(spacing: 8, children: [
+                FilledButton.icon(
+                    onPressed: controller.importingPhotos
+                        ? null
+                        : () => pickFreeformPhotos(context, controller),
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    label: Text(strings.tr('ffAddPhotos'))),
+                OutlinedButton.icon(
+                    onPressed: () => showFreeformCanvas(context, controller),
+                    icon: const Icon(Icons.open_in_full),
+                    label: Text(strings.tr('ffExpand'))),
+                if (controller.editingDesignCrop)
+                  FilledButton.icon(
+                      onPressed: () => controller.setDesignCropEditing(false),
+                      icon: const Icon(Icons.check),
+                      label: Text(strings.tr('edCropDone'))),
+              ]),
+              if (controller.importingPhotos) const LinearProgressIndicator(),
+            ],
             TutorialTip(
               key: ValueKey(controller.selectedText != null ||
                       controller.selectedSticker != null
@@ -253,58 +308,95 @@ class _ToolsPanel extends ConsumerWidget {
                   ? 'tipDrag'
                   : 'tipPhoto',
             ),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              OutlinedButton.icon(
-                  key: const ValueKey('add-sticker'),
-                  onPressed: () => showStickerPicker(context, controller),
-                  icon: const Icon(Icons.emoji_emotions_outlined),
-                  label: Text(strings.tr('stickers'))),
-              if (controller.selectedSticker != null &&
-                  !controller.selectedSticker!.locked)
-                FilledButton.icon(
-                    key: const ValueKey('edit-sticker'),
-                    onPressed: () => showStickerEditor(context, controller),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: Text(strings.tr('stEdit'))),
-              OutlinedButton.icon(
-                onPressed: () => showLayersSheet(context, controller),
-                icon: const Icon(Icons.layers_outlined),
-                label: Text(strings.tr('layers')),
-              ),
-            ]),
+            SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: IconTheme(
+                    data: const IconThemeData(size: 20),
+                    child: Row(spacing: 8, children: [
+                      OutlinedButton.icon(
+                          key: const ValueKey('freeform-design'),
+                          onPressed: () =>
+                              showFreeformPresets(context, controller),
+                          icon: const Icon(Icons.dashboard_customize_outlined),
+                          label: Text(strings.tr('ffTitle'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('photo-adjustments'),
+                          onPressed: !controller.selectedPhotoEditable
+                              ? null
+                              : () => showPhotoAdjustmentsStudio(
+                                  context, controller),
+                          icon: const Icon(Icons.tune),
+                          label: Text(strings.tr('adjust'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('editorial-design'),
+                          onPressed: () => showDesignSheet(context, controller),
+                          icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                          label: Text(strings.tr('edDesign'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('editorial-layers'),
+                          onPressed: () => showDesignSheet(context, controller,
+                              layers: true),
+                          icon: const Icon(Icons.layers_outlined),
+                          label: Text(strings.tr('edLayers'))),
+                      if (controller.editingDesignCrop)
+                        FilledButton.icon(
+                            onPressed: () =>
+                                controller.setDesignCropEditing(false),
+                            icon: const Icon(Icons.check),
+                            label: Text(strings.tr('edCropDone'))),
+                      OutlinedButton.icon(
+                          key: const ValueKey('add-sticker'),
+                          onPressed: () =>
+                              showStickerPicker(context, controller),
+                          icon: const Icon(Icons.emoji_emotions_outlined),
+                          label: Text(strings.tr('stickers'))),
+                      if (!project.design.active)
+                        OutlinedButton.icon(
+                          onPressed: () => showLayersSheet(context, controller),
+                          icon: const Icon(Icons.layers_outlined),
+                          label: Text(strings.tr('projectLayers')),
+                        ),
+                      if (controller.selectedSticker?.locked == false)
+                        FilledButton.icon(
+                            key: const ValueKey('edit-sticker'),
+                            onPressed: () =>
+                                showStickerEditor(context, controller),
+                            icon: const Icon(Icons.edit_outlined),
+                            label: Text(strings.tr('stEdit'))),
+                    ]))),
             const SizedBox(height: 12),
-            Wrap(spacing: 8, runSpacing: 4, children: [
-              ChoiceChip(
-                avatar: const Icon(Icons.grid_view_outlined, size: 18),
-                label: Text(strings.tr('gridMode')),
-                selected: !project.freestyle,
-                onSelected: (_) => controller.setFreestyle(false),
-              ),
-              ChoiceChip(
-                avatar:
-                    const Icon(Icons.dashboard_customize_outlined, size: 18),
-                label: Text(strings.tr('freestyleMode')),
-                selected: project.freestyle,
-                onSelected: (_) => controller.setFreestyle(true),
-              ),
-              if (project.freestyle) ...[
-                ActionChip(
+            if (!project.design.active)
+              Wrap(spacing: 8, runSpacing: 4, children: [
+                ChoiceChip(
+                  avatar: const Icon(Icons.grid_view_outlined, size: 18),
+                  label: Text(strings.tr('gridMode')),
+                  selected: !project.freestyle,
+                  onSelected: (_) => controller.setFreestyle(false),
+                ),
+                ChoiceChip(
                   avatar:
-                      const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                  label: Text(strings.tr('addPhotos')),
-                  onPressed: controller.canAddPhotos
-                      ? () => _addPhotos(context)
-                      : null,
+                      const Icon(Icons.dashboard_customize_outlined, size: 18),
+                  label: Text(strings.tr('freestyleMode')),
+                  selected: project.freestyle,
+                  onSelected: (_) => controller.setFreestyle(true),
                 ),
-                FilterChip(
-                  label: Text(strings.tr('snapPhoto')),
-                  selected: controller.snapFreestyle,
-                  onSelected: controller.setSnapFreestyle,
-                ),
-              ],
-            ]),
-            const SizedBox(height: 8),
-            ThumbnailStrip(controller: controller),
+                if (project.freestyle) ...[
+                  ActionChip(
+                    avatar: const Icon(Icons.add_photo_alternate_outlined,
+                        size: 18),
+                    label: Text(strings.tr('addPhotos')),
+                    onPressed: controller.canAddPhotos
+                        ? () => _addPhotos(context)
+                        : null,
+                  ),
+                  FilterChip(
+                    label: Text(strings.tr('snapPhoto')),
+                    selected: controller.snapFreestyle,
+                    onSelected: controller.setSnapFreestyle,
+                  ),
+                ],
+              ]),
+            if (!project.isFreeform) ThumbnailStrip(controller: controller),
             const SizedBox(height: 12),
             Text(strings.format, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
@@ -312,16 +404,51 @@ class _ToolsPanel extends ConsumerWidget {
               selectedId: project.aspectRatioId,
               onSelected: controller.setAspectRatio,
             ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final ratio in library.aspectRatios)
+                  if (ratio.id != project.aspectRatioId)
+                    ChoiceChip(
+                      key: ValueKey('ratio-${ratio.id}'),
+                      label: Text(ratio.label),
+                      selected: false,
+                      onSelected: (_) => controller.setAspectRatio(ratio),
+                    ),
+                ActionChip(
+                  key: const ValueKey('custom-aspect-ratio'),
+                  avatar: const Icon(Icons.aspect_ratio),
+                  label: Text(strings.tr('advancedRatio')),
+                  onPressed: () async {
+                    final ratio = await showCustomAspectRatioDialog(context);
+                    if (ratio == null || !context.mounted) return;
+                    try {
+                      await ref
+                          .read(designLibraryProvider.notifier)
+                          .saveAspectRatio(ratio);
+                      if (context.mounted) controller.setAspectRatio(ratio);
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(strings.tr('settingsError'))));
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
-            if (!project.freestyle) ...[
+            if (!project.isFreeform && !project.freestyle) ...[
               RecommendedLayouts(
                 recommendations: controller.layoutRecommendations,
                 targetRatio: project.aspectRatio.value,
                 staggerAmount: project.canvas.staggerAmount,
                 loading: controller.metadataLoading,
-                selectedId: project.customLayout == null
-                    ? project.layoutTemplateId
-                    : null,
+                selectedId:
+                    !project.design.active && project.customLayout == null
+                        ? project.layoutTemplateId
+                        : null,
                 onSelected: controller.setLayoutTemplate,
                 onAuto: controller.autoLayout,
               ),
@@ -360,6 +487,23 @@ class _ToolsPanel extends ConsumerWidget {
                 label: Text(strings.variation),
               ),
               CustomLayoutSection(controller: controller),
+              OutlinedButton.icon(
+                key: const ValueKey('toggle-canvas-dividers'),
+                onPressed: controller.canEditDividers
+                    ? controller.toggleDividerEditing
+                    : null,
+                icon: Icon(controller.editingDividers
+                    ? Icons.check
+                    : Icons.drag_handle),
+                label: Text(strings.tr(controller.editingDividers
+                    ? 'canvasDividersDone'
+                    : 'canvasDividersEdit')),
+              ),
+              Text(
+                  strings.tr(controller.canEditDividers
+                      ? 'canvasDividersHint'
+                      : 'canvasDividersUnavailable'),
+                  style: Theme.of(context).textTheme.bodySmall),
               if (project.customLayout == null &&
                   LayoutLibrary.byIdOrDefault(
                     project.layoutTemplateId,
@@ -380,27 +524,22 @@ class _ToolsPanel extends ConsumerWidget {
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              runSpacing: 4,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () => showStyleStudio(context, controller),
-                  icon: const Icon(Icons.tune),
-                  label: Text(strings.style),
-                ),
+                    onPressed: () => showStyleStudio(context, controller),
+                    icon: const Icon(Icons.tune),
+                    label: Text(strings.style)),
                 FilledButton.icon(
-                  onPressed: !controller.selectedPhotoEditable
-                      ? null
-                      : () => showPhotoSheet(context, controller),
-                  icon: const Icon(Icons.crop),
-                  label: Text(strings.photo),
-                ),
+                    onPressed: !controller.selectedPhotoEditable
+                        ? null
+                        : () => showPhotoSheet(context, controller),
+                    icon: const Icon(Icons.crop),
+                    label: Text(strings.photo)),
                 OutlinedButton.icon(
-                  onPressed: controller.selectedText?.locked == true
-                      ? null
-                      : () => showTextOverlaySheet(context, controller),
-                  icon: const Icon(Icons.text_fields),
-                  label: Text(strings.textOverlay),
-                ),
+                    onPressed: () => showTextOverlaySheet(context, controller),
+                    icon: const Icon(Icons.text_fields),
+                    label: Text(strings.textOverlay)),
               ],
             ),
             const SizedBox(height: 10),
@@ -465,15 +604,15 @@ class _ToolsPanel extends ConsumerWidget {
         Flexible(
             child: ChoiceChip(
           avatar: SizedBox.square(
-              dimension: 20,
+              dimension: 24,
               child: CustomPaint(
-                painter: LayoutPreviewPainter(layout,
-                    color: Theme.of(context).colorScheme.primary,
-                    staggerAmount: controller.project.canvas.staggerAmount),
-              )),
-          label: Text(AppLocalizations.of(context).tr(layout.title),
-              overflow: TextOverflow.ellipsis),
-          selected: controller.project.customLayout == null &&
+                  painter: LayoutPreviewPainter(layout,
+                      color: Theme.of(context).colorScheme.primary,
+                      staggerAmount: controller.project.canvas.staggerAmount))),
+          label:
+              Text(AppLocalizations.of(context).tr(layout.title), maxLines: 2),
+          selected: !controller.project.design.active &&
+              controller.project.customLayout == null &&
               controller.project.layoutTemplateId == layout.id,
           onSelected: (_) => controller.setLayoutTemplate(layout.id),
         )),
@@ -482,8 +621,19 @@ class _ToolsPanel extends ConsumerWidget {
           tooltip: favorite
               ? AppLocalizations.of(context).removeFavorite
               : AppLocalizations.of(context).addFavorite,
-          onPressed: () =>
-              ref.read(designLibraryProvider.notifier).toggleFavorite(layout),
+          onPressed: () async {
+            try {
+              await ref
+                  .read(designLibraryProvider.notifier)
+                  .toggleFavorite(layout);
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(
+                        AppLocalizations.of(context).tr('operationFailed'))));
+              }
+            }
+          },
           icon: Icon(favorite ? Icons.star : Icons.star_border),
         ),
       ],
@@ -497,113 +647,132 @@ Future<void> showPhotoSheet(
 ) async {
   final strings = AppLocalizations.of(context);
   final picker = ImagePicker();
+  bool replacing = false;
 
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     builder: (context) {
-      return AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          final photo = controller.selectedPhoto;
-          if (photo == null || !controller.selectedPhotoEditable) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(strings.noPhotoSelected),
-            );
-          }
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!controller.project.freestyle)
-                    const TutorialTip(id: 'tipZoom'),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.tune),
-                    label: Text(strings.tr('editPhoto')),
-                    onPressed: () => showPhotoEditor(context, controller),
-                  ),
-                  const SizedBox(height: 12),
-                  SegmentedButton<PhotoFitMode>(
-                    segments: [
-                      ButtonSegment(
-                        value: PhotoFitMode.fill,
-                        label: Text(strings.fill),
-                        icon: const Icon(Icons.fullscreen),
-                      ),
-                      ButtonSegment(
-                        value: PhotoFitMode.fit,
-                        label: Text(strings.fit),
-                        icon: const Icon(Icons.fit_screen),
-                      ),
-                    ],
-                    selected: {photo.transform.fitMode},
-                    onSelectionChanged: (value) {
-                      controller.setSelectedFitMode(value.first);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: controller.resetSelectedTransform,
-                        icon: const Icon(Icons.restart_alt),
-                        label: Text(strings.resetCrop),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: controller.rotateSelected,
-                        icon: const Icon(Icons.rotate_90_degrees_ccw),
-                        label: Text(strings.rotate),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: controller.flipSelected,
-                        icon: const Icon(Icons.flip),
-                        label: Text(strings.flip),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          try {
-                            final picked = await picker.pickImage(
-                              source: ImageSource.gallery,
-                              requestFullMetadata: false,
-                            );
-                            if (picked != null && context.mounted) {
-                              await controller.replaceSelected(picked);
-                            }
-                          } catch (_) {
-                            if (context.mounted) {
-                              messenger.showSnackBar(SnackBar(
-                                  content:
-                                      Text(strings.tr('operationFailed'))));
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.swap_horiz),
-                        label: Text(strings.replace),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: controller.project.photos.length <= 1
-                            ? null
-                            : controller.removeSelected,
-                        icon: const Icon(Icons.delete_outline),
-                        label: Text(strings.remove),
-                      ),
-                    ],
-                  ),
-                  if (controller.project.freestyle)
-                    FreestylePhotoControls(
-                        photo: photo, controller: controller),
-                ],
-              ),
-            ),
-          );
-        },
-      );
+      return StatefulBuilder(
+          builder: (context, setSheetState) => PopScope(
+              canPop: !replacing,
+              child: AnimatedBuilder(
+                animation: controller,
+                builder: (context, _) {
+                  final photo = controller.selectedPhoto;
+                  if (photo == null || !controller.selectedPhotoEditable) {
+                    return Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(strings.noPhotoSelected),
+                    );
+                  }
+                  return AbsorbPointer(
+                      absorbing: replacing,
+                      child: SafeArea(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!controller.project.freestyle)
+                                const TutorialTip(id: 'tipZoom'),
+                              if (replacing) const LinearProgressIndicator(),
+                              FilledButton.icon(
+                                icon: const Icon(Icons.tune),
+                                label: Text(strings.tr('editPhoto')),
+                                onPressed: () =>
+                                    showPhotoEditor(context, controller),
+                              ),
+                              const SizedBox(height: 12),
+                              SegmentedButton<PhotoFitMode>(
+                                segments: [
+                                  ButtonSegment(
+                                    value: PhotoFitMode.fill,
+                                    label: Text(strings.fill),
+                                    icon: const Icon(Icons.fullscreen),
+                                  ),
+                                  ButtonSegment(
+                                    value: PhotoFitMode.fit,
+                                    label: Text(strings.fit),
+                                    icon: const Icon(Icons.fit_screen),
+                                  ),
+                                ],
+                                selected: {photo.transform.fitMode},
+                                onSelectionChanged: (value) {
+                                  controller.setSelectedFitMode(value.first);
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        controller.resetSelectedTransform,
+                                    icon: const Icon(Icons.restart_alt),
+                                    label: Text(strings.resetCrop),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: controller.rotateSelected,
+                                    icon:
+                                        const Icon(Icons.rotate_90_degrees_ccw),
+                                    label: Text(strings.rotate),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: controller.flipSelected,
+                                    icon: const Icon(Icons.flip),
+                                    label: Text(strings.flip),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      if (replacing) return;
+                                      setSheetState(() => replacing = true);
+                                      try {
+                                        final picked = await picker.pickImage(
+                                          source: ImageSource.gallery,
+                                          requestFullMetadata: false,
+                                        );
+                                        if (picked != null) {
+                                          await controller
+                                              .replaceSelected(picked);
+                                        }
+                                      } catch (_) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                                  content: Text(strings
+                                                      .tr('photoPickFailed'))));
+                                        }
+                                      } finally {
+                                        if (context.mounted) {
+                                          setSheetState(
+                                              () => replacing = false);
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.swap_horiz),
+                                    label: Text(strings.replace),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        controller.project.photos.length <= 1
+                                            ? null
+                                            : controller.removeSelected,
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: Text(strings.remove),
+                                  ),
+                                  if (controller.project.freestyle)
+                                    FreestylePhotoControls(
+                                        photo: photo, controller: controller),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ));
+                },
+              )));
     },
   );
 }
