@@ -48,4 +48,61 @@ void main() {
     expect(reopenedWithText.textOverlays.single.text, 'Sommer');
     expect(reopenedWithText.textOverlays.single.x, 0.3);
   });
+
+  test('interrupted and corrupt metadata falls back to the last valid revision',
+      () async {
+    final root = await Directory.systemTemp.createTemp('piclayout_recovery_');
+    addTearDown(() => root.delete(recursive: true));
+    final source =
+        await File(p.join(root.path, 'original.jpg')).writeAsBytes([1, 2, 3]);
+    final repository = ProjectRepository(documentsDirectory: root);
+    final initial =
+        await repository.createFromPickedImages([XFile(source.path)]);
+    final snapshots =
+        Directory(p.join(root.path, 'piclayout_projects', initial.id));
+    final primary = File(p.join(snapshots.path, 'project.json'));
+    await Future.wait([
+      repository.save(initial.copyWith(name: 'Draft')),
+      repository.save(initial.copyWith(name: 'Latest')),
+    ]);
+    expect((await repository.loadProjects()).single.name, 'Latest');
+    final backup = File('${primary.path}.bak');
+    expect(jsonDecode(await backup.readAsString())['name'], 'Draft');
+
+    await File('${primary.path}.pending').writeAsString('{"partial":');
+    expect((await repository.loadProjects()).single.name, 'Latest');
+    await primary.writeAsString('{broken');
+    final recovered = (await repository.loadProjects()).single;
+    expect(recovered.name, 'Draft');
+    expect(recovered.recovered, isTrue);
+    await repository.save(recovered.copyWith(name: 'Repaired'));
+    expect((await repository.loadProjects()).single.recovered, isFalse);
+    expect(jsonDecode(await backup.readAsString())['name'], 'Draft');
+    expect(await source.readAsBytes(), [1, 2, 3]);
+  });
+
+  test(
+      'a complete pending first save and a project missing an image remain recoverable',
+      () async {
+    final root = await Directory.systemTemp.createTemp('piclayout_pending_');
+    addTearDown(() => root.delete(recursive: true));
+    final source =
+        await File(p.join(root.path, 'original.jpg')).writeAsBytes([1, 2, 3]);
+    final repository = ProjectRepository(documentsDirectory: root);
+    final project =
+        await repository.createFromPickedImages([XFile(source.path)]);
+    final primary = File(
+        p.join(root.path, 'piclayout_projects', project.id, 'project.json'));
+    await primary.rename('${primary.path}.pending');
+    await File(project.photos.single.localPath).delete();
+    final recovered = (await repository.loadProjects()).single;
+    expect(recovered.recovered, isTrue);
+    expect(recovered.photos.single.localPath, project.photos.single.localPath);
+    final copy = await repository.duplicate(recovered);
+    expect(copy.id, isNot(project.id));
+    expect(
+        copy.photos.single.localPath, isNot(project.photos.single.localPath));
+    expect(await File(copy.photos.single.localPath).exists(), isFalse);
+    expect(await source.readAsBytes(), [1, 2, 3]);
+  });
 }

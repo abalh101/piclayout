@@ -8,6 +8,7 @@ import '../collage_editor/editor_page.dart';
 import '../collage_editor/models/aspect_ratio_preset.dart';
 import '../collage_editor/models/photo_asset.dart';
 import '../collage_editor/models/photo_metadata.dart';
+import '../collage_editor/widgets/aspect_ratio_choices.dart';
 import '../layout_recommendations/layout_recommendation_service.dart';
 import '../layout_recommendations/photo_metadata_reader.dart';
 import '../layout_recommendations/recommended_layouts.dart';
@@ -77,25 +78,22 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
             Expanded(
                 child: ReorderableListView.builder(
               padding: const EdgeInsets.all(16),
+              buildDefaultDragHandles: false,
               header: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(strings.format,
                         style: Theme.of(context).textTheme.titleMedium),
-                    Wrap(spacing: 8, children: [
-                      for (final ratio in AspectRatios.all)
-                        ChoiceChip(
-                          label: Text(ratio.label),
-                          selected: _ratioId == ratio.id,
-                          onSelected: _creating
-                              ? null
-                              : (_) => setState(() {
-                                    _ratioId = ratio.id;
-                                    _formatChosen = true;
-                                    _selectedLayout = null;
-                                  }),
-                        )
-                    ]),
+                    AspectRatioChoices(
+                      selectedId: _ratioId,
+                      onSelected: _creating
+                          ? null
+                          : (ratio) => setState(() {
+                                _ratioId = ratio.id;
+                                _formatChosen = true;
+                                _selectedLayout = null;
+                              }),
+                    ),
                     const SizedBox(height: 12),
                     RecommendedLayouts(
                         recommendations: recommendations,
@@ -121,6 +119,7 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
                       leading: ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: Image.file(File(file.path),
+                              cacheWidth: 180,
                               width: 54,
                               height: 54,
                               fit: BoxFit.cover,
@@ -129,15 +128,26 @@ class _SelectionReviewPageState extends ConsumerState<SelectionReviewPage> {
                       title: Text('${strings.tr('Bild')} ${index + 1}'),
                       subtitle: Text(file.name,
                           maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: IconButton(
-                          tooltip: strings.remove,
-                          icon: const Icon(Icons.close),
-                          onPressed: _creating || _files.length <= 1
-                              ? null
-                              : () => setState(() {
-                                    _files.removeAt(index);
-                                    _selectedLayout = null;
-                                  })),
+                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                        IconButton(
+                            tooltip: strings.remove,
+                            icon: const Icon(Icons.close),
+                            onPressed: _creating || _files.length <= 1
+                                ? null
+                                : () => setState(() {
+                                      _files.removeAt(index);
+                                      _selectedLayout = null;
+                                    })),
+                        ReorderableDragStartListener(
+                          index: index,
+                          enabled: !_creating && _files.length > 1,
+                          child: Tooltip(
+                            message: strings.tr('dragPhotoOrder'),
+                            child: const SizedBox.square(
+                                dimension: 44, child: Icon(Icons.drag_handle)),
+                          ),
+                        ),
+                      ]),
                     ));
               },
             )),

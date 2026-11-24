@@ -28,7 +28,6 @@ class DesignLibraryRepository {
         const JsonEncoder.withIndent('  ').convert(library.toJson()),
         flush: true,
       );
-      if (await file.exists()) await file.delete();
       await temporary.rename(file.path);
     });
     _pendingWrite = pending;

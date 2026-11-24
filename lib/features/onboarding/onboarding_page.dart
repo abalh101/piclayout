@@ -104,20 +104,46 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                             setState(() => _index = index),
                         itemBuilder: (context, index) => SingleChildScrollView(
                           padding: const EdgeInsets.all(24),
-                          child: Column(children: [
-                            Icon(_icons[index],
-                                size: 72,
-                                color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(height: 24),
-                            Text(t('introTitle$index'),
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall,
-                                textAlign: TextAlign.center),
-                            const SizedBox(height: 16),
-                            Text(t('introBody$index'),
-                                style: Theme.of(context).textTheme.bodyLarge,
-                                textAlign: TextAlign.center),
-                          ]),
+                          child: Center(
+                              child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 480),
+                                  child: Column(children: [
+                                    if (index == 0)
+                                      Image.asset(
+                                          'assets/branding/app_logo.png',
+                                          width: 72,
+                                          height: 72,
+                                          excludeFromSemantics: true)
+                                    else
+                                      DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primaryContainer,
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                          ),
+                                          child: SizedBox.square(
+                                              dimension: 72,
+                                              child: Icon(_icons[index],
+                                                  size: 34,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimaryContainer))),
+                                    const SizedBox(height: 24),
+                                    Text(t('introTitle$index'),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .headlineSmall,
+                                        textAlign: TextAlign.center),
+                                    const SizedBox(height: 16),
+                                    Text(t('introBody$index'),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge,
+                                        textAlign: TextAlign.center),
+                                  ]))),
                         ),
                       )),
                       // This footer scrolls as well when accessibility text leaves little room.
@@ -125,49 +151,69 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                           constraints: BoxConstraints(
                               maxHeight: constraints.maxHeight * .55),
                           child: SingleChildScrollView(
-                              child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                            child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text('${_index + 1} / 5',
-                                      textAlign: TextAlign.center),
-                                  const SizedBox(height: 8),
-                                  if (_index < 4)
-                                    FilledButton(
-                                        key: const ValueKey('onboarding-next'),
-                                        onPressed: _busy
-                                            ? null
-                                            : () => _pages.nextPage(
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                curve: Curves.easeOut),
-                                        child: Text(t('introNext')))
-                                  else ...[
-                                    FilledButton(
-                                        key: const ValueKey('onboarding-start'),
-                                        onPressed:
-                                            _busy ? null : () => _finish(false),
-                                        child: Text(t('introStart'))),
-                                    OutlinedButton(
-                                        key: const ValueKey('onboarding-demo'),
-                                        onPressed:
-                                            _busy ? null : () => _finish(true),
-                                        child: Text(t('demoOpen'))),
-                                  ],
-                                  if (_index > 0)
-                                    TextButton(
-                                        onPressed: _busy
-                                            ? null
-                                            : () => _pages.previousPage(
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                curve: Curves.easeOut),
-                                        child: Text(t('introBack'))),
-                                  if (_busy) const LinearProgressIndicator(),
-                                ]),
-                          ))),
+                              child: Center(
+                                  child: ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 440),
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            20, 8, 20, 16),
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Text('${_index + 1} / 5',
+                                                  textAlign: TextAlign.center),
+                                              const SizedBox(height: 8),
+                                              if (_index < 4)
+                                                FilledButton(
+                                                    key: const ValueKey(
+                                                        'onboarding-next'),
+                                                    onPressed: _busy
+                                                        ? null
+                                                        : () => _pages.nextPage(
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        200),
+                                                            curve:
+                                                                Curves.easeOut),
+                                                    child: Text(t('introNext')))
+                                              else ...[
+                                                FilledButton(
+                                                    key: const ValueKey(
+                                                        'onboarding-start'),
+                                                    onPressed: _busy
+                                                        ? null
+                                                        : () => _finish(false),
+                                                    child:
+                                                        Text(t('introStart'))),
+                                                OutlinedButton(
+                                                    key: const ValueKey(
+                                                        'onboarding-demo'),
+                                                    onPressed: _busy
+                                                        ? null
+                                                        : () => _finish(true),
+                                                    child: Text(t('demoOpen'))),
+                                              ],
+                                              if (_index > 0)
+                                                TextButton(
+                                                    onPressed: _busy
+                                                        ? null
+                                                        : () => _pages.previousPage(
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        200),
+                                                            curve:
+                                                                Curves.easeOut),
+                                                    child:
+                                                        Text(t('introBack'))),
+                                              if (_busy)
+                                                const LinearProgressIndicator(),
+                                            ]),
+                                      ))))),
                     ]))),
       ),
     );

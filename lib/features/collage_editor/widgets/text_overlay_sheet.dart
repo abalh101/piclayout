@@ -8,6 +8,7 @@ Future<void> showTextOverlaySheet(
   BuildContext context,
   CollageEditorController controller,
 ) {
+  if (controller.selectedText?.locked == true) return Future.value();
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

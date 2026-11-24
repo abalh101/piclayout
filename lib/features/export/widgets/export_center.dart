@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../settings/models/app_settings.dart';
 import '../../settings/state/settings_controller.dart';
 import '../../collage_editor/models/canvas_style.dart';
+import '../../collage_editor/models/aspect_ratio_preset.dart';
+import '../../collage_editor/widgets/styled_collage_scene.dart';
 import 'package:flutter/material.dart';
 import '../../projects/models/collage_project.dart';
 import '../export_settings.dart';
@@ -51,6 +53,7 @@ class _ExportCenterState extends State<ExportCenter> {
           ? SocialShareDestination.gallery
           : SocialShareDestination.general;
   late ExportFormat _format = widget.defaults.exportFormat;
+  late int _jpegQuality = widget.defaults.jpegQuality;
   String? _message;
   late final List<SocialSharePreset> _originals = [
     for (final size in widget.project.aspectRatio.exportSizes())
@@ -151,6 +154,12 @@ class _ExportCenterState extends State<ExportCenter> {
                                       ? null
                                       : (_) =>
                                           setState(() => _preset = preset)),
+                            if (_destination.app == null)
+                              ActionChip(
+                                avatar: const Icon(Icons.straighten, size: 18),
+                                label: Text(t('customExportSize')),
+                                onPressed: _flow.busy ? null : _chooseSize,
+                              ),
                           ]),
                           const SizedBox(height: 12),
                           Container(
@@ -160,19 +169,21 @@ class _ExportCenterState extends State<ExportCenter> {
                                 color: scheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(16)),
                             child: Text(
-                                '${_preset.width} × ${_preset.height} Pixel',
+                                '${_preset.width} × ${_preset.height} ${t('pixelUnit')}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
                                     ?.copyWith(
                                         color: scheme.onPrimaryContainer)),
                           ),
-                          if (_preset.differsStrongly(
-                              widget.project.aspectRatio.value))
+                          if ((_preset.aspectRatio /
+                                          widget.project.aspectRatio.value -
+                                      1)
+                                  .abs() >
+                              .005)
                             Padding(
                                 padding: const EdgeInsets.only(top: 12),
-                                child: Text(t(
-                                    'Das Exportformat weicht deutlich ab. Bildausschnitte und Textpositionen werden für den Export neu eingepasst. Dein Projekt bleibt erhalten.'))),
+                                child: Text(t('exportRatioChanges'))),
                           const SizedBox(height: 20),
                           SegmentedButton<ExportFormat>(
                             segments: const [
@@ -187,6 +198,20 @@ class _ExportCenterState extends State<ExportCenter> {
                                 : (value) =>
                                     setState(() => _format = value.first),
                           ),
+                          if (_format == ExportFormat.jpeg) ...[
+                            const SizedBox(height: 12),
+                            Text('${t('jpegQuality')} · $_jpegQuality'),
+                            Slider(
+                              min: 1,
+                              max: 100,
+                              divisions: 99,
+                              value: _jpegQuality.toDouble(),
+                              onChanged: _flow.busy
+                                  ? null
+                                  : (value) => setState(
+                                      () => _jpegQuality = value.round()),
+                            ),
+                          ],
                           if (widget.project.canvas.style.backgroundType ==
                               BackgroundType.transparent)
                             Padding(
@@ -195,6 +220,25 @@ class _ExportCenterState extends State<ExportCenter> {
                                     ? t('PNG exportiert den Hintergrund transparent.')
                                     : t('JPEG ersetzt den transparenten Hintergrund durch Weiß.'))),
                           const SizedBox(height: 16),
+                          if (widget.project.photos.isNotEmpty) ...[
+                            Text(t('exportPreview'),
+                                style: Theme.of(context).textTheme.titleMedium),
+                            const SizedBox(height: 8),
+                            Center(
+                                child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                  maxWidth: 390, maxHeight: 190),
+                              child: AspectRatio(
+                                  aspectRatio: _preset.aspectRatio,
+                                  child: StyledCollageScene(
+                                    project: widget.project,
+                                    maxEdge: 512,
+                                    showOverlays: true,
+                                    opaque: _format == ExportFormat.jpeg,
+                                  )),
+                            )),
+                            const SizedBox(height: 16),
+                          ],
                           Text(
                               t('Social-Media-Ziele öffnen die Ziel-App oder das Teilen-Menü. Wähle dort Story, Post oder Status und bestätige den Upload selbst.'),
                               style: Theme.of(context).textTheme.bodySmall),
@@ -235,13 +279,22 @@ class _ExportCenterState extends State<ExportCenter> {
         },
       );
 
+  Future<void> _chooseSize() async {
+    final result = await showDialog<SocialSharePreset>(
+      context: context,
+      builder: (_) => _ExportSizeDialog(initial: _preset),
+    );
+    if (result != null && mounted) setState(() => _preset = result);
+  }
+
   Future<void> _export() async {
     final box = context.findRenderObject()! as RenderBox;
     final origin = box.localToGlobal(Offset.zero) & box.size;
     final messenger = ScaffoldMessenger.of(context);
     void notice(String message) {
-      message = AppLocalizations.of(context).tr(message);
-      if (mounted) setState(() => _message = message);
+      if (mounted) {
+        setState(() => _message = AppLocalizations.of(context).tr(message));
+      }
     }
 
     try {
@@ -251,7 +304,7 @@ class _ExportCenterState extends State<ExportCenter> {
               width: _preset.width,
               height: _preset.height,
               format: _format,
-              jpegQuality: widget.defaults.jpegQuality),
+              jpegQuality: _jpegQuality),
           destination: _destination,
           origin: origin,
           onNotice: notice);
@@ -267,5 +320,71 @@ class _ExportCenterState extends State<ExportCenter> {
         notice(error is ExportFailure ? error.message : 'operationFailed');
       }
     }
+  }
+}
+
+class _ExportSizeDialog extends StatefulWidget {
+  const _ExportSizeDialog({required this.initial});
+  final SocialSharePreset initial;
+
+  @override
+  State<_ExportSizeDialog> createState() => _ExportSizeDialogState();
+}
+
+class _ExportSizeDialogState extends State<_ExportSizeDialog> {
+  late final _width = TextEditingController(text: '${widget.initial.width}');
+  late final _height = TextEditingController(text: '${widget.initial.height}');
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final t = strings.tr;
+    final width = AspectRatios.parseDimension(_width.text);
+    final height = AspectRatios.parseDimension(_height.text);
+    final valid = width != null &&
+        height != null &&
+        ExportSettings.validDimensions(width, height);
+    Widget field(TextEditingController controller, String label) => TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          textDirection: TextDirection.ltr,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(labelText: label),
+        );
+    return AlertDialog(
+      scrollable: true,
+      title: Text(t('customExportSize')),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        field(_width, t('dimensionWidth')),
+        const SizedBox(height: 12),
+        field(_height, t('dimensionHeight')),
+        if (!valid) ...[
+          const SizedBox(height: 12),
+          Text(t('exportDimensionLimits'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ],
+      ]),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(strings.cancel)),
+        FilledButton(
+          onPressed: !valid
+              ? null
+              : () => Navigator.pop(
+                  context,
+                  SocialSharePreset(
+                      'custom', 'customExportSize', width, height)),
+          child: Text(strings.done),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _width.dispose();
+    _height.dispose();
+    super.dispose();
   }
 }

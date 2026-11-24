@@ -1,5 +1,7 @@
 # Smart Auto Layout und Layout-Empfehlungen
 
+Den aktuellen Build- und Teststand beschreibt die [Validierung des Editors](editor-and-export.md#validation). Die Prüfergebnisse in diesem Dokument gehören zum ursprünglichen Funktionsstand.
+
 ## Bedienung
 
 Im Editor steht vor der vollständigen Layout-Bibliothek der Abschnitt
@@ -63,8 +65,10 @@ Foto weiter hinten wird daher nicht ungefragt umsortiert und bekommt keine
 irreführende Hero-Begründung. Es fließt trotzdem an seiner tatsächlichen
 Zellposition in die Formateignung ein. Empfehlungen sind eine geometrische
 Heuristik: Motive/Gesichter, vorhandene Zoom-Ausschnitte, Filter und Textinhalte
-werden nicht analysiert. Rahmen, Abstände und Rundungen sind keine zusätzlichen
-Score-Eingaben; die gespeicherte Versetzung wird berücksichtigt.
+werden nicht analysiert. Im Editor berücksichtigt die Formateignung zusätzlich
+die tatsächlichen Zellproportionen nach Abstand und Außenrand. Die gespeicherte
+Versetzung fließt weiterhin ein. Die Kategorien Beste Wahl, Wenig Zuschnitt,
+Ausgewogen, Fokusbild und Kreativ bieten unterschiedliche Rangfolgen.
 
 Die Miniaturen zeichnen dieselben normalisierten Zellen und Fotoindizes wie die
 Layout-Bibliothek. Sie zeigen keine privaten Fotos und sind schematische

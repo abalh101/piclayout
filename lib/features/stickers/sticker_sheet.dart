@@ -129,12 +129,14 @@ class _StickerPickerState extends State<_StickerPicker> {
 }
 
 Future<void> showStickerEditor(
-        BuildContext context, CollageEditorController controller) =>
-    showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (_) => _StickerEditor(controller: controller));
+    BuildContext context, CollageEditorController controller) {
+  if (controller.selectedSticker?.locked == true) return Future.value();
+  return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _StickerEditor(controller: controller));
+}
 
 class _StickerEditor extends StatefulWidget {
   const _StickerEditor({required this.controller});

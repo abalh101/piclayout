@@ -1,6 +1,7 @@
 import 'photo_metadata.dart';
 import 'photo_adjustments.dart';
 import 'photo_transform.dart';
+import 'photo_placement.dart';
 
 class PhotoAsset {
   const PhotoAsset({
@@ -10,6 +11,7 @@ class PhotoAsset {
     this.metadata,
     this.transform = PhotoTransform.identity,
     this.adjustments = const PhotoAdjustments(),
+    this.placement,
   });
 
   final PhotoMetadata? metadata;
@@ -18,6 +20,7 @@ class PhotoAsset {
   final String localPath;
   final PhotoTransform transform;
   final PhotoAdjustments adjustments;
+  final PhotoPlacement? placement;
 
   PhotoAsset copyWith({
     PhotoMetadata? metadata,
@@ -27,6 +30,8 @@ class PhotoAsset {
     String? localPath,
     PhotoTransform? transform,
     PhotoAdjustments? adjustments,
+    PhotoPlacement? placement,
+    bool clearPlacement = false,
   }) {
     return PhotoAsset(
       metadata: clearMetadata ? null : metadata ?? this.metadata,
@@ -35,6 +40,7 @@ class PhotoAsset {
       localPath: localPath ?? this.localPath,
       transform: transform ?? this.transform,
       adjustments: adjustments ?? this.adjustments,
+      placement: clearPlacement ? null : placement ?? this.placement,
     );
   }
 
@@ -45,11 +51,13 @@ class PhotoAsset {
         'localPath': localPath,
         'transform': transform.toJson(),
         'adjustments': adjustments.toJson(),
+        if (placement != null) 'placement': placement!.toJson(),
       };
 
   static PhotoAsset fromJson(Map<String, Object?> json) {
     return PhotoAsset(
       metadata: PhotoMetadata.tryParse(json['metadata']),
+      placement: PhotoPlacement.tryParse(json['placement']),
       adjustments: PhotoAdjustments.fromJson(
           Map<String, Object?>.from(json['adjustments'] as Map? ?? {})),
       id: json['id'] as String,

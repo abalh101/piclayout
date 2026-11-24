@@ -1,5 +1,7 @@
 # Bearbeitbare Projektdateien (.piclayout)
 
+Den aktuellen Build- und Teststand beschreibt die [Validierung des Editors](editor-and-export.md#validation). Die Prüfergebnisse in diesem Dokument gehören zum ursprünglichen Funktionsstand.
+
 ## Exportieren und importieren
 
 Auf einer Projektkarte das Menü öffnen und **Projekt exportieren** wählen.
@@ -52,7 +54,8 @@ Beispielmanifest:
 
 `project.json` enthält das vollständige aktuelle Projektmodell: Name,
 Seitenverhältnis, Layout-ID, eingebettete eigene Layout-Geometrie, Canvas/Style,
-Fototransformationen, Filter, Texte, Sticker und ihre Reihenfolge. Die Fotoeinträge
+Fototransformationen, Filter, Texte, Sticker und ihre Reihenfolge. Optional enthält
+es Freistil-Positionen, benutzerdefinierte Formate und Ebenenstatus. Die Fotoeinträge
 verwenden ausschließlich relative `localPath`-Werte wie `images/0.png` und neutrale
 Dateinamen. Es ist keine globale Vorlagen- oder Layoutbibliothek erforderlich.
 Favoriten, andere Projekte, Einstellungen und private Original-Dateinamen werden
@@ -119,7 +122,7 @@ Neu:
 Geändert: `lib/features/home/home_page.dart`,
 `lib/features/collage_editor/editor_page.dart`,
 `lib/core/localization/translations.dart`, `pubspec.yaml`, `pubspec.lock`,
-`README.md`. Das bestehende `ProjectRepository` bleibt unverändert.
+`README.md`. Die [lokale Projektrettung](editor-and-export.md#project-recovery) ist vom Archivformat unabhängig.
 
 `archive` (bereits indirekt vorhanden) ist jetzt eine direkte Abhängigkeit.
 Die native Dateiauswahl verwendet das offizielle Flutter-Plugin

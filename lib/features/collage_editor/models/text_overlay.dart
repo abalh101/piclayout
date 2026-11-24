@@ -11,6 +11,8 @@ class TextOverlay {
     this.backgroundColor,
     this.rotation = 0,
     this.alignment = TextOverlayAlignment.center,
+    this.hidden = false,
+    this.locked = false,
   });
 
   final String id;
@@ -22,6 +24,7 @@ class TextOverlay {
   final int? backgroundColor;
   final double rotation; // Degrees.
   final TextOverlayAlignment alignment;
+  final bool hidden, locked;
 
   TextOverlay copyWith({
     String? id,
@@ -33,6 +36,8 @@ class TextOverlay {
     Object? backgroundColor = _unchanged,
     double? rotation,
     TextOverlayAlignment? alignment,
+    bool? hidden,
+    bool? locked,
   }) {
     return TextOverlay(
       id: id ?? this.id,
@@ -46,6 +51,8 @@ class TextOverlay {
           : backgroundColor as int?,
       rotation: (rotation ?? this.rotation).clamp(-180.0, 180.0).toDouble(),
       alignment: alignment ?? this.alignment,
+      hidden: hidden ?? this.hidden,
+      locked: locked ?? this.locked,
     );
   }
 
@@ -59,6 +66,8 @@ class TextOverlay {
         'backgroundColor': backgroundColor,
         'rotation': rotation,
         'alignment': alignment.name,
+        if (hidden) 'hidden': true,
+        if (locked) 'locked': true,
       };
 
   static TextOverlay fromJson(Map<String, Object?> json) {
@@ -71,6 +80,8 @@ class TextOverlay {
       fontSize: 32,
       color: json['color'] as int? ?? 0xFFFFFFFF,
       backgroundColor: json['backgroundColor'] as int?,
+      hidden: json['hidden'] == true,
+      locked: json['locked'] == true,
       alignment: TextOverlayAlignment.values.firstWhere(
         (value) => value.name == alignmentName,
         orElse: () => TextOverlayAlignment.center,

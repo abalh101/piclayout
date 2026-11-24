@@ -3,6 +3,11 @@ import '../collage_editor/layouts/layout_library.dart';
 import '../collage_editor/models/layout_template.dart';
 import '../collage_editor/models/photo_asset.dart';
 import '../collage_editor/models/photo_metadata.dart';
+import '../collage_editor/models/canvas_settings.dart';
+import '../collage_editor/rendering/layout_geometry.dart';
+import 'dart:ui';
+
+enum LayoutFocus { bestFit, minimalCrop, balanced, hero, creative }
 
 class PhotoOrientationStats {
   PhotoOrientationStats(Iterable<PhotoMetadata?> photos) {
@@ -54,7 +59,9 @@ class LayoutRecommendation {
 class LayoutRecommendationService {
   const LayoutRecommendationService();
   List<LayoutRecommendation> recommend(List<PhotoAsset> photos,
-      {required double targetRatio, double staggerAmount = 0}) {
+      {required double targetRatio,
+      double staggerAmount = 0,
+      CanvasSettings? canvas}) {
     if (photos.isEmpty ||
         photos.length > 12 ||
         !targetRatio.isFinite ||
@@ -70,9 +77,19 @@ class LayoutRecommendationService {
     for (final layout in LayoutLibrary.templatesFor(photos.length)) {
       final cells =
           LayoutLibrary.cellsFor(layout, staggerAmount: staggerAmount);
+      final actual = canvas == null
+          ? null
+          : LayoutGeometry.resolveCells(
+              cells,
+              Size(targetRatio * 390, 390),
+              spacing: canvas.spacing,
+              outerMargin: canvas.outerMargin,
+              cornerRadius: canvas.cornerRadius,
+            );
       var fit = 0.0, coverage = 0.0, portraitCells = 0, landscapeCells = 0;
-      for (final cell in cells) {
-        final ratio = targetRatio * cell.rect.width / cell.rect.height;
+      for (final (index, cell) in cells.indexed) {
+        final ratio = actual?[index].rect.size.aspectRatio ??
+            targetRatio * cell.rect.width / cell.rect.height;
         final source = metadata[cell.photoIndex]?.aspectRatio;
         fit += source == null ? .65 : math.min(source / ratio, ratio / source);
         coverage += cell.rect.width * cell.rect.height;
@@ -143,5 +160,43 @@ class LayoutRecommendationService {
       return score != 0 ? score : a.layout.id.compareTo(b.layout.id);
     });
     return List.unmodifiable(results);
+  }
+
+  List<LayoutRecommendation> rankBy(
+      List<LayoutRecommendation> results, LayoutFocus focus) {
+    if (focus == LayoutFocus.bestFit) return results;
+    final ranked = switch (focus) {
+      LayoutFocus.hero => results
+          .where((item) =>
+              item.layout.kind == LayoutTemplateKind.heroTop ||
+              item.layout.kind == LayoutTemplateKind.heroLeft)
+          .toList(),
+      LayoutFocus.balanced => results
+          .where((item) => item.layout.kind == LayoutTemplateKind.grid)
+          .toList(),
+      LayoutFocus.creative => results
+          .where((item) =>
+              item.layout.kind == LayoutTemplateKind.staggeredTwoColumn ||
+              item.layout.kind == LayoutTemplateKind.unevenRows)
+          .toList(),
+      _ => results.toList(),
+    };
+    if (focus == LayoutFocus.minimalCrop) {
+      ranked.sort((a, b) {
+        final fit = b.score.fit.compareTo(a.score.fit);
+        return fit == 0 ? a.layout.id.compareTo(b.layout.id) : fit;
+      });
+    } else if (focus == LayoutFocus.balanced) {
+      ranked.sort((a, b) {
+        final coverage = b.score.coverage.compareTo(a.score.coverage);
+        final total = b.score.total.compareTo(a.score.total);
+        return coverage != 0
+            ? coverage
+            : total != 0
+                ? total
+                : a.layout.id.compareTo(b.layout.id);
+      });
+    }
+    return ranked;
   }
 }

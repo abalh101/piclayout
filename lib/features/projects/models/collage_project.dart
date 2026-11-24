@@ -20,6 +20,8 @@ class CollageProject {
     this.textOverlays = const [],
     this.customLayout,
     this.stickers = const [],
+    this.recovered = false,
+    this.freestyle = false,
   });
 
   final List<StickerOverlay> stickers;
@@ -34,6 +36,8 @@ class CollageProject {
   final List<PhotoAsset> photos;
   final CanvasSettings canvas;
   final List<TextOverlay> textOverlays;
+  final bool recovered;
+  final bool freestyle;
 
   AspectRatioPreset get aspectRatio => AspectRatios.byId(aspectRatioId);
 
@@ -51,6 +55,8 @@ class CollageProject {
     List<StickerOverlay>? stickers,
     CustomLayout? customLayout,
     bool clearCustomLayout = false,
+    bool? recovered,
+    bool? freestyle,
   }) {
     return CollageProject(
       stickers: stickers ?? this.stickers,
@@ -66,6 +72,8 @@ class CollageProject {
       textOverlays: textOverlays ?? this.textOverlays,
       customLayout:
           clearCustomLayout ? null : customLayout ?? this.customLayout,
+      recovered: recovered ?? this.recovered,
+      freestyle: freestyle ?? this.freestyle,
     );
   }
 
@@ -91,6 +99,7 @@ class CollageProject {
         'updatedAt': updatedAt.toIso8601String(),
         'formatVersion': formatVersion,
         'aspectRatioId': aspectRatioId,
+        if (freestyle) 'freestyle': true,
         'layoutTemplateId': layoutTemplateId,
         if (customLayout != null) 'customLayout': customLayout!.toJson(),
         'photos': photos.map((photo) => photo.toJson()).toList(),
@@ -102,6 +111,7 @@ class CollageProject {
   static CollageProject fromJson(Map<String, Object?> json) {
     return CollageProject(
       stickers: StickerOverlay.parseList(json['stickers']),
+      freestyle: json['freestyle'] == true,
       customLayout: CustomLayout.tryParse(json['customLayout']),
       id: json['id'] as String,
       name: json['name'] as String,

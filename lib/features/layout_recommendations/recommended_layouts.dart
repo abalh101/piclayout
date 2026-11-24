@@ -4,7 +4,7 @@ import '../collage_editor/layouts/layout_library.dart';
 import '../collage_editor/models/layout_template.dart';
 import 'layout_recommendation_service.dart';
 
-class RecommendedLayouts extends StatelessWidget {
+class RecommendedLayouts extends StatefulWidget {
   const RecommendedLayouts(
       {required this.recommendations,
       required this.targetRatio,
@@ -20,9 +20,25 @@ class RecommendedLayouts extends StatelessWidget {
   final ValueChanged<String> onSelected;
   final VoidCallback? onAuto;
   final bool loading;
+
+  @override
+  State<RecommendedLayouts> createState() => _RecommendedLayoutsState();
+}
+
+class _RecommendedLayoutsState extends State<RecommendedLayouts> {
+  LayoutFocus _focus = LayoutFocus.bestFit;
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).tr;
+    final groups = {
+      for (final item in LayoutFocus.values)
+        item: const LayoutRecommendationService()
+            .rankBy(widget.recommendations, item),
+    };
+    final focus = groups[_focus]!.isEmpty ? LayoutFocus.bestFit : _focus;
+    final recommendations = groups[focus]!;
+    final loading = widget.loading;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Wrap(
           spacing: 12,
@@ -30,13 +46,37 @@ class RecommendedLayouts extends StatelessWidget {
           children: [
             Text(t('recRecommended'),
                 style: Theme.of(context).textTheme.titleMedium),
-            if (onAuto != null)
+            if (widget.onAuto != null)
               FilledButton.tonalIcon(
                   key: const ValueKey('auto-layout'),
-                  onPressed: loading ? null : onAuto,
+                  onPressed: loading || recommendations.isEmpty
+                      ? null
+                      : () {
+                          if (focus == LayoutFocus.bestFit) {
+                            widget.onAuto!();
+                          } else {
+                            widget.onSelected(recommendations.first.layout.id);
+                          }
+                        },
                   icon: const Icon(Icons.auto_awesome_mosaic_outlined),
                   label: Text(t('recAuto'))),
           ]),
+      if (widget.recommendations.length > 1)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            for (final item in LayoutFocus.values)
+              if (groups[item]!.isNotEmpty)
+                Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: ChoiceChip(
+                        label: Text(t('layoutFocus_${item.name}')),
+                        selected: focus == item,
+                        onSelected: loading
+                            ? null
+                            : (_) => setState(() => _focus = item))),
+          ]),
+        ),
       if (loading) ...[
         const LinearProgressIndicator(),
         Text(t('recLoading'), style: Theme.of(context).textTheme.bodySmall),
@@ -49,16 +89,17 @@ class RecommendedLayouts extends StatelessWidget {
                   width: 190,
                   child: Semantics(
                       button: true,
-                      selected: selectedId == item.layout.id,
+                      selected: widget.selectedId == item.layout.id,
                       child: Card(
                         clipBehavior: Clip.antiAlias,
-                        color: selectedId == item.layout.id
+                        color: widget.selectedId == item.layout.id
                             ? Theme.of(context).colorScheme.primaryContainer
                             : null,
                         child: InkWell(
                           key: ValueKey('recommend-${item.layout.id}'),
-                          onTap:
-                              loading ? null : () => onSelected(item.layout.id),
+                          onTap: loading
+                              ? null
+                              : () => widget.onSelected(item.layout.id),
                           child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Column(
@@ -68,13 +109,13 @@ class RecommendedLayouts extends StatelessWidget {
                                         height: 88,
                                         child: Center(
                                             child: AspectRatio(
-                                                aspectRatio: targetRatio,
+                                                aspectRatio: widget.targetRatio,
                                                 child: CustomPaint(
                                                     painter:
                                                         LayoutPreviewPainter(
                                                             item.layout,
-                                                            staggerAmount:
-                                                                staggerAmount,
+                                                            staggerAmount: widget
+                                                                .staggerAmount,
                                                             color: Theme.of(
                                                                     context)
                                                                 .colorScheme
@@ -85,7 +126,10 @@ class RecommendedLayouts extends StatelessWidget {
                                             .textTheme
                                             .titleSmall),
                                     const SizedBox(height: 4),
-                                    Text(t(item.reasonKey),
+                                    Text(
+                                        t(focus == LayoutFocus.bestFit
+                                            ? item.reasonKey
+                                            : 'layoutReason_${focus.name}'),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall),

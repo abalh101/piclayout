@@ -1,5 +1,7 @@
 # Sticker, Emojis und Formen
 
+Den aktuellen Build- und Teststand beschreibt die [Validierung des Editors](editor-and-export.md#validation). Die Prüfergebnisse in diesem Dokument gehören zum ursprünglichen Funktionsstand.
+
 Im Editor steht oberhalb der Fotoauswahl **Sticker**. Der Katalog enthält 23 Einträge:
 
 - Emojis: ❤️ ✨ ⭐ 📍 😊 🔥.
@@ -34,7 +36,9 @@ Bearbeitungen werden direkt übernommen; **Fertig** schließt den Bereich.
 
 Die feste Ebenenfolge lautet: Hintergrund, Fotos mit Filtern/Rahmen, Text,
 Sticker. Vorne/hinten verändert die Reihenfolge innerhalb der Sticker-Ebene.
-Sticker werden nicht zwischen Fotos oder bestehenden Text-Overlays einsortiert.
+Im Ebenenbereich lassen sich Sticker und Formen außerdem ein- und ausblenden,
+sperren, duplizieren, löschen und schrittweise innerhalb ihrer Gruppe sortieren.
+Ausgeblendete Ebenen erscheinen weder in der Vorschau noch im Export.
 
 ## Speicherung, Vorlagen und Export
 

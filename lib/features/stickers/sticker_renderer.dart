@@ -29,6 +29,7 @@ class StickerRenderer {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     for (final sticker in stickers) {
+      if (sticker.hidden) continue;
       final extent = StickerRenderer.extent(sticker, size);
       canvas.save();
       canvas.translate(sticker.x * size.width, sticker.y * size.height);

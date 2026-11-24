@@ -1,5 +1,513 @@
 // Order: German, English, Arabic, Turkish, French, Spanish.
 const translations = <String, List<String>>{
+  'pixelUnit': ['Pixel', 'pixels', 'بكسل', 'piksel', 'pixels', 'píxeles'],
+  'dragPhotoOrder': [
+    'Foto verschieben',
+    'Drag to reorder',
+    'اسحب لإعادة الترتيب',
+    'Sıralamak için sürükle',
+    'Faire glisser pour réorganiser',
+    'Arrastra para reordenar'
+  ],
+  'highlights': [
+    'Lichter',
+    'Highlights',
+    'المناطق المضيئة',
+    'Açık tonlar',
+    'Hautes lumières',
+    'Luces'
+  ],
+  'shadows': ['Tiefen', 'Shadows', 'الظلال', 'Gölgeler', 'Ombres', 'Sombras'],
+  'sharpness': [
+    'Schärfe',
+    'Sharpness',
+    'الحدة',
+    'Keskinlik',
+    'Netteté',
+    'Nitidez'
+  ],
+  "layoutFocus_bestFit": [
+    "Beste Wahl",
+    "Best fit",
+    "أفضل توافق",
+    "En iyi uyum",
+    "Meilleur choix",
+    "Mejor ajuste"
+  ],
+  "layoutFocus_minimalCrop": [
+    "Wenig Zuschnitt",
+    "Minimal crop",
+    "أقل اقتصاص",
+    "En az kırpma",
+    "Recadrage minimal",
+    "Recorte mínimo"
+  ],
+  "layoutFocus_balanced": [
+    "Ausgewogen",
+    "Balanced",
+    "متوازن",
+    "Dengeli",
+    "Équilibré",
+    "Equilibrado"
+  ],
+  "layoutFocus_hero": [
+    "Fokusbild",
+    "Featured photo",
+    "صورة بارزة",
+    "Öne çıkan fotoğraf",
+    "Photo principale",
+    "Foto destacada"
+  ],
+  "layoutFocus_creative": [
+    "Kreativ",
+    "Creative",
+    "إبداعي",
+    "Yaratıcı",
+    "Créatif",
+    "Creativo"
+  ],
+  "layoutReason_minimalCrop": [
+    "Zellformate passen zu den Bildformaten.",
+    "Cell proportions favor less cropping.",
+    "تساعد تناسبات الخلايا على تقليل الاقتصاص.",
+    "Hücre oranları kırpmayı azaltır.",
+    "Les proportions des cellules limitent le recadrage.",
+    "Las proporciones de las celdas reducen el recorte."
+  ],
+  "layoutReason_balanced": [
+    "Gleichmäßige Zellen bilden ein ruhiges Raster.",
+    "Even cells make a balanced grid.",
+    "تشكّل الخلايا المتساوية شبكة متوازنة.",
+    "Eşit hücreler dengeli bir ızgara oluşturur.",
+    "Des cellules régulières équilibrent la grille.",
+    "Las celdas uniformes crean una cuadrícula equilibrada."
+  ],
+  "layoutReason_hero": [
+    "Das erste Foto erhält ein größeres Feld.",
+    "A larger cell highlights the first photo.",
+    "تُبرز خلية أكبر الصورة الأولى.",
+    "Daha büyük bir hücre ilk fotoğrafı öne çıkarır.",
+    "Une cellule plus grande met la première photo en valeur.",
+    "Una celda mayor destaca la primera foto."
+  ],
+  "layoutReason_creative": [
+    "Unterschiedliche Zellgrößen bringen Abwechslung.",
+    "Varied cell sizes give the composition more rhythm.",
+    "تنوّع أحجام الخلايا يضيف إيقاعًا للتكوين.",
+    "Farklı hücre boyutları kompozisyona ritim katar.",
+    "Des cellules variées donnent du rythme à la composition.",
+    "Las celdas de distintos tamaños dan ritmo a la composición."
+  ],
+  "customRatio": [
+    "Eigenes Format",
+    "Custom ratio",
+    "نسبة مخصصة",
+    "Özel oran",
+    "Format personnalisé",
+    "Proporción personalizada"
+  ],
+  "dimensionWidth": [
+    "Breite",
+    "Width",
+    "العرض",
+    "Genişlik",
+    "Largeur",
+    "Ancho"
+  ],
+  "dimensionHeight": [
+    "Höhe",
+    "Height",
+    "الارتفاع",
+    "Yükseklik",
+    "Hauteur",
+    "Alto"
+  ],
+  "swapDimensions": [
+    "Breite und Höhe tauschen",
+    "Swap width and height",
+    "تبديل العرض والارتفاع",
+    "Genişlik ile yüksekliği değiştir",
+    "Inverser largeur et hauteur",
+    "Intercambiar ancho y alto"
+  ],
+  "ratioLimits": [
+    "Gib ganze Zahlen von 1 bis 10.000 ein. Das Verhältnis muss zwischen 1:4 und 4:1 liegen.",
+    "Enter whole numbers from 1 to 10,000. Use a ratio between 1:4 and 4:1.",
+    "أدخل أعدادًا صحيحة من 1 إلى 10000. استخدم نسبة بين 1:4 و4:1.",
+    "1 ile 10.000 arasında tam sayı gir. Oran 1:4 ile 4:1 arasında olmalıdır.",
+    "Saisissez des entiers de 1 à 10 000, avec un rapport entre 1:4 et 4:1.",
+    "Introduce números enteros del 1 al 10 000 y una proporción entre 1:4 y 4:1."
+  ],
+  "savedRatios": [
+    "Favoriten und letzte Formate",
+    "Favorites and recent ratios",
+    "النسب المفضلة والأخيرة",
+    "Favoriler ve son oranlar",
+    "Formats favoris et récents",
+    "Proporciones favoritas y recientes"
+  ],
+  "layers": ["Ebenen", "Layers", "الطبقات", "Katmanlar", "Calques", "Capas"],
+  "showLayer": [
+    "Ebene einblenden",
+    "Show layer",
+    "إظهار الطبقة",
+    "Katmanı göster",
+    "Afficher le calque",
+    "Mostrar capa"
+  ],
+  "hideLayer": [
+    "Ebene ausblenden",
+    "Hide layer",
+    "إخفاء الطبقة",
+    "Katmanı gizle",
+    "Masquer le calque",
+    "Ocultar capa"
+  ],
+  "lockLayer": [
+    "Ebene sperren",
+    "Lock layer",
+    "قفل الطبقة",
+    "Katmanı kilitle",
+    "Verrouiller le calque",
+    "Bloquear capa"
+  ],
+  "unlockLayer": [
+    "Ebene entsperren",
+    "Unlock layer",
+    "إلغاء قفل الطبقة",
+    "Katmanın kilidini aç",
+    "Déverrouiller le calque",
+    "Desbloquear capa"
+  ],
+  "forwardLayer": [
+    "Eine Ebene nach vorne",
+    "Bring forward",
+    "تقديم طبقة واحدة",
+    "Bir katman öne getir",
+    "Avancer d’un niveau",
+    "Traer adelante"
+  ],
+  "backwardLayer": [
+    "Eine Ebene nach hinten",
+    "Send backward",
+    "إرجاع طبقة واحدة",
+    "Bir katman arkaya gönder",
+    "Reculer d’un niveau",
+    "Enviar atrás"
+  ],
+  "layerHidden": [
+    "Ausgeblendet",
+    "Hidden",
+    "مخفية",
+    "Gizli",
+    "Masqué",
+    "Oculta"
+  ],
+  "layerLocked": [
+    "Gesperrt",
+    "Locked",
+    "مقفلة",
+    "Kilitli",
+    "Verrouillé",
+    "Bloqueada"
+  ],
+  "gridMode": ["Raster", "Grid", "شبكة", "Izgara", "Grille", "Cuadrícula"],
+  "freestyleMode": [
+    "Freistil",
+    "Freestyle",
+    "تصميم حر",
+    "Serbest düzen",
+    "Composition libre",
+    "Estilo libre"
+  ],
+  "addPhotos": [
+    "Fotos hinzufügen",
+    "Add photos",
+    "إضافة صور",
+    "Fotoğraf ekle",
+    "Ajouter des photos",
+    "Añadir fotos"
+  ],
+  "snapPhoto": [
+    "Ausrichten",
+    "Snap to guides",
+    "محاذاة بالأدلة",
+    "Kılavuzlara hizala",
+    "Aligner sur les repères",
+    "Ajustar a las guías"
+  ],
+  "resizePhoto": [
+    "Fotogröße ändern",
+    "Resize photo",
+    "تغيير حجم الصورة",
+    "Fotoğrafı boyutlandır",
+    "Redimensionner la photo",
+    "Cambiar tamaño de la foto"
+  ],
+  "photoOpacity": [
+    "Deckkraft",
+    "Opacity",
+    "العتامة",
+    "Opaklık",
+    "Opacité",
+    "Opacidad"
+  ],
+  "photoAngle": [
+    "Drehwinkel",
+    "Rotation angle",
+    "زاوية الدوران",
+    "Döndürme açısı",
+    "Angle de rotation",
+    "Ángulo de rotación"
+  ],
+  "photoCorner": [
+    "Eckenradius",
+    "Corner radius",
+    "استدارة الزوايا",
+    "Köşe yarıçapı",
+    "Arrondi des angles",
+    "Radio de las esquinas"
+  ],
+  "photoBorder": [
+    "Weißer Rahmen",
+    "White border",
+    "إطار أبيض",
+    "Beyaz çerçeve",
+    "Bordure blanche",
+    "Borde blanco"
+  ],
+  "photoShadow": [
+    "Fotoschatten",
+    "Photo shadow",
+    "ظل الصورة",
+    "Fotoğraf gölgesi",
+    "Ombre de la photo",
+    "Sombra de la foto"
+  ],
+  "projectSaveFailed": [
+    "Speichern fehlgeschlagen. Prüfe den freien Speicher und versuche es erneut.",
+    "Couldn’t save the project. Check available storage and try again.",
+    "تعذّر حفظ المشروع. تحقّق من مساحة التخزين المتاحة وحاول مجددًا.",
+    "Proje kaydedilemedi. Boş depolama alanını kontrol edip tekrar dene.",
+    "Impossible d’enregistrer le projet. Vérifiez l’espace libre, puis réessayez.",
+    "No se pudo guardar el proyecto. Comprueba el espacio disponible e inténtalo de nuevo."
+  ],
+  "projectRecovered": [
+    "Die letzte lesbare Version des Projekts wurde geladen.",
+    "The last readable version of this project was loaded.",
+    "تم تحميل آخر نسخة قابلة للقراءة من المشروع.",
+    "Bu projenin okunabilen son sürümü yüklendi.",
+    "La dernière version lisible de ce projet a été chargée.",
+    "Se cargó la última versión legible de este proyecto."
+  ],
+  "retrySave": [
+    "Erneut speichern",
+    "Retry save",
+    "إعادة محاولة الحفظ",
+    "Kaydetmeyi yeniden dene",
+    "Réessayer l’enregistrement",
+    "Volver a guardar"
+  ],
+  "exportUnreadablePhoto": [
+    "Ein Foto fehlt oder kann nicht gelesen werden. Ersetze es im Editor.",
+    "A photo is missing or unreadable. Replace it in the editor.",
+    "هناك صورة مفقودة أو تعذّرت قراءتها. استبدلها في المحرر.",
+    "Bir fotoğraf eksik ya da okunamıyor. Düzenleyicide değiştir.",
+    "Une photo est introuvable ou illisible. Remplacez-la dans l’éditeur.",
+    "Falta una foto o no se puede leer. Sustitúyela en el editor."
+  ],
+  "exportDimensionLimits": [
+    "Gib 1 bis 4096 Pixel je Seite und ein Verhältnis zwischen 1:4 und 4:1 ein.",
+    "Enter 1 to 4096 pixels per side and a ratio between 1:4 and 4:1.",
+    "أدخل من 1 إلى 4096 بكسل لكل جانب ونسبة بين 1:4 و4:1.",
+    "Her kenar için 1–4096 piksel ve 1:4 ile 4:1 arasında bir oran gir.",
+    "Saisissez 1 à 4096 pixels par côté et un rapport entre 1:4 et 4:1.",
+    "Introduce de 1 a 4096 píxeles por lado y una proporción entre 1:4 y 4:1."
+  ],
+  "customExportSize": [
+    "Eigene Pixelgröße",
+    "Custom pixel size",
+    "حجم بكسل مخصص",
+    "Özel piksel boyutu",
+    "Dimensions personnalisées",
+    "Tamaño personalizado en píxeles"
+  ],
+  "exportRatioChanges": [
+    "Das Exportformat ändert die Anordnung und kann Bildausschnitte ändern.",
+    "This export ratio reflows the composition and can change crops.",
+    "تغيّر نسبة التصدير ترتيب العناصر وقد تغيّر اقتصاص الصور.",
+    "Bu dışa aktarma oranı kompozisyonu yeniden düzenler ve kırpmayı değiştirebilir.",
+    "Ce format réorganise la composition et peut modifier les recadrages.",
+    "Esta proporción redistribuye la composición y puede cambiar los recortes."
+  ],
+  "exportPreview": [
+    "Exportvorschau",
+    "Export preview",
+    "معاينة التصدير",
+    "Dışa aktarma önizlemesi",
+    "Aperçu de l’export",
+    "Vista previa de exportación"
+  ],
+  "exposure": [
+    "Belichtung",
+    "Exposure",
+    "التعريض",
+    "Pozlama",
+    "Exposition",
+    "Exposición"
+  ],
+  "vignette": [
+    "Vignette",
+    "Vignette",
+    "تعتيم الأطراف",
+    "Kenar karartma",
+    "Vignettage",
+    "Viñeta"
+  ],
+  "comparePhoto": [
+    "Original anzeigen",
+    "Show original",
+    "إظهار الأصل",
+    "Orijinali göster",
+    "Afficher l’original",
+    "Mostrar original"
+  ],
+  "applyAllPhotos": [
+    "Auf alle Fotos anwenden",
+    "Apply to all photos",
+    "تطبيق على كل الصور",
+    "Tüm fotoğraflara uygula",
+    "Appliquer à toutes les photos",
+    "Aplicar a todas las fotos"
+  ],
+  "copyAdjustments": [
+    "Anpassungen kopieren",
+    "Copy adjustments",
+    "نسخ التعديلات",
+    "Ayarları kopyala",
+    "Copier les réglages",
+    "Copiar ajustes"
+  ],
+  "pasteAdjustments": [
+    "Anpassungen einfügen",
+    "Paste adjustments",
+    "لصق التعديلات",
+    "Ayarları yapıştır",
+    "Coller les réglages",
+    "Pegar ajustes"
+  ],
+  "resetAdjustment": [
+    "Regler zurücksetzen",
+    "Reset adjustment",
+    "إعادة تعيين التعديل",
+    "Ayarı sıfırla",
+    "Réinitialiser le réglage",
+    "Restablecer ajuste"
+  ],
+  "searchTemplates": [
+    "Vorlagen suchen",
+    "Search templates",
+    "البحث عن القوالب",
+    "Şablon ara",
+    "Rechercher des modèles",
+    "Buscar plantillas"
+  ],
+  "matchingPhotoCount": [
+    "Passende Fotoanzahl",
+    "Matching photo count",
+    "عدد الصور المطابق",
+    "Eşleşen fotoğraf sayısı",
+    "Même nombre de photos",
+    "Mismo número de fotos"
+  ],
+  "matchingAspectRatio": [
+    "Passendes Seitenverhältnis",
+    "Matching aspect ratio",
+    "نسبة العرض إلى الارتفاع المطابقة",
+    "Eşleşen en boy oranı",
+    "Même rapport largeur-hauteur",
+    "Misma proporción"
+  ],
+  "noMatchingTemplates": [
+    "Keine passenden Vorlagen",
+    "No matching templates",
+    "لا توجد قوالب مطابقة",
+    "Eşleşen şablon yok",
+    "Aucun modèle correspondant",
+    "No hay plantillas coincidentes"
+  ],
+  "confirmDeleteProject": [
+    "Dieses Projekt und seine lokalen Kopien löschen?",
+    "Delete this project and its local copies?",
+    "هل تريد حذف هذا المشروع ونسخه المحلية؟",
+    "Bu proje ve yerel kopyaları silinsin mi?",
+    "Supprimer ce projet et ses copies locales ?",
+    "¿Eliminar este proyecto y sus copias locales?"
+  ],
+  "recentTemplates": [
+    "Zuletzt verwendet",
+    "Recently used",
+    "المستخدمة مؤخرًا",
+    "Son kullanılanlar",
+    "Utilisés récemment",
+    "Usadas recientemente"
+  ],
+  "builtInTemplates": [
+    "Designs",
+    "Built-in designs",
+    "تصاميم جاهزة",
+    "Hazır tasarımlar",
+    "Modèles intégrés",
+    "Diseños incluidos"
+  ],
+  "templatePolaroid": [
+    "Sofortbild",
+    "Instant prints",
+    "صور فورية",
+    "Anında baskılar",
+    "Photos instantanées",
+    "Fotos instantáneas"
+  ],
+  "templateEditorial": [
+    "Magazin",
+    "Magazine",
+    "مجلة",
+    "Dergi",
+    "Magazine",
+    "Revista"
+  ],
+  "templateBeforeAfter": [
+    "Vorher / Nachher",
+    "Before and after",
+    "قبل وبعد",
+    "Önce ve sonra",
+    "Avant et après",
+    "Antes y después"
+  ],
+  "templateDiary": [
+    "Fototagebuch",
+    "Photo diary",
+    "يوميات مصورة",
+    "Fotoğraf günlüğü",
+    "Journal photo",
+    "Diario fotográfico"
+  ],
+  "templateTravel": [
+    "Reisealbum",
+    "Travel album",
+    "ألبوم السفر",
+    "Seyahat albümü",
+    "Album de voyage",
+    "Álbum de viaje"
+  ],
+  "templateGeometric": [
+    "Geometrie",
+    "Geometric",
+    "تصميم هندسي",
+    "Geometrik",
+    "Géométrique",
+    "Geométrico"
+  ],
   "recRecommended": [
     "Empfohlen",
     "Recommended",

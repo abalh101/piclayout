@@ -46,12 +46,16 @@ class PhotoTransform {
       };
 
   static PhotoTransform fromJson(Map<String, Object?> json) {
+    double finite(Object? value, double fallback) =>
+        value is num && value.isFinite ? value.toDouble() : fallback;
     return PhotoTransform(
-      scale: (json['scale'] as num?)?.toDouble() ?? 1,
-      offsetX: (json['offsetX'] as num?)?.toDouble() ?? 0,
-      offsetY: (json['offsetY'] as num?)?.toDouble() ?? 0,
-      rotationQuarterTurns: json['rotationQuarterTurns'] as int? ?? 0,
-      flipX: json['flipX'] as bool? ?? false,
+      scale: finite(json['scale'], 1),
+      offsetX: finite(json['offsetX'], 0),
+      offsetY: finite(json['offsetY'], 0),
+      rotationQuarterTurns: json['rotationQuarterTurns'] is int
+          ? (json['rotationQuarterTurns'] as int) % 4
+          : 0,
+      flipX: json['flipX'] == true,
       fitMode: PhotoFitMode.values.firstWhere(
         (mode) => mode.name == json['fitMode'],
         orElse: () => PhotoFitMode.fill,

@@ -24,20 +24,27 @@ class DesignLibrary {
   const DesignLibrary({
     this.favoriteLayouts = const [],
     this.templates = const [],
+    this.favoriteTemplateIds = const [],
+    this.recentTemplateIds = const [],
   });
 
   final List<FavoriteLayout> favoriteLayouts;
   final List<CollageTemplate> templates;
+  final List<String> favoriteTemplateIds, recentTemplateIds;
 
   bool isFavorite(String id) => favoriteLayouts.any((item) => item.id == id);
 
   DesignLibrary copyWith({
     List<FavoriteLayout>? favoriteLayouts,
     List<CollageTemplate>? templates,
+    List<String>? favoriteTemplateIds,
+    List<String>? recentTemplateIds,
   }) =>
       DesignLibrary(
         favoriteLayouts: favoriteLayouts ?? this.favoriteLayouts,
         templates: templates ?? this.templates,
+        favoriteTemplateIds: favoriteTemplateIds ?? this.favoriteTemplateIds,
+        recentTemplateIds: recentTemplateIds ?? this.recentTemplateIds,
       );
 
   Map<String, Object?> toJson() => {
@@ -45,6 +52,8 @@ class DesignLibrary {
         'favoriteLayouts':
             favoriteLayouts.map((item) => item.toJson()).toList(),
         'templates': templates.map((item) => item.toJson()).toList(),
+        'favoriteTemplateIds': favoriteTemplateIds,
+        'recentTemplateIds': recentTemplateIds,
       };
 
   factory DesignLibrary.fromJson(Map<String, Object?> json) => DesignLibrary(
@@ -56,5 +65,10 @@ class DesignLibrary {
             .map((item) =>
                 CollageTemplate.fromJson(Map<String, Object?>.from(item)))
             .toList(),
+        favoriteTemplateIds: _ids(json['favoriteTemplateIds']),
+        recentTemplateIds: _ids(json['recentTemplateIds']).take(8).toList(),
       );
+
+  static List<String> _ids(Object? value) =>
+      value is List ? value.whereType<String>().toSet().toList() : const [];
 }

@@ -32,6 +32,16 @@ class AppTheme {
         foregroundColor: scheme.onSurface,
         elevation: 0,
       ),
+      bottomSheetTheme: BottomSheetThemeData(
+        modalBackgroundColor: scheme.surfaceContainerLow,
+        dragHandleColor: scheme.outline,
+        constraints: const BoxConstraints(maxWidth: 640),
+      ),
+      inputDecorationTheme: InputDecorationThemeData(
+        filled: true,
+        fillColor: scheme.surfaceContainerLow,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       cardTheme: CardThemeData(
         elevation: 0,
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),

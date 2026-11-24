@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../collage_editor/layouts/layout_library.dart';
 import '../../collage_editor/models/aspect_ratio_preset.dart';
 import '../../collage_editor/models/canvas_settings.dart';
+import '../../collage_editor/models/photo_placement.dart';
 import '../../collage_editor/models/text_overlay.dart';
 import '../../projects/models/collage_project.dart';
 
@@ -21,6 +22,8 @@ class CollageTemplate {
     this.customLayout,
     this.includeStickers = false,
     this.stickers = const [],
+    this.freestyle = false,
+    this.placements = const [],
   });
 
   final bool includeStickers;
@@ -34,6 +37,8 @@ class CollageTemplate {
   final CanvasSettings canvas;
   final bool includeTextOverlays;
   final List<TextOverlay> textOverlays;
+  final bool freestyle;
+  final List<PhotoPlacement?> placements;
 
   factory CollageTemplate.fromProject({
     required String id,
@@ -51,6 +56,10 @@ class CollageTemplate {
       aspectRatioId: project.aspectRatioId,
       layoutTemplateId: project.layoutTemplateId,
       customLayout: project.customLayout,
+      freestyle: project.freestyle,
+      placements: project.freestyle
+          ? [for (final photo in project.photos) photo.placement]
+          : const [],
       canvas: project.canvas,
       includeTextOverlays: includeTextOverlays,
       textOverlays:
@@ -68,6 +77,19 @@ class CollageTemplate {
           ? [for (final s in stickers) s.copyWith(id: const Uuid().v4())]
           : project.stickers,
       aspectRatioId: AspectRatios.byId(aspectRatioId).id,
+      freestyle: freestyle,
+      photos: freestyle
+          ? [
+              for (var i = 0; i < project.photos.length; i++)
+                project.photos[i].copyWith(
+                  placement: i < placements.length
+                      ? placements[i]
+                      : const PhotoPlacement(),
+                  clearPlacement:
+                      i < placements.length && placements[i] == null,
+                ),
+            ]
+          : project.photos,
       layoutTemplateId: layout.id,
       customLayout: customLayout?.photoCount == project.photos.length
           ? customLayout
@@ -92,6 +114,9 @@ class CollageTemplate {
         'name': name,
         'photoCount': photoCount,
         'aspectRatioId': aspectRatioId,
+        if (freestyle) 'freestyle': true,
+        if (freestyle)
+          'placements': [for (final item in placements) item?.toJson()],
         'layoutTemplateId': layoutTemplateId,
         if (customLayout != null) 'customLayout': customLayout!.toJson(),
         'canvas': canvas.toJson(),
@@ -109,6 +134,13 @@ class CollageTemplate {
           ? StickerOverlay.parseList(json['stickers'])
           : const [],
       customLayout: CustomLayout.tryParse(json['customLayout']),
+      freestyle: json['freestyle'] == true,
+      placements: json['placements'] is List
+          ? (json['placements'] as List)
+              .take(12)
+              .map(PhotoPlacement.tryParse)
+              .toList()
+          : const [],
       id: json['id'] as String,
       name: json['name'] as String,
       photoCount: json['photoCount'] as int? ?? 0,

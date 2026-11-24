@@ -16,10 +16,13 @@ class ProjectsNotifier extends StateNotifier<AsyncValue<List<CollageProject>>> {
   ProjectsNotifier(this._repository) : super(const AsyncValue.loading());
 
   final ProjectRepository _repository;
+  int _reloadGeneration = 0;
 
   Future<void> reload() async {
+    final generation = ++_reloadGeneration;
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(_repository.loadProjects);
+    final loaded = await AsyncValue.guard(_repository.loadProjects);
+    if (mounted && generation == _reloadGeneration) state = loaded;
   }
 
   Future<CollageProject> add(CollageProject project) async {

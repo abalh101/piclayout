@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 class ExportSizePreset {
   const ExportSizePreset({
     required this.width,
@@ -26,11 +28,12 @@ class AspectRatioPreset {
   double get value => width / height;
 
   List<ExportSizePreset> exportSizes() {
-    const shortSide = [1080, 1440, 2160];
-    return shortSide.map((base) {
+    final largest = math.min(2160, (4096 / math.max(value, 1 / value)).floor());
+    return [.5, 2 / 3, 1].map((fraction) {
       final isPortrait = height >= width;
-      final exportWidth = isPortrait ? base : (base * value).round();
-      final exportHeight = isPortrait ? (base / value).round() : base;
+      final short = (largest * fraction).round();
+      final exportWidth = (isPortrait ? short : short * value).round();
+      final exportHeight = (isPortrait ? short / value : short).round();
       return ExportSizePreset(
         width: exportWidth,
         height: exportHeight,
@@ -76,9 +79,44 @@ class AspectRatios {
   ];
 
   static AspectRatioPreset byId(String id) {
-    return all.firstWhere(
-      (preset) => preset.id == id,
-      orElse: () => story,
-    );
+    return customById(id) ??
+        all.firstWhere(
+          (preset) => preset.id == id,
+          orElse: () => story,
+        );
+  }
+
+  static AspectRatioPreset? customById(String id) {
+    final match = RegExp(r'^custom_([0-9]{1,5})_([0-9]{1,5})$').firstMatch(id);
+    return match == null
+        ? null
+        : custom(int.parse(match[1]!), int.parse(match[2]!));
+  }
+
+  static AspectRatioPreset? custom(int? width, int? height) {
+    if (width == null ||
+        height == null ||
+        width < 1 ||
+        height < 1 ||
+        width > 10000 ||
+        height > 10000 ||
+        width > height * 4 ||
+        height > width * 4) {
+      return null;
+    }
+    final divisor = width.gcd(height);
+    final w = width ~/ divisor;
+    final h = height ~/ divisor;
+    return AspectRatioPreset(
+        id: 'custom_${w}_$h', label: '$w:$h', width: w, height: h);
+  }
+
+  static int? parseDimension(String value) {
+    const digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹';
+    final normalized = value.trim().replaceAllMapped(
+        RegExp('[$digits]'), (match) => '${digits.indexOf(match[0]!) % 10}');
+    return RegExp(r'^[0-9]{1,5}$').hasMatch(normalized)
+        ? int.tryParse(normalized)
+        : null;
   }
 }

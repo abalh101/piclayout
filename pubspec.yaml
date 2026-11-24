@@ -32,6 +32,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  shaders:
+    - assets/shaders/photo_detail.frag
   assets:
     - assets/branding/app_logo.png
     - assets/demo/

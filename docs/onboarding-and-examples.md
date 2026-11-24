@@ -1,10 +1,13 @@
 # Onboarding, Beispiele und Einstiegstipps
 
+Den aktuellen Build- und Teststand beschreibt die [Validierung des Editors](editor-and-export.md#validation). Die Prüfergebnisse in diesem Dokument gehören zum ursprünglichen Funktionsstand.
+
 ## Bedienung
 
 Beim ersten Start nach Installation dieses Funktionsstands zeigt PicLayout fünf
 kurze Seiten: Willkommen, Fotos auswählen, Layouts/Vorlagen, Bearbeiten und
-Exportieren. Die gespeicherte Sprache wird vor der Anzeige geladen. Weiter,
+Exportieren. Die gespeicherte Sprache wird vor der Anzeige geladen. Die Texte und Aktionen
+werden auf breiten Bildschirmen zentriert und in der Breite begrenzt. Weiter,
 Zurück und Wischen wechseln die Seite. Überspringen beendet die Einführung;
 auf der letzten Seite führen Loslegen zur Startseite und Beispiel öffnen zur
 Beispielauswahl. Abschluss und Überspringen speichern denselben lokalen

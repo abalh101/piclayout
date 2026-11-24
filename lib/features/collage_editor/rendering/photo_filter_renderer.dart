@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 import '../models/photo_adjustments.dart';
 
 /// The same affine RGB transform is used in preview and file-based export.
@@ -28,7 +29,15 @@ class PhotoFilterRenderer {
     0
   ];
   static ColorFilter filter(PhotoAdjustments a) {
-    final key = a.toJson().values.join(':');
+    final key = (
+      a.preset,
+      a.filterIntensity,
+      a.brightness,
+      a.contrast,
+      a.saturation,
+      a.warmth,
+      a.exposure
+    ).toString();
     return _cache.putIfAbsent(key, () {
       if (_cache.length >= 128) _cache.remove(_cache.keys.first);
       return ColorFilter.matrix(matrix(a));
@@ -104,7 +113,13 @@ class PhotoFilterRenderer {
     final amount = a.filterIntensity.clamp(0.0, 1.0);
     final mixed = List<double>.generate(
         20, (i) => identity[i] + (preset[i] - identity[i]) * amount);
-    return _compose(
-        _tone(a.contrast, a.brightness, a.saturation, a.warmth), mixed);
+    final tone = _tone(a.contrast, a.brightness, a.saturation, a.warmth);
+    final gain = math.pow(2, a.exposure).toDouble();
+    for (var row = 0; row < 3; row++) {
+      for (var col = 0; col < 3; col++) {
+        tone[row * 5 + col] *= gain;
+      }
+    }
+    return _compose(tone, mixed);
   }
 }

@@ -1,3 +1,8 @@
+import '../../collage_editor/models/aspect_ratio_preset.dart';
+import '../../collage_editor/models/photo_placement.dart';
+import '../../collage_editor/rendering/layout_geometry.dart';
+import '../models/built_in_designs.dart';
+import '../models/collage_template.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -113,90 +118,251 @@ class _SaveTemplateDialogState extends State<_SaveTemplateDialog> {
 Future<void> showMyTemplatesSheet(
   BuildContext context,
   CollageEditorController controller,
-) {
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (sheetContext) => Consumer(
-      builder: (context, ref, _) {
-        final strings = AppLocalizations.of(context);
-        final library = ref.watch(designLibraryProvider);
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.7,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(strings.myTemplates,
-                      style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  Flexible(
-                    child: library.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, _) =>
-                          Center(child: Text(strings.tr('operationFailed'))),
-                      data: (data) => data.templates.isEmpty
-                          ? Center(child: Text(strings.noTemplates))
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: data.templates.length,
-                              itemBuilder: (context, index) {
-                                final template = data.templates[index];
-                                return ListTile(
-                                  title: Text(template.name),
-                                  subtitle: Text(
-                                    '${template.photoCount} ${strings.photo} · ${template.aspectRatioId}',
-                                  ),
-                                  onTap: () {
-                                    final messenger =
-                                        ScaffoldMessenger.of(context);
-                                    final resolved =
-                                        LayoutLibrary.byIdOrDefault(
-                                      template.layoutTemplateId,
-                                      controller.project.photos.length,
-                                    );
-                                    final adjusted = template.customLayout !=
-                                            null
-                                        ? template.customLayout!.photoCount !=
-                                            controller.project.photos.length
-                                        : resolved.id !=
-                                            template.layoutTemplateId;
-                                    controller.applyTemplate(template);
-                                    Navigator.pop(sheetContext);
-                                    if (adjusted) {
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                            content:
-                                                Text(strings.layoutAdjusted)),
-                                      );
-                                    }
-                                  },
-                                  trailing: IconButton(
-                                    tooltip: strings.delete,
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: () => ref
-                                        .read(designLibraryProvider.notifier)
-                                        .deleteTemplate(template.id),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ),
-                ],
+) =>
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _TemplatesSheet(controller),
+    );
+
+enum _TemplateCollection { all, favorites, recent }
+
+class _TemplatesSheet extends ConsumerStatefulWidget {
+  const _TemplatesSheet(this.controller);
+  final CollageEditorController controller;
+
+  @override
+  ConsumerState<_TemplatesSheet> createState() => _TemplatesSheetState();
+}
+
+class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
+  String _query = '';
+  bool _matchingCount = false;
+  bool _matchingRatio = false;
+  _TemplateCollection _collection = _TemplateCollection.all;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final t = strings.tr;
+    final library = ref.watch(designLibraryProvider);
+    final project = widget.controller.project;
+    final theme = Theme.of(context);
+    final notifier = ref.read(designLibraryProvider.notifier);
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * .82,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          children: [
+            Text(strings.myTemplates, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 12),
+            TextField(
+              onChanged: (value) =>
+                  setState(() => _query = value.trim().toLowerCase()),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                labelText: t('searchTemplates'),
               ),
             ),
-          ),
-        );
-      },
-    ),
-  );
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 4, children: [
+              for (final item in {
+                _TemplateCollection.favorites: strings.favorites,
+                _TemplateCollection.recent: t('recentTemplates'),
+              }.entries)
+                FilterChip(
+                  label: Text(item.value),
+                  selected: _collection == item.key,
+                  onSelected: (selected) => setState(() => _collection =
+                      selected ? item.key : _TemplateCollection.all),
+                ),
+              FilterChip(
+                  label: Text(t('matchingPhotoCount')),
+                  selected: _matchingCount,
+                  onSelected: (value) =>
+                      setState(() => _matchingCount = value)),
+              FilterChip(
+                  label: Text(t('matchingAspectRatio')),
+                  selected: _matchingRatio,
+                  onSelected: (value) =>
+                      setState(() => _matchingRatio = value)),
+            ]),
+            const SizedBox(height: 12),
+            ...library.when(
+              loading: () => [const Center(child: CircularProgressIndicator())],
+              error: (error, _) => [Text(t('operationFailed'))],
+              data: (data) {
+                final byId = {
+                  for (final item in [...data.templates, ...BuiltInDesigns.all])
+                    item.id: item
+                };
+                final candidates = switch (_collection) {
+                  _TemplateCollection.all => byId.values,
+                  _TemplateCollection.favorites =>
+                    data.favoriteTemplateIds.map((id) => byId[id]).nonNulls,
+                  _TemplateCollection.recent =>
+                    data.recentTemplateIds.map((id) => byId[id]).nonNulls,
+                };
+                String title(CollageTemplate item) =>
+                    item.id.startsWith('builtin_') ? t(item.name) : item.name;
+                final filtered = candidates
+                    .where((item) =>
+                        title(item).toLowerCase().contains(_query) &&
+                        (!_matchingCount ||
+                            item.photoCount == project.photos.length) &&
+                        (!_matchingRatio ||
+                            (AspectRatios.byId(item.aspectRatioId).value -
+                                        project.aspectRatio.value)
+                                    .abs() <
+                                .001))
+                    .toList();
+                if (filtered.isEmpty) return [Text(t('noMatchingTemplates'))];
+                return [
+                  for (final (index, item) in filtered.indexed) ...[
+                    if (_collection == _TemplateCollection.all &&
+                        item.id.startsWith('builtin_') &&
+                        (index == 0 ||
+                            !filtered[index - 1].id.startsWith('builtin_')))
+                      Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(t('builtInTemplates'),
+                              style: theme.textTheme.titleSmall)),
+                    Card(
+                      child: ListTile(
+                        leading: SizedBox(
+                            width: 54,
+                            height: 52,
+                            child:
+                                CustomPaint(painter: _TemplatePreview(item))),
+                        title: Text(title(item)),
+                        subtitle: Text(
+                            '${item.photoCount} ${t('Fotos')} · ${AspectRatios.byId(item.aspectRatioId).label}'),
+                        onTap: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final adjusted =
+                              item.photoCount != project.photos.length;
+                          widget.controller.applyTemplate(item);
+                          Navigator.pop(context);
+                          if (adjusted) {
+                            messenger.showSnackBar(SnackBar(
+                                content: Text(strings.layoutAdjusted)));
+                          }
+                          try {
+                            await notifier.recordTemplateUse(item.id);
+                          } catch (_) {
+                            messenger.showSnackBar(
+                                SnackBar(content: Text(t('operationFailed'))));
+                          }
+                        },
+                        trailing:
+                            Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(
+                            tooltip: data.favoriteTemplateIds.contains(item.id)
+                                ? strings.removeFavorite
+                                : strings.addFavorite,
+                            icon: Icon(
+                                data.favoriteTemplateIds.contains(item.id)
+                                    ? Icons.star
+                                    : Icons.star_border),
+                            onPressed: () async {
+                              try {
+                                await notifier.toggleTemplateFavorite(item.id);
+                              } catch (_) {
+                                if (context.mounted) {
+                                  _notice(context, t('operationFailed'));
+                                }
+                              }
+                            },
+                          ),
+                          if (!item.id.startsWith('builtin_'))
+                            IconButton(
+                              tooltip: strings.delete,
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () async {
+                                try {
+                                  await notifier.deleteTemplate(item.id);
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    _notice(context, t('operationFailed'));
+                                  }
+                                }
+                              },
+                            ),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ];
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _notice(BuildContext context, String message) =>
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+}
+
+class _TemplatePreview extends CustomPainter {
+  const _TemplatePreview(this.template);
+  final CollageTemplate template;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (template.photoCount < 1 || template.photoCount > 12) return;
+    final ratio = AspectRatios.byId(template.aspectRatioId).value;
+    final width = (size.height * ratio).clamp(0, size.width).toDouble();
+    final extent = Size(width, width / ratio);
+    final origin = (Offset.zero & size).center -
+        Offset(extent.width / 2, extent.height / 2);
+    final area = Offset.zero & extent;
+    final background = Color(template.canvas.backgroundColor);
+    final ink =
+        background.computeLuminance() > .40 ? Colors.black : Colors.white;
+    canvas.save();
+    canvas.translate(origin.dx, origin.dy);
+    canvas.clipRRect(RRect.fromRectAndRadius(area, const Radius.circular(4)));
+    canvas.drawColor(background, BlendMode.srcOver);
+    final paint = Paint()..color = ink.withValues(alpha: .30);
+    if (template.freestyle) {
+      for (final placement in template.placements) {
+        final item = placement ?? const PhotoPlacement();
+        if (item.hidden) continue;
+        final rect = item.rect(extent);
+        canvas.save();
+        canvas.translate(rect.center.dx, rect.center.dy);
+        canvas.rotate(item.radians);
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                rect.shift(-rect.center), const Radius.circular(2)),
+            paint);
+        canvas.restore();
+      }
+    } else {
+      final layout = LayoutLibrary.byIdOrDefault(
+          template.layoutTemplateId, template.photoCount);
+      final style = template.canvas;
+      final cells = template.customLayout?.layoutCells ??
+          LayoutLibrary.cellsFor(layout, staggerAmount: style.staggerAmount);
+      for (final cell in LayoutGeometry.resolveCells(cells, extent,
+          spacing: style.spacing + 4,
+          outerMargin: style.outerMargin,
+          cornerRadius: style.cornerRadius)) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                cell.rect, Radius.circular(cell.cornerRadius)),
+            paint);
+      }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _TemplatePreview oldDelegate) =>
+      oldDelegate.template != template;
 }

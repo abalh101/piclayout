@@ -14,12 +14,15 @@ class StickerOverlay {
       this.rotation = 0,
       this.color = 0xFFFF477E,
       this.backgroundColor,
-      this.opacity = 1});
+      this.opacity = 1,
+      this.hidden = false,
+      this.locked = false});
   final String id, content;
   final StickerType type;
   final double x, y, scale, rotation, opacity;
   final int color;
   final int? backgroundColor;
+  final bool hidden, locked;
   // Project list order is the persistent back-to-front z-order.
   StickerOverlay copyWith(
           {String? id,
@@ -31,6 +34,8 @@ class StickerOverlay {
           int? color,
           double? opacity,
           int? backgroundColor,
+          bool? hidden,
+          bool? locked,
           bool clearBackground = false}) =>
       StickerOverlay(
           id: id ?? this.id,
@@ -42,6 +47,8 @@ class StickerOverlay {
           rotation: _bounded(rotation ?? this.rotation, 0, -180, 180),
           opacity: _bounded(opacity ?? this.opacity, 1, 0, 1),
           color: color ?? this.color,
+          hidden: hidden ?? this.hidden,
+          locked: locked ?? this.locked,
           backgroundColor:
               clearBackground ? null : backgroundColor ?? this.backgroundColor);
   Map<String, Object?> toJson() => {
@@ -55,6 +62,8 @@ class StickerOverlay {
         'color': color,
         'backgroundColor': backgroundColor,
         'opacity': opacity,
+        if (hidden) 'hidden': true,
+        if (locked) 'locked': true,
       };
   static StickerOverlay? tryParse(Object? value) {
     try {
@@ -74,6 +83,8 @@ class StickerOverlay {
               type: type,
               content: content,
               color: json['color'] as int? ?? 0xFFFF477E,
+              hidden: json['hidden'] == true,
+              locked: json['locked'] == true,
               backgroundColor: json['backgroundColor'] as int?)
           .copyWith(
               x: (json['x'] as num?)?.toDouble(),

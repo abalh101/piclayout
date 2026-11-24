@@ -1,18 +1,33 @@
 import '../models/photo_adjustments.dart';
 import 'photo_filter_renderer.dart';
+import 'photo_detail_renderer.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../models/canvas_settings.dart';
 import '../models/canvas_style.dart';
 import '../models/photo_transform.dart';
+import '../models/photo_placement.dart';
+import '../models/photo_asset.dart';
+import '../../projects/models/collage_project.dart';
 import 'layout_geometry.dart';
+import 'crop_geometry.dart';
 
 class StyleRenderer {
   const StyleRenderer._();
   static double scale(Size size) => size.shortestSide / 390;
   static int photoIndex(CanvasStyle style, int count) =>
       count == 0 ? 0 : style.blurPhotoIndex.clamp(0, count - 1);
+
+  static PhotoAsset? backdropPhoto(CollageProject project) {
+    if (project.photos.isEmpty ||
+        project.canvas.style.backgroundType != BackgroundType.blur) {
+      return null;
+    }
+    final photo =
+        project.photos[photoIndex(project.canvas.style, project.photos.length)];
+    return project.freestyle && photo.placement?.hidden == true ? null : photo;
+  }
 
   static void background(Canvas canvas, Size size, CanvasSettings settings,
       {ui.Image? image, bool opaque = false}) {
@@ -166,34 +181,108 @@ class StyleRenderer {
 
   static void photo(Canvas canvas, ui.Image image, Rect cell, double radius,
       PhotoTransform transform,
-      {PhotoAdjustments adjustments = const PhotoAdjustments()}) {
+      {PhotoAdjustments adjustments = const PhotoAdjustments(),
+      ui.FragmentProgram? detailProgram}) {
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(cell, Radius.circular(radius)));
+    final vignette = adjustments.vignette.clamp(0.0, 1.0);
+    if (vignette > 0) canvas.saveLayer(cell, Paint());
+    canvas.save();
     final rotation = transform.rotationQuarterTurns % 4;
-    final rotatedWidth =
-        rotation.isOdd ? image.height.toDouble() : image.width.toDouble();
-    final rotatedHeight =
-        rotation.isOdd ? image.width.toDouble() : image.height.toDouble();
-    final baseScale = transform.fitMode == PhotoFitMode.fill
-        ? math.max(cell.width / rotatedWidth, cell.height / rotatedHeight)
-        : math.min(cell.width / rotatedWidth, cell.height / rotatedHeight);
-    final userScale = transform.scale.clamp(0.5, 5.0).toDouble();
-    final center = cell.center +
-        Offset(transform.offsetX * cell.width, transform.offsetY * cell.height);
+    final source = Size(image.width.toDouble(), image.height.toDouble());
+    final crop = CropGeometry.resolve(cell, source, transform);
+    final center = crop.center;
     canvas.translate(center.dx, center.dy);
     if (transform.flipX) canvas.scale(-1, 1);
     canvas.rotate(rotation * math.pi / 2);
-    canvas.drawImageRect(
-        image,
-        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-        Rect.fromCenter(
-            center: Offset.zero,
-            width: image.width * baseScale * userScale,
-            height: image.height * baseScale * userScale),
-        Paint()
-          ..colorFilter = PhotoFilterRenderer.filter(adjustments)
-          ..isAntiAlias = true
-          ..filterQuality = FilterQuality.high);
+    final destination = Rect.fromCenter(
+        center: Offset.zero,
+        width: crop.imageSize.width,
+        height: crop.imageSize.height);
+    final paint = Paint()
+      ..colorFilter = PhotoFilterRenderer.filter(adjustments)
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.high;
+    if (detailProgram != null && adjustments.usesDetail) {
+      PhotoDetailRenderer.paint(
+          canvas, image, destination, paint, adjustments, detailProgram);
+    } else {
+      canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+          destination,
+          paint);
+    }
+    canvas.restore();
+    if (vignette > 0) {
+      canvas.save();
+      canvas.translate(cell.center.dx, cell.center.dy);
+      canvas.scale(cell.width / 2, cell.height / 2);
+      canvas.drawRect(
+          const Rect.fromLTRB(-1, -1, 1, 1),
+          Paint()
+            ..blendMode = BlendMode.srcATop
+            ..shader = ui.Gradient.radial(Offset.zero, math.sqrt2, [
+              Colors.transparent,
+              Colors.black.withValues(alpha: vignette * .48),
+              Colors.black.withValues(alpha: vignette * .85),
+            ], [
+              .28,
+              .72,
+              1
+            ]));
+      canvas.restore();
+      canvas.restore();
+    }
+    canvas.restore();
+  }
+
+  static void freestylePhoto(
+      Canvas canvas, Size size, PhotoAsset photoAsset, ui.Image? image,
+      {Color? placeholder, ui.FragmentProgram? detailProgram}) {
+    final placement = photoAsset.placement ?? const PhotoPlacement();
+    if (placement.hidden ||
+        placement.opacity == 0 ||
+        (image == null && placeholder == null)) {
+      return;
+    }
+    final bounds = placement.rect(size);
+    final rect = Rect.fromCenter(
+        center: Offset.zero, width: bounds.width, height: bounds.height);
+    final radius = placement.radius * rect.shortestSide;
+    final outline = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    canvas.save();
+    canvas.translate(bounds.center.dx, bounds.center.dy);
+    canvas.rotate(placement.radians);
+    if (placement.shadow) {
+      canvas.drawRRect(
+          outline.shift(Offset(0, 5 * scale(size))),
+          Paint()
+            ..color = Colors.black.withValues(alpha: .42 * placement.opacity)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * scale(size)));
+    }
+    if (placement.opacity < 1) {
+      canvas.saveLayer(rect,
+          Paint()..color = Colors.white.withValues(alpha: placement.opacity));
+    }
+    if (image == null) {
+      canvas.drawRRect(outline, Paint()..color = placeholder!);
+    } else {
+      photo(canvas, image, rect, radius, photoAsset.transform,
+          adjustments: photoAsset.adjustments, detailProgram: detailProgram);
+    }
+    if (placement.border > 0) {
+      canvas.save();
+      canvas.clipRRect(outline);
+      canvas.drawRRect(
+          outline,
+          Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2 * placement.border * rect.shortestSide);
+      canvas.restore();
+    }
+    if (placement.opacity < 1) canvas.restore();
     canvas.restore();
   }
 }

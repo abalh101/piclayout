@@ -133,6 +133,25 @@ void main() {
     await tester.tap(find.byTooltip('Löschen').last);
     await tester.pumpAndSettle();
     expect(libraryRepository.data.templates, isEmpty);
+    final search = find.byType(TextField);
+    await tester.enterText(search, 'Sofortbild');
+    await tester.pumpAndSettle();
+    expect(find.text('Magazin'), findsNothing);
+    final instant = find.widgetWithText(ListTile, 'Sofortbild');
+    await tester.ensureVisible(instant);
+    await tester.tap(find.descendant(
+      of: instant,
+      matching: find.byTooltip('Zu Favoriten hinzufügen'),
+    ));
+    await tester.pumpAndSettle();
+    expect(libraryRepository.data.favoriteTemplateIds,
+        contains('builtin_instant'));
+    await tester.tap(instant);
+    await tester.pumpAndSettle();
+    expect(controller.project.freestyle, isTrue);
+    expect(libraryRepository.data.recentTemplateIds.first, 'builtin_instant');
+    controller.undo();
+    expect(controller.project.freestyle, isFalse);
     await controller.saveNow();
   });
 }

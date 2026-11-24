@@ -23,6 +23,7 @@ class ExportFlowController extends ChangeNotifier {
   final GallerySaveService _gallery;
   final SocialShareService _share;
   bool busy = false;
+  bool _disposed = false;
 
   Future<String?> run(
       {required CollageProject project,
@@ -30,7 +31,7 @@ class ExportFlowController extends ChangeNotifier {
       required SocialShareDestination destination,
       required Rect origin,
       void Function(String message)? onNotice}) async {
-    if (busy) return null;
+    if (busy || _disposed) return null;
     busy = true;
     notifyListeners();
     try {
@@ -42,7 +43,13 @@ class ExportFlowController extends ChangeNotifier {
       return await _share.share(file, destination, origin, onNotice: onNotice);
     } finally {
       busy = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

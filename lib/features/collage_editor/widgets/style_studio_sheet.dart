@@ -25,6 +25,7 @@ class _StyleStudio extends StatelessWidget {
       builder: (context, _) {
         final t = AppLocalizations.of(context).tr;
         final settings = controller.project.canvas;
+        final freestyle = controller.project.freestyle;
         final style = settings.style;
         void change(CanvasStyle value) =>
             controller.updateCanvas(settings.copyWith(style: value));
@@ -66,7 +67,7 @@ class _StyleStudio extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 12), child: child)
             ]);
         return DefaultTabController(
-            length: 4,
+            length: freestyle ? 2 : 4,
             child: Column(children: [
               Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -81,8 +82,8 @@ class _StyleStudio extends StatelessWidget {
                   ])),
               TabBar(isScrollable: true, tabs: [
                 Tab(text: t('Hintergrund')),
-                Tab(text: t('Rahmen')),
-                Tab(text: t('Schatten')),
+                if (!freestyle) Tab(text: t('Rahmen')),
+                if (!freestyle) Tab(text: t('Schatten')),
                 Tab(text: t('Presets'))
               ]),
               Expanded(
@@ -158,56 +159,60 @@ class _StyleStudio extends StatelessWidget {
                     Text(t(
                         'Die Quelle ist die gewählte Bildposition. Originaldateien bleiben unverändert.'))
                   ],
-                  slider(
-                      'Bildabstand',
-                      settings.spacing,
-                      0,
-                      40,
-                      (v) => controller
-                          .updateCanvas(settings.copyWith(spacing: v))),
-                  slider(
-                      'Außenrand',
-                      settings.outerMargin,
-                      0,
-                      60,
-                      (v) => controller
-                          .updateCanvas(settings.copyWith(outerMargin: v))),
-                  slider(
-                      'Eckenradius',
-                      settings.cornerRadius,
-                      0,
-                      40,
-                      (v) => controller
-                          .updateCanvas(settings.copyWith(cornerRadius: v))),
-                ]),
-                page([
-                  SwitchListTile(
-                      title: Text(t('Bildrahmen')),
-                      value: style.frameEnabled,
-                      onChanged: (v) =>
-                          change(style.copyWith(frameEnabled: v))),
-                  if (style.frameEnabled) ...[
-                    colors(style.frameColor,
-                        (v) => change(style.copyWith(frameColor: v))),
-                    slider('Rahmenstärke', style.frameWidth, 0, 20,
-                        (v) => change(style.copyWith(frameWidth: v)))
+                  if (!freestyle) ...[
+                    slider(
+                        'Bildabstand',
+                        settings.spacing,
+                        0,
+                        40,
+                        (v) => controller
+                            .updateCanvas(settings.copyWith(spacing: v))),
+                    slider(
+                        'Außenrand',
+                        settings.outerMargin,
+                        0,
+                        60,
+                        (v) => controller
+                            .updateCanvas(settings.copyWith(outerMargin: v))),
+                    slider(
+                        'Eckenradius',
+                        settings.cornerRadius,
+                        0,
+                        40,
+                        (v) => controller
+                            .updateCanvas(settings.copyWith(cornerRadius: v))),
                   ],
-                  Text(t(
-                      'Direkt aneinanderliegende Bilder erhalten einen gemeinsamen Außenrahmen.'))
                 ]),
-                page([
-                  SwitchListTile(
-                      title: Text(t('Schatten')),
-                      value: style.shadowEnabled,
-                      onChanged: (v) =>
-                          change(style.copyWith(shadowEnabled: v))),
-                  if (style.shadowEnabled) ...[
-                    slider('Schattenstärke', style.shadowOpacity, 0, 1,
-                        (v) => change(style.copyWith(shadowOpacity: v))),
-                    slider('Weichheit', style.shadowSoftness, 0, 30,
-                        (v) => change(style.copyWith(shadowSoftness: v)))
-                  ]
-                ]),
+                if (!freestyle) ...[
+                  page([
+                    SwitchListTile(
+                        title: Text(t('Bildrahmen')),
+                        value: style.frameEnabled,
+                        onChanged: (v) =>
+                            change(style.copyWith(frameEnabled: v))),
+                    if (style.frameEnabled) ...[
+                      colors(style.frameColor,
+                          (v) => change(style.copyWith(frameColor: v))),
+                      slider('Rahmenstärke', style.frameWidth, 0, 20,
+                          (v) => change(style.copyWith(frameWidth: v)))
+                    ],
+                    Text(t(
+                        'Direkt aneinanderliegende Bilder erhalten einen gemeinsamen Außenrahmen.'))
+                  ]),
+                  page([
+                    SwitchListTile(
+                        title: Text(t('Schatten')),
+                        value: style.shadowEnabled,
+                        onChanged: (v) =>
+                            change(style.copyWith(shadowEnabled: v))),
+                    if (style.shadowEnabled) ...[
+                      slider('Schattenstärke', style.shadowOpacity, 0, 1,
+                          (v) => change(style.copyWith(shadowOpacity: v))),
+                      slider('Weichheit', style.shadowSoftness, 0, 30,
+                          (v) => change(style.copyWith(shadowSoftness: v)))
+                    ]
+                  ]),
+                ],
                 page([
                   for (final preset in StylePreset.all)
                     Card(

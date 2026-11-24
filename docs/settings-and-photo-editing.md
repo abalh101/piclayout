@@ -1,5 +1,7 @@
 # Einstellungen, Sprachen und Foto-Bearbeitung
 
+Den aktuellen Build- und Teststand beschreibt die [Validierung des Editors](editor-and-export.md#validation). Die Prüfergebnisse in diesem Dokument gehören zum ursprünglichen Funktionsstand.
+
 ## Bedienung
 
 Einstellungen über das Zahnrad auf der Startseite öffnen. Sprache, Format neuer
@@ -32,9 +34,11 @@ später erneut antippen, um die gespeicherten Werte weiterzubearbeiten.
 
 Filter: Original, Warm, Cool, Black & White, High Contrast, Soft Fade, Vivid,
 Vintage, Sepia, Matte (Namen werden lokalisiert). Regler: Filterintensität,
-Helligkeit, Kontrast, Sättigung und Wärme. „Original“ entfernt den Preset-Effekt;
-manuelle Regler bleiben erhalten. „Zurücksetzen“ neutralisiert alle Foto-Effekte.
-Die optionale Vignette ist nicht implementiert.
+Helligkeit, Belichtung, Kontrast, Sättigung, Wärme, Lichter, Tiefen, Schärfe und
+Vignette. „Original“ entfernt den Preset-Effekt. „Original anzeigen“ vergleicht
+das Bild ohne Fotoeffekte. Einzelne Regler oder alle Effekte lassen sich
+zurücksetzen. Anpassungen lassen sich im Editor kopieren, einfügen und auf alle
+bearbeitbaren Fotos anwenden.
 
 Ausschnitt, Zoom, Drehen, Spiegeln, Ersetzen, Entfernen und Fit/Fill bleiben
 verfügbar. Filteränderungen verändern keine Transformationsdaten. Beim Ersetzen
@@ -70,16 +74,18 @@ Vorlagen enthalten bewusst keine fotospezifischen Filter oder Bildpfade; beim
 Anwenden einer Vorlage behalten vorhandene Fotos ihre Filter.
 
 `PhotoFilterRenderer` berechnet eine gemeinsame RGB-Farbmatrix aus Preset,
-Intensität und Reglern. Vorschau und dateibasierter Export verwenden sie in
-`StyleRenderer.photo`. Es wird kein Bildschirmfoto exportiert. Rahmen, Schatten,
+Intensität und Reglern. Für Lichter, Tiefen und Schärfe ergänzt ein Flutter-
+Fragmentshader die Farbmatrix. Die Vignette wird im sichtbaren Fotobereich
+gezeichnet. Vorschau und dateibasierter Export verwenden dieselbe Zeichenlogik
+in `StyleRenderer.photo`. Es wird kein Bildschirmfoto exportiert. Rahmen, Schatten,
 Hintergrund und Text werden wie bisher separat gezeichnet; Auswahlmarkierungen
 gehören nicht zum Export. Der Foto-Blur-Hintergrund verwendet weiterhin das
 Originalfoto mit seinen eigenen Style-Reglern, nicht den Foto-Filter.
 
 Der Matrix-Cache ist auf 128 Einträge begrenzt. Vorschau-Bilder werden bis 1024 px
 Kantenlänge einmal pro Pfad decodiert und beim Entfernen/Schließen freigegeben.
-Reglerbewegungen decodieren keine Bilder erneut. Der Export lädt die gespeicherten
-Quelldateien und gibt Bildressourcen frei. Die vorhandene Ladeanzeige und Sperre
+Reglerbewegungen decodieren keine Bilder erneut. Der Export lädt die gespeicherten Quelldateien passend zur Ausgabeauflösung und
+zum Zoom und gibt Bildressourcen frei. JPEG wird in einem Isolate kodiert. Die vorhandene Ladeanzeige und Sperre
 gegen parallelen Export bleiben aktiv. Keine zusätzliche Pixelkopie pro Regler.
 
 Gleiche Farbmatrix bedeutet gleiche Filterberechnung. Bildskalierung, Geräte-

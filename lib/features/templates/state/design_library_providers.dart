@@ -75,7 +75,31 @@ class DesignLibraryNotifier extends StateNotifier<AsyncValue<DesignLibrary>> {
     final current = await _current();
     final next = current.copyWith(
       templates: current.templates.where((item) => item.id != id).toList(),
+      favoriteTemplateIds:
+          current.favoriteTemplateIds.where((value) => value != id).toList(),
+      recentTemplateIds:
+          current.recentTemplateIds.where((value) => value != id).toList(),
     );
+    state = AsyncValue.data(next);
+    await _repository.save(next);
+  }
+
+  Future<void> toggleTemplateFavorite(String id) async {
+    final current = await _current();
+    final ids = current.favoriteTemplateIds.toSet();
+    if (!ids.remove(id)) ids.add(id);
+    final next = current.copyWith(favoriteTemplateIds: ids.toList());
+    state = AsyncValue.data(next);
+    await _repository.save(next);
+  }
+
+  Future<void> recordTemplateUse(String id) async {
+    final current = await _current();
+    if (current.recentTemplateIds.firstOrNull == id) return;
+    final next = current.copyWith(recentTemplateIds: [
+      id,
+      ...current.recentTemplateIds.where((value) => value != id).take(7),
+    ]);
     state = AsyncValue.data(next);
     await _repository.save(next);
   }

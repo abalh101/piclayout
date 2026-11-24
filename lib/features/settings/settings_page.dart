@@ -144,7 +144,15 @@ class SettingsPage extends ConsumerWidget {
                       settings.aspectRatioId,
                       {
                         for (final ratio in AspectRatios.all)
-                          ratio.id: ratio.label
+                          ratio.id: ratio.label,
+                        for (final id in {
+                          ...settings.favoriteRatios,
+                          ...settings.recentRatios,
+                          if (AspectRatios.customById(settings.aspectRatioId) !=
+                              null)
+                            settings.aspectRatioId,
+                        })
+                          id: AspectRatios.byId(id).label,
                       },
                       (value) =>
                           update(settings.copyWith(aspectRatioId: value))),

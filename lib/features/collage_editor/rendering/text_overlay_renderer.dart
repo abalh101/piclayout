@@ -104,6 +104,7 @@ class TextOverlayRenderer {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     for (final overlay in overlays) {
+      if (overlay.hidden) continue;
       final item = layout(overlay, size);
       final angle = overlay.rotation * math.pi / 180;
       canvas.save();
