@@ -1,0 +1,79 @@
+name: iOS validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'lib/**'
+      - 'assets/**'
+      - 'shaders/**'
+      - 'pubspec.*'
+      - 'integration_test/**'
+      - 'test/**'
+      - 'tool/ios/**'
+      - '.github/workflows/ios-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - run: bash tool/ios/select_xcode.sh
+      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2.22.0
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub --reporter expanded
+      - name: Lint iOS project, property lists, privacy manifest and assets
+        run: |
+          plutil -lint ios/Runner.xcodeproj/project.pbxproj ios/Runner/Info.plist ios/Runner/PrivacyInfo.xcprivacy ios/Runner/*.lproj/InfoPlist.strings
+          python3 tool/ios/validate_ios.py
+      - name: Build and inspect unsigned device archive
+        run: |
+          flutter build ipa --release --no-codesign --no-pub
+          xcodebuild -list -workspace ios/Runner.xcworkspace
+          archive=build/ios/archive/Runner.xcarchive
+          python3 tool/ios/validate_ios.py --app "$archive/Products/Applications/Runner.app"
+          ditto -c -k --keepParent "$archive" build/ios/archive/PicLayout-unsigned.xcarchive.zip
+      - name: Save diagnostic Xcode archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: PicLayout-unsigned-xcarchive
+          path: build/ios/archive/PicLayout-unsigned.xcarchive.zip
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build Debug simulator app
+        run: |
+          flutter build ios --simulator --debug --no-pub
+          python3 tool/ios/validate_ios.py --app build/ios/iphonesimulator/Runner.app
+      - name: Boot iPhone and smoke-test the production entry point
+        run: python3 tool/ios/boot_simulator.py 'iPhone 17 Pro'
+      - name: Launch the app and verify its process stays up
+        run: |
+          xcrun simctl install "$SIMULATOR_UDID" build/ios/iphonesimulator/Runner.app
+          launch="$(xcrun simctl launch "$SIMULATOR_UDID" com.abalh101.piclayout)"
+          echo "$launch"
+          pid="${launch##* }"
+          [[ "$pid" =~ ^[0-9]+$ ]]
+          sleep 5
+          xcrun simctl spawn "$SIMULATOR_UDID" launchctl list | awk -v pid="$pid" '$1 == pid { running=1 } END { exit !running }'
+          xcrun simctl terminate "$SIMULATOR_UDID" com.abalh101.piclayout
+      - name: Exercise local recovery, shader edits, exports and Photos saving
+        run: |
+          xcrun simctl privacy "$SIMULATOR_UDID" grant photos-add com.abalh101.piclayout
+          flutter test --no-pub -d "$SIMULATOR_UDID" \
+            --dart-define=PICLAYOUT_TEST_PHOTOS=true \
+            integration_test/photo_adjustments_device_test.dart --reporter expanded

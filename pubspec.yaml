@@ -1,7 +1,7 @@
 name: piclayout
 description: A local-first Flutter photo collage editor for iOS and Android.
 publish_to: "none"
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -33,6 +33,8 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  config:
+    enable-swift-package-manager: true
   uses-material-design: true
   shaders:
     - shaders/photo_adjustments.frag

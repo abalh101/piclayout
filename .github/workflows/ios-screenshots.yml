@@ -1,0 +1,62 @@
+name: iOS App Store screenshots
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: ${{ matrix.device.model }} · ${{ matrix.locale }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: [en, de, ar]
+        device:
+          - model: iPhone 17 Pro
+            id: iphone
+            width: 1206
+            height: 2622
+          - model: iPhone 17 Pro Max
+            id: iphone-large
+            width: 1320
+            height: 2868
+          - model: iPad Pro 13-inch (M5)
+            id: ipad
+            width: 2064
+            height: 2752
+    env:
+      SIMULATOR_MODEL: ${{ matrix.device.model }}
+      SCREENSHOT_LOCALE: ${{ matrix.locale }}
+      WIDTH: ${{ matrix.device.width }}
+      HEIGHT: ${{ matrix.device.height }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - run: bash tool/ios/select_xcode.sh
+      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2.22.0
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: python3 tool/ios/boot_simulator.py "$SIMULATOR_MODEL"
+      - name: Capture the running iOS app
+        run: |
+          flutter test --no-pub --no-uninstall -d "$SIMULATOR_UDID" \
+            --dart-define="SCREENSHOT_LOCALE=$SCREENSHOT_LOCALE" \
+            integration_test/appstore_screenshots_test.dart --reporter expanded
+          data="$(xcrun simctl get_app_container "$SIMULATOR_UDID" com.abalh101.piclayout data)"
+          mkdir -p build/appstore-screenshots
+          cp "$data"/Documents/appstore-captures/*.png build/appstore-screenshots/
+          python3 tool/ios/check_screenshots.py build/appstore-screenshots "$WIDTH" "$HEIGHT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: PicLayout-screenshots-${{ matrix.device.id }}-${{ matrix.locale }}
+          path: build/appstore-screenshots/*.png
+          if-no-files-found: error
+          retention-days: 14

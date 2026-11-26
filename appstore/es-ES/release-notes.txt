@@ -1,0 +1,1 @@
+La primera versión de PicLayout incluye collages de cuadrícula y estilo libre, edición de fotos, plantillas y exportación en alta resolución.

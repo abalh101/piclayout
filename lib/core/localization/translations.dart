@@ -7,6 +7,22 @@ const translations = <String, List<String>>{
   ...editorialTranslations,
   ...adjustmentTranslations,
   ...freeformTranslations,
+  'privacyPolicy': [
+    'Datenschutzerklärung',
+    'Privacy policy',
+    'سياسة الخصوصية',
+    'Gizlilik politikası',
+    'Politique de confidentialité',
+    'Política de privacidad',
+  ],
+  'iosSocialExportHint': [
+    'Die Social-Media-Formate passen die Bildgröße an. Wähle im iOS-Teilen-Menü eine verfügbare App aus.',
+    'Social formats set the image size. Choose an available app from the iOS share sheet.',
+    'تحدد تنسيقات التواصل أبعاد الصورة. اختر تطبيقًا متاحًا من قائمة المشاركة في iOS.',
+    'Sosyal medya biçimleri görsel boyutunu belirler. iOS paylaşım menüsünden kullanılabilir bir uygulama seçin.',
+    'Les formats sociaux définissent les dimensions de l’image. Choisissez une application disponible dans le partage iOS.',
+    'Los formatos sociales ajustan el tamaño de la imagen. Elige una app disponible en el menú de compartir de iOS.',
+  ],
   'projectSaveFailed': [
     'Projekt nicht gespeichert. Bitte erneut versuchen.',
     'Project not saved. Please retry.',

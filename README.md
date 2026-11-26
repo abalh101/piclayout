@@ -35,9 +35,9 @@ flutter test
 flutter build apk --debug
 ```
 
-Run on a configured device with `flutter run`. Android and iOS use `com.abalh101.piclayout`. Android release builds require an external upload keystore configured through `android/key.properties`. Start from `android/key.properties.example`. Supply a production support address with `--dart-define=SUPPORT_EMAIL=...`. App version and build number come from `pubspec.yaml`.
+Run on a configured device with `flutter run`. Android and iOS use `com.abalh101.piclayout`. Android release builds require an external upload keystore configured through `android/key.properties`. Start from `android/key.properties.example`. Supply a production support address with `--dart-define=SUPPORT_EMAIL=...`. The source version is `1.0.0+1` in `pubspec.yaml`. The iOS release workflow accepts explicit version and build inputs. iPhone and iPad support starts at iOS/iPadOS 15.0.
 
-GitHub Actions runs the Flutter format, analysis, and test checks. The iOS workflow can build an unsigned IPA for inspection or a signed IPA with the appropriate Apple signing configuration. See the [release checklist](docs/release-checklist.md) and [iOS IPA workflow](docs/ios-ipa-builds.md).
+GitHub Actions runs Flutter quality checks and three iOS workflows. **iOS validation** builds an unsigned device app and checks the simulator without Apple credentials. **iOS App Store release** signs and exports an IPA on macOS, with App Store Connect upload available through an explicit opt-in. **iOS App Store screenshots** captures the app on iPhone and iPad simulators. See the [iOS release guide](docs/IOS_APPSTORE_RELEASE.md) and [App Store checklist](appstore/release-checklist.md).
 
 The native picker, Android MediaStore and Android 9 legacy gallery path, iOS Photos add-only authorization, and native share integrations are described in the device checklist. Real gallery, picker, and social handoffs need device verification.
 

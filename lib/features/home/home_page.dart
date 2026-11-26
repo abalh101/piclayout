@@ -6,6 +6,7 @@ import '../collage_editor/widgets/styled_collage_scene.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../photo_import/device_photo_picker.dart';
 
 import '../../app/app_config.dart';
 import '../../core/localization/app_localizations.dart';
@@ -171,9 +172,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _pickPhotos(BuildContext context) async {
     if (_picking) return;
     setState(() => _picking = true);
+    const picker = DevicePhotoPicker();
+    var picked = <XFile>[];
     try {
-      final picked = await ImagePicker().pickMultiImage(
-          limit: AppConfig.maxPhotos, requestFullMetadata: false);
+      picked = await picker.pickPhotos(limit: AppConfig.maxPhotos);
       if (!context.mounted || picked.isEmpty) return;
       await Navigator.push(
           context,
@@ -185,6 +187,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             content: Text(AppLocalizations.of(context).tr('photoPickFailed'))));
       }
     } finally {
+      await picker.release(picked);
       if (mounted) setState(() => _picking = false);
     }
   }
@@ -311,22 +314,24 @@ class _ProjectCard extends ConsumerWidget {
                       ),
                     ],
                   )),
-                  PopupMenuButton<String>(
-                    onSelected: (value) =>
-                        _handleMenu(context, ref, value, project),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                          value: 'archive',
-                          enabled: !archiveBusy,
-                          child: Text(strings.tr('archiveExport'))),
-                      PopupMenuItem(
-                          value: 'rename', child: Text(strings.rename)),
-                      PopupMenuItem(
-                          value: 'duplicate', child: Text(strings.duplicate)),
-                      PopupMenuItem(
-                          value: 'delete', child: Text(strings.delete)),
-                    ],
-                  ),
+                  Builder(
+                      builder: (menuContext) => PopupMenuButton<String>(
+                            onSelected: (value) =>
+                                _handleMenu(menuContext, ref, value, project),
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                  value: 'archive',
+                                  enabled: !archiveBusy,
+                                  child: Text(strings.tr('archiveExport'))),
+                              PopupMenuItem(
+                                  value: 'rename', child: Text(strings.rename)),
+                              PopupMenuItem(
+                                  value: 'duplicate',
+                                  child: Text(strings.duplicate)),
+                              PopupMenuItem(
+                                  value: 'delete', child: Text(strings.delete)),
+                            ],
+                          )),
                 ],
               ),
             ),
@@ -342,6 +347,7 @@ class _ProjectCard extends ConsumerWidget {
     String value,
     CollageProject project,
   ) async {
+    if (!context.mounted) return;
     final notifier = ref.read(projectsProvider.notifier);
     try {
       if (value == 'archive') {

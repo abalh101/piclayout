@@ -1,0 +1,104 @@
+name: iOS App Store release
+
+on:
+  workflow_dispatch:
+    inputs:
+      marketing_version:
+        description: App Store marketing version
+        type: string
+        required: true
+        default: '1.0.0'
+      build_number:
+        description: Next unused build number for this version
+        type: string
+        required: true
+        default: '1'
+      upload_to_app_store_connect:
+        description: Validate with Apple and upload to App Store Connect
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-appstore-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      MARKETING_VERSION: ${{ inputs.marketing_version }}
+      BUILD_NUMBER: ${{ inputs.build_number }}
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+      SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+      PRIVACY_POLICY_URL: ${{ vars.PRIVACY_POLICY_URL }}
+      PRIVACY_POLICY_URL_DE: ${{ vars.PRIVACY_POLICY_URL_DE }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - run: bash tool/ios/select_xcode.sh
+      - name: Verify iOS release configuration
+        run: |
+          xcode_help="$(xcodebuild -help 2>&1)"
+          for option in app-store-connect testFlightInternalTestingOnly manageAppVersionAndBuildNumber; do
+            if [[ "$xcode_help" != *"$option"* ]]; then
+              echo "::error::The selected Xcode does not document export option $option."
+              exit 1
+            fi
+          done
+          python3 tool/ios/configure_release.py
+          python3 tool/ios/validate_ios.py
+          plutil -lint ios/Runner.xcodeproj/project.pbxproj ios/Runner/Info.plist ios/Runner/PrivacyInfo.xcprivacy ios/Runner/*.lproj/InfoPlist.strings
+      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2.22.0
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub --reporter expanded
+      - name: Install and verify Apple signing assets
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: bash tool/ios/install_signing.sh
+      - name: Archive and export App Store IPA
+        run: |
+          flutter build ipa --release --no-pub \
+            --build-name="$MARKETING_VERSION" --build-number="$BUILD_NUMBER" \
+            --dart-define="SUPPORT_EMAIL=$SUPPORT_EMAIL" \
+            --dart-define="PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL" \
+            --dart-define="PRIVACY_POLICY_URL_DE=$PRIVACY_POLICY_URL_DE" \
+            --export-options-plist="$RUNNER_TEMP/piclayout-signing/ExportOptions.plist"
+      - name: Verify App Store IPA
+        id: verify
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bash tool/ios/validate_ipa.sh
+      - name: Save App Store IPA artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: PicLayout-AppStore-${{ inputs.marketing_version }}-${{ inputs.build_number }}
+          path: ${{ steps.verify.outputs.ipa }}
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove signing material
+        if: always()
+        run: bash tool/ios/cleanup_signing.sh
+      - name: Validate and upload to App Store Connect
+        if: ${{ inputs.upload_to_app_store_connect }}
+        env:
+          IPA_PATH: ${{ steps.verify.outputs.ipa }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+        run: bash tool/ios/upload_build.sh "$IPA_PATH"

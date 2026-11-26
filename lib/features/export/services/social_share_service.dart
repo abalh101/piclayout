@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../core/platform_file_share.dart';
 import '../models/social_share_preset.dart';
 import 'gallery_save_service.dart';
 
@@ -13,8 +13,9 @@ abstract interface class SocialSharePlatform {
 class NativeSocialSharePlatform implements SocialSharePlatform {
   static const _channel = MethodChannel('piclayout/media');
   @override
-  Future<bool?> isInstalled(String app) =>
-      _channel.invokeMethod<bool>('isInstalled', {'app': app});
+  Future<bool?> isInstalled(String app) async => Platform.isIOS
+      ? null
+      : _channel.invokeMethod<bool>('isInstalled', {'app': app});
   @override
   Future<bool> shareDirect(String app, String path) async =>
       await _channel
@@ -22,7 +23,7 @@ class NativeSocialSharePlatform implements SocialSharePlatform {
       false;
   @override
   Future<void> shareSheet(String path, Rect origin) async {
-    await Share.shareXFiles([XFile(path)], sharePositionOrigin: origin);
+    await shareLocalFile(path, origin);
   }
 }
 

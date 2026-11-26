@@ -1,3 +1,5 @@
+import 'package:url_launcher/url_launcher.dart';
+import '../../app/app_config.dart';
 import '../demo_projects/demo_projects_page.dart';
 import '../onboarding/onboarding_page.dart';
 import '../tutorial_tips/tutorial_tip_controller.dart';
@@ -23,6 +25,8 @@ class SettingsPage extends ConsumerWidget {
     final strings = AppLocalizations.of(context);
     final t = strings.tr;
     final metadata = ref.watch(appMetadataProvider);
+    final privacyPolicy =
+        AppConfig.privacyPolicyFor(strings.locale.languageCode);
     final reportService = ref.watch(problemReportServiceProvider);
     Future<void> update(AppSettings value) async {
       try {
@@ -210,7 +214,24 @@ class SettingsPage extends ConsumerWidget {
                   ExpansionTile(title: Text(t('privacy')), children: [
                     Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text(strings.localPrivacyNote))
+                        child: Text(strings.localPrivacyNote)),
+                    if (privacyPolicy != null)
+                      ListTile(
+                        leading: const Icon(Icons.open_in_browser),
+                        title: Text(t('privacyPolicy')),
+                        onTap: () async {
+                          var opened = false;
+                          try {
+                            opened = await launchUrl(privacyPolicy,
+                                mode: LaunchMode.externalApplication);
+                          } catch (_) {
+                            // Keep the local privacy summary accessible offline.
+                          }
+                          if (!opened && context.mounted) {
+                            _notice(context, t('operationFailed'));
+                          }
+                        },
+                      ),
                   ]),
                   ListTile(
                       title: Text(t('version')),

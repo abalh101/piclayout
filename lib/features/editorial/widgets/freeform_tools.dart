@@ -8,6 +8,7 @@ import '../../collage_editor/models/photo_asset.dart';
 import '../../collage_editor/rendering/preview_image_cache.dart';
 import '../../collage_editor/state/collage_editor_controller.dart';
 import '../../collage_editor/widgets/collage_canvas.dart';
+import '../../photo_import/device_photo_picker.dart';
 import '../../photo_import/selection_review_page.dart';
 import '../../templates/models/collage_template.dart';
 import '../../templates/widgets/template_preview.dart';
@@ -18,12 +19,14 @@ Future<void> pickFreeformPhotos(
     {bool replace = false}) async {
   if (controller.importingPhotos) return;
   final t = AppLocalizations.of(context).tr;
+  const picker = DevicePhotoPicker();
+  var files = <XFile>[];
   try {
-    final picker = ImagePicker();
     if (replace) {
-      final photo = await picker.pickImage(
-          source: ImageSource.gallery, requestFullMetadata: false);
-      if (photo != null) await controller.fillFreeformFrame(photo);
+      files = await picker.pickPhotos(limit: 1);
+      if (context.mounted && files.isNotEmpty) {
+        await controller.fillFreeformFrame(files.single);
+      }
     } else {
       final empty = controller.project.design.layers
           .where((l) =>
@@ -35,14 +38,7 @@ Future<void> pickFreeformPhotos(
           AppConfig.maxFreeformFrames - controller.project.photos.length,
           AppConfig.maxFreeformFrames - controller.freeformFrameCount + empty);
       if (capacity <= 0) throw StateError('ffLimit');
-      // image_picker requires a multi-image limit of at least two.
-      final files = capacity == 1
-          ? [
-              await picker.pickImage(
-                  source: ImageSource.gallery, requestFullMetadata: false)
-            ].whereType<XFile>().toList()
-          : await picker.pickMultiImage(
-              limit: capacity, requestFullMetadata: false);
+      files = await picker.pickPhotos(limit: capacity);
       if (!context.mounted || files.isEmpty) return;
       if (files.length > capacity) throw StateError('ffLimit');
       await Navigator.push(
@@ -60,6 +56,8 @@ Future<void> pickFreeformPhotos(
               ? 'ffLimit'
               : 'photoPickFailed'))));
     }
+  } finally {
+    await picker.release(files);
   }
 }
 

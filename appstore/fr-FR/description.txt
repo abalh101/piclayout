@@ -1,0 +1,7 @@
+Créez des collages photo avec PicLayout. Disposez jusqu’à 12 photos en grille ou en mode libre, puis exportez votre composition en PNG ou JPEG haute résolution.
+
+Partez d’un modèle ou laissez la mise en page intelligente vous proposer une grille adaptée à vos images et au format choisi. Créez une disposition personnalisée, déplacez et faites pivoter les photos librement, et choisissez un format pour les réseaux sociaux ou vos propres proportions.
+
+Ajustez les couleurs, la lumière, le recadrage et les filtres. Ajoutez du texte, des autocollants et des formes, organisez les calques et explorez les fonds, motifs et flous dans le studio de style.
+
+Enregistrez les projets modifiables sur votre appareil. Transférez un projet sous forme d’archive .piclayout, enregistrez un collage dans Photos ou utilisez le partage iOS. La retouche fonctionne hors ligne. Les projets d’exemple permettent de découvrir l’éditeur sans utiliser de photos personnelles.

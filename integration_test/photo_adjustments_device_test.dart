@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
@@ -20,6 +21,7 @@ import 'package:piclayout/features/collage_editor/widgets/photo_adjustments_stud
 import 'package:piclayout/features/collage_editor/widgets/styled_collage_scene.dart';
 import 'package:piclayout/features/export/collage_exporter.dart';
 import 'package:piclayout/features/export/export_settings.dart';
+import 'package:piclayout/features/export/services/gallery_save_service.dart';
 import 'package:piclayout/features/projects/services/project_repository.dart';
 
 const _edits = PhotoAdjustments(
@@ -223,4 +225,31 @@ void main() {
     expect(controller.previewImages.sourceCount, 0);
     expect(PhotoFilterRenderer.cachedSourceCount, 0);
   });
+
+  testWidgets('iOS Photos saves PNG and JPEG and rejects a corrupt export',
+      (tester) async {
+    final root = await _testDirectory();
+    addTearDown(() => root.delete(recursive: true));
+    final source = await _source(root, 128, 96);
+    final repository = ProjectRepository(documentsDirectory: root);
+    final project =
+        await repository.createFromPickedImages([XFile(source.path)]);
+    final gallery = NativeGalleryPlatform();
+    for (final format in ExportFormat.values) {
+      final file = await CollageExporter(outputDirectory: root).export(
+          project, ExportSettings(width: 96, height: 96, format: format));
+      final before = await file.readAsBytes();
+      await gallery.save(file.path);
+      expect(await file.readAsBytes(), before);
+    }
+    final corrupt =
+        await File('${root.path}/corrupt.jpg').writeAsString('invalid JPEG');
+    await expectLater(
+      gallery.save(corrupt.path),
+      throwsA(isA<PlatformException>()
+          .having((error) => error.code, 'code', 'save_failed')),
+    );
+  },
+      skip: !Platform.isIOS ||
+          !const bool.fromEnvironment('PICLAYOUT_TEST_PHOTOS'));
 }

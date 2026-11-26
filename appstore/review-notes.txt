@@ -1,0 +1,9 @@
+PicLayout is a local photo collage editor for iPhone and iPad. No sign-in, purchase, credentials, or internet connection is required to try the editing tools.
+
+1. On first launch, use Skip to go to Home or finish the introduction and choose the example projects. On Home, choose Open an example and choose a design, such as Instagram story collage. The sample artwork is bundled and opening it makes an editable local copy.
+2. In the editor, switch between Grid and Freestyle. In Grid, scroll to the layout recommendations and custom layout tools. In Freestyle, move, scale, or rotate a photo. Try Adjustments, Style Studio, Text, Stickers, or Layers.
+3. Open Export from the editor toolbar. Choose PNG or JPEG and an output size. Save to Photos or use general sharing. Saving to Photos prompts for add-only Photos permission. On iPad, sharing uses the native popover.
+4. In the editor menu, choose Export Project and save the .piclayout archive to Files via the share sheet. Back on Home, choose Import Project and select it to create another editable copy.
+5. Return Home to reopen the saved project. Settings contains the language selector, the privacy policy, the problem report action, and options to replay the introduction or clear temporary exports.
+
+Social options size the output. The iOS share sheet displays available destinations. Any posting is completed in the selected app. Using the example projects and exporting to Photos or Files requires no social account.

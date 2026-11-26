@@ -1,0 +1,1 @@
+PicLayout’un ilk sürümünde ızgara ve serbest kolajlar, fotoğraf ayarları, şablonlar ve yüksek çözünürlüklü dışa aktarma var.

@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
+import 'package:piclayout/features/collage_editor/rendering/project_image_loader.dart';
 import 'package:piclayout/features/collage_editor/rendering/preview_image_cache.dart';
 
 Future<ui.Image> tinyImage() async {
@@ -16,6 +19,25 @@ Future<ui.Image> tinyImage() async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('export decode caps source pixels while keeping original crop geometry',
+      () async {
+    final root = await Directory.systemTemp.createTemp('piclayout-decode-');
+    addTearDown(() => root.delete(recursive: true));
+    final file = await File('${root.path}/source.png')
+        .writeAsBytes(img.encodePng(img.Image(width: 600, height: 400)));
+    ui.Size? sourceSize;
+    final image = await loadProjectImage(file.path,
+        maxPixels: 60000,
+        usefulEdge: (_) => 2000,
+        onSourceSize: (size) => sourceSize = size);
+    try {
+      expect(sourceSize, const ui.Size(600, 400));
+      expect((image.width, image.height), (300, 200));
+    } finally {
+      image.dispose();
+    }
+  });
+
   test(
       'Canvas and sheet share one bounded source; chrome and adjustment changes need no decode',
       () async {

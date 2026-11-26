@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../tutorial_tips/tutorial_tip.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../services/gallery_save_service.dart';
@@ -243,7 +245,9 @@ class _ExportCenterState extends State<ExportCenter> {
                             const SizedBox(height: 16),
                           ],
                           Text(
-                              t('Social-Media-Ziele öffnen die Ziel-App oder das Teilen-Menü. Wähle dort Story, Post oder Status und bestätige den Upload selbst.'),
+                              Platform.isIOS
+                                  ? t('iosSocialExportHint')
+                                  : t('Social-Media-Ziele öffnen die Ziel-App oder das Teilen-Menü. Wähle dort Story, Post oder Status und bestätige den Upload selbst.'),
                               style: Theme.of(context).textTheme.bodySmall),
                           const SizedBox(height: 16),
                         ]),
@@ -259,24 +263,30 @@ class _ExportCenterState extends State<ExportCenter> {
                         ),
                       SizedBox(
                           width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: _flow.busy ? null : _export,
-                            icon: _flow.busy
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : Icon(_icon(_destination)),
-                            label: Text(_flow.busy
-                                ? t(switch (_flow.phase) {
-                                    ExportPhase.saving => 'exportSaving',
-                                    ExportPhase.sharing => 'exportSharing',
-                                    _ => 'Bild wird vorbereitet …',
-                                  })
-                                : _destination == SocialShareDestination.gallery
-                                    ? t('In Galerie speichern')
-                                    : t('Bild vorbereiten & teilen')),
-                          )),
+                          child: Builder(
+                              builder: (buttonContext) => FilledButton.icon(
+                                    onPressed: _flow.busy
+                                        ? null
+                                        : () => _export(buttonContext),
+                                    icon: _flow.busy
+                                        ? const SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2))
+                                        : Icon(_icon(_destination)),
+                                    label: Text(_flow.busy
+                                        ? t(switch (_flow.phase) {
+                                            ExportPhase.saving =>
+                                              'exportSaving',
+                                            ExportPhase.sharing =>
+                                              'exportSharing',
+                                            _ => 'Bild wird vorbereitet …',
+                                          })
+                                        : _destination ==
+                                                SocialShareDestination.gallery
+                                            ? t('In Galerie speichern')
+                                            : t('Bild vorbereiten & teilen')),
+                                  ))),
                     ]),
                   ),
                 ]),
@@ -294,8 +304,8 @@ class _ExportCenterState extends State<ExportCenter> {
     if (result != null && mounted) setState(() => _preset = result);
   }
 
-  Future<void> _export() async {
-    final box = context.findRenderObject()! as RenderBox;
+  Future<void> _export(BuildContext buttonContext) async {
+    final box = buttonContext.findRenderObject()! as RenderBox;
     final origin = box.localToGlobal(Offset.zero) & box.size;
     final messenger = ScaffoldMessenger.of(context);
     void notice(String message) {

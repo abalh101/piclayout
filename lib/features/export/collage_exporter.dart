@@ -27,6 +27,7 @@ class CollageExporter {
   const CollageExporter({this.outputDirectory});
 
   final Directory? outputDirectory;
+  static const _maxExportPixels = 4096 * 4096;
 
   Future<File> export(
     CollageProject project,
@@ -39,7 +40,7 @@ class CollageExporter {
         h > 8192 ||
         w > 8 * h ||
         h > 8 * w ||
-        w * h > 4096 * 4096) {
+        w * h > _maxExportPixels) {
       throw const ExportFailure('exportDimensionLimits');
     }
     final size = Size(settings.width.toDouble(), settings.height.toDouble());
@@ -219,6 +220,7 @@ class CollageExporter {
     try {
       return await loadProjectImage(photo.localPath,
           maxEdge: maxEdge,
+          maxPixels: _maxExportPixels,
           onSourceSize: onSourceSize,
           usefulEdge: cell == null
               ? null

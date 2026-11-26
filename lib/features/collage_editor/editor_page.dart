@@ -17,7 +17,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import '../photo_import/device_photo_picker.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../export/widgets/export_center.dart';
@@ -99,6 +99,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           c.project.name,
         )));
     final controller = ref.read(provider);
+    final archiveBusy = ref.watch(projectArchiveControllerProvider).busy;
 
     return PopScope(
       canPop: _savedForExit,
@@ -110,15 +111,17 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           title: Text(controller.project.name,
               maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
-            PopupMenuButton<String>(
-              enabled: !_leaving &&
-                  !ref.watch(projectArchiveControllerProvider).busy,
-              onSelected: (_) =>
-                  exportProjectArchive(context, ref, controller.project),
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                    value: 'archive', child: Text(strings.tr('archiveExport')))
-              ],
+            Builder(
+              builder: (menuContext) => PopupMenuButton<String>(
+                enabled: !_leaving && !archiveBusy,
+                onSelected: (_) =>
+                    exportProjectArchive(menuContext, ref, controller.project),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                      value: 'archive',
+                      child: Text(strings.tr('archiveExport')))
+                ],
+              ),
             ),
             IconButton(
               tooltip: strings.tr('undo'),
@@ -141,33 +144,32 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             ),
           ],
         ),
-        bottomNavigationBar:
-            _leaving || ref.watch(projectArchiveControllerProvider).busy
-                ? const LinearProgressIndicator()
-                : controller.saveFailed
+        bottomNavigationBar: _leaving || archiveBusy
+            ? const LinearProgressIndicator()
+            : controller.saveFailed
+                ? SafeArea(
+                    child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: Wrap(
+                            spacing: 12,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(strings.tr('projectSaveFailed')),
+                              TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      await controller.saveNow();
+                                    } catch (_) {/* Keep retry visible. */}
+                                  },
+                                  child: Text(strings.tr('retry'))),
+                            ])))
+                : controller.project.recovered
                     ? SafeArea(
-                        child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: Wrap(
-                                spacing: 12,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(strings.tr('projectSaveFailed')),
-                                  TextButton(
-                                      onPressed: () async {
-                                        try {
-                                          await controller.saveNow();
-                                        } catch (_) {/* Keep retry visible. */}
-                                      },
-                                      child: Text(strings.tr('retry'))),
-                                ])))
-                    : controller.project.recovered
-                        ? SafeArea(
-                            child: ListTile(
-                                leading: const Icon(Icons.info_outline),
-                                title: Text(strings.tr('projectRecovered'))))
-                        : null,
+                        child: ListTile(
+                            leading: const Icon(Icons.info_outline),
+                            title: Text(strings.tr('projectRecovered'))))
+                    : null,
         body: AbsorbPointer(
             absorbing: _leaving,
             child: SafeArea(
@@ -572,17 +574,12 @@ class _ToolsPanel extends ConsumerWidget {
     try {
       final count = AppConfig.maxPhotos - controller.project.photos.length;
       if (count < 1) return;
-      final picker = ImagePicker();
-      if (count == 1) {
-        final photo = await picker.pickImage(
-            source: ImageSource.gallery, requestFullMetadata: false);
-        if (photo != null && context.mounted) {
-          await controller.addPhotos([photo]);
-        }
-      } else {
-        final photos = await picker.pickMultiImage(
-            limit: count, requestFullMetadata: false);
+      const picker = DevicePhotoPicker();
+      final photos = await picker.pickPhotos(limit: count);
+      try {
         if (context.mounted) await controller.addPhotos(photos);
+      } finally {
+        await picker.release(photos);
       }
     } catch (_) {
       if (context.mounted) {
@@ -646,7 +643,7 @@ Future<void> showPhotoSheet(
   CollageEditorController controller,
 ) async {
   final strings = AppLocalizations.of(context);
-  final picker = ImagePicker();
+  const picker = DevicePhotoPicker();
   bool replacing = false;
 
   await showModalBottomSheet<void>(
@@ -729,13 +726,16 @@ Future<void> showPhotoSheet(
                                       if (replacing) return;
                                       setSheetState(() => replacing = true);
                                       try {
-                                        final picked = await picker.pickImage(
-                                          source: ImageSource.gallery,
-                                          requestFullMetadata: false,
-                                        );
-                                        if (picked != null) {
-                                          await controller
-                                              .replaceSelected(picked);
+                                        final photos =
+                                            await picker.pickPhotos(limit: 1);
+                                        try {
+                                          if (context.mounted &&
+                                              photos.isNotEmpty) {
+                                            await controller
+                                                .replaceSelected(photos.single);
+                                          }
+                                        } finally {
+                                          await picker.release(photos);
                                         }
                                       } catch (_) {
                                         if (context.mounted) {

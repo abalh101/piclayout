@@ -1,0 +1,7 @@
+Crea collages de fotos con PicLayout. Organiza hasta 12 fotos en una cuadrícula o con estilo libre y exporta tu composición en PNG o JPEG de alta resolución.
+
+Empieza con una plantilla o utiliza el diseño automático inteligente para obtener sugerencias que tengan en cuenta tus fotos y el formato elegido. Crea composiciones personalizadas, mueve y gira las fotos libremente y usa formatos para redes sociales o tus propias proporciones.
+
+Ajusta el color, la luz, el recorte y los filtros. Añade texto, pegatinas y formas, organiza las capas y prueba fondos, patrones y desenfoques en el estudio de estilos.
+
+Guarda proyectos editables en el dispositivo y vuelve a abrirlos cuando quieras. Transfiere un proyecto como archivo .piclayout, guarda un collage en Fotos o utiliza el menú de compartir de iOS. La edición funciona sin conexión. Los proyectos de ejemplo te permiten explorar el editor sin usar fotos personales.

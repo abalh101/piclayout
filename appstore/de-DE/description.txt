@@ -1,0 +1,7 @@
+Gestalte Fotocollagen mit PicLayout. Ordne bis zu 12 Fotos im Raster oder im Freistil an und exportiere das Ergebnis als hochauflösende PNG- oder JPEG-Datei.
+
+Starte mit einer Designvorlage oder lass dir von Smart Auto Layout passende Raster für deine Fotos und dein Format vorschlagen. In unterstützten Rastern kannst du Trennlinien verschieben. Erstelle eigene Layouts oder verschiebe und drehe Fotos frei. Wähle ein Social-Media-Format oder stelle dein eigenes Seitenverhältnis ein.
+
+Passe Farbe, Licht, Zuschnitt und Filter an. Ergänze Texte, Sticker und Formen, verwalte Ebenen und entdecke Hintergründe, Muster und Weichzeichnung im Style Studio.
+
+Speichere bearbeitbare Projekte auf deinem Gerät und öffne sie später erneut. Übertrage Projekte als .piclayout-Archiv, speichere Collagen in Fotos oder nutze das iOS-Teilen-Menü. Die Bearbeitung funktioniert offline. Mit den integrierten Beispielen kannst du den Editor ohne eigene Fotos ausprobieren.

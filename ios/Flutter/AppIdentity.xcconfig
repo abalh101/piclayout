@@ -1,0 +1,2 @@
+PICLAYOUT_BUNDLE_ID = com.abalh101.piclayout
+#include? "LocalIdentity.xcconfig"

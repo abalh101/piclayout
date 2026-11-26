@@ -1,5 +1,7 @@
 # PicLayout Release-Checkliste
 
+Für den aktuellen App Store-Release gelten der [iOS Release Guide](IOS_APPSTORE_RELEASE.md) und die [App Store Checkliste](../appstore/release-checklist.md). Die folgenden Abschnitte dokumentieren frühere Prüfungen und die Android-Checkliste.
+
 ## Photo Adjustments Studio (2026-11-13)
 
 Implementation, processing order, compatibility and limitations:

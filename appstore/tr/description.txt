@@ -1,0 +1,7 @@
+PicLayout ile fotoğraf kolajları oluşturun. Izgara veya Serbest modda 12 fotoğrafa kadar düzenleyin, ardından kolajı yüksek çözünürlüklü PNG ya da JPEG olarak dışa aktarın.
+
+Hazır bir tasarımla başlayın veya Akıllı Otomatik Düzen’in fotoğraflarınız ve seçtiğiniz oran için sunduğu önerileri inceleyin. Özel bir düzen oluşturun, fotoğrafları serbestçe taşıyıp döndürün ve sosyal medya boyutlarını ya da özel en boy oranınızı seçin.
+
+Renk, ışık, kırpma ve filtreleri ayarlayın. Metin, çıkartma ve şekiller ekleyin, katmanları yönetin ve Stil Stüdyosu’nda arka plan, desen ve bulanıklığı keşfedin.
+
+Düzenlenebilir projeleri cihazınıza kaydedip yeniden açın. Projenizi .piclayout arşivi olarak aktarın, kolajı Fotoğraflar’a kaydedin ya da iOS paylaşım menüsünü kullanın. Düzenleme çevrimdışı çalışır. Örnek projelerle kendi fotoğraflarınızı kullanmadan başlayabilirsiniz.

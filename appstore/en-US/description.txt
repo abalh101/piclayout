@@ -1,0 +1,7 @@
+Make polished photo collages with PicLayout. Arrange up to 12 photos in Grid or Freestyle, adjust the composition, and export a high-resolution PNG or JPEG.
+
+Start with a built-in design or let Smart Auto Layout recommend a grid based on the shapes of your photos and the format you choose. Adjust dividers in supported grids, build a custom layout, or move and rotate photos freely. Choose a social media format or set your own aspect ratio.
+
+Fine-tune color, light, crop, and filters. Add text, stickers, and shapes, manage layers, and explore backgrounds, patterns, and blur in Style Studio.
+
+Save and reopen editable projects on your device. Export a .piclayout archive to move a project, save a collage to Photos, or use the iOS share sheet. The editing tools work offline, and the example projects let you explore without selecting personal photos.

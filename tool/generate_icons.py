@@ -61,4 +61,8 @@ icons = ROOT / 'ios/Runner/Assets.xcassets/AppIcon.appiconset'
 for spec in json.loads((icons / 'Contents.json').read_text())['images']:
     size = round(float(spec['size'].split('x')[0]) * float(spec['scale'][:-1]))
     master.resize((size,size), Image.Resampling.LANCZOS).save(icons / spec['filename'])
-print('Generated master/SVG/logo, Android launcher/adaptive assets and all iOS AppIcon sizes.')
+launch = icons.parent / 'LaunchImage.imageset'
+for scale in (1, 2, 3):
+    name = 'LaunchImage.png' if scale == 1 else f'LaunchImage@{scale}x.png'
+    logo.resize((112*scale,112*scale), Image.Resampling.LANCZOS).save(launch / name)
+print('Generated branding, Android launcher, and iOS launcher and launch screen assets.')

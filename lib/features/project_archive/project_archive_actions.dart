@@ -30,13 +30,14 @@ Future<void> importProjectArchive(BuildContext context, WidgetRef ref) async {
 
 Future<void> exportProjectArchive(
     BuildContext context, WidgetRef ref, CollageProject project) async {
+  if (!context.mounted) return;
   final controller = ref.read(projectArchiveControllerProvider);
   if (controller.busy) return;
   final strings = AppLocalizations.of(context);
-  final box = context.findRenderObject() as RenderBox?;
-  final origin = box == null
-      ? const Rect.fromLTWH(0, 0, 1, 1)
-      : box.localToGlobal(Offset.zero) & box.size;
+  final box = context.findRenderObject();
+  final origin = box is RenderBox && box.attached && box.hasSize
+      ? box.localToGlobal(Offset.zero) & box.size
+      : const Rect.fromLTWH(0, 0, 1, 1);
   try {
     await controller.exportProject(project, origin);
   } on ProjectArchiveException catch (error) {

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../core/platform_file_share.dart';
 import '../projects/models/collage_project.dart';
 import 'project_archive_service.dart';
 
@@ -21,9 +21,8 @@ class NativeProjectArchivePlatform implements ProjectArchivePlatform {
   // Validate the chosen name and archive contents after selection instead.
   @override
   Future<void> shareProject(File file, Rect origin) async {
-    await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/octet-stream')],
-        sharePositionOrigin: origin);
+    await shareLocalFile(file.path, origin,
+        mimeType: 'application/octet-stream');
   }
 }
 

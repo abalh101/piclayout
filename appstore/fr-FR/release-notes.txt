@@ -1,0 +1,1 @@
+La première version de PicLayout réunit collages libres et en grille, retouche photo, modèles et export haute résolution.
